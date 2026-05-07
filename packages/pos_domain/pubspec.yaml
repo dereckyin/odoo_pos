@@ -1,0 +1,19 @@
+name: pos_domain
+description: Pure Dart domain entities, value objects and repository interfaces for the POS system.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  pos_core:
+    path: ../pos_core
+  meta: ^1.12.0
+  collection: ^1.18.0
+  decimal: ^3.0.2
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^4.0.0

@@ -1,0 +1,49 @@
+import asyncio
+import os
+import pathlib
+
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+os.environ.setdefault("JWT_SECRET", "test-secret")
+
+# Ensure the project root is importable when running `pytest` from here.
+import sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+
+import pytest
+import pytest_asyncio
+from asgi_lifespan import LifespanManager
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+from app.core import db as db_mod
+from app.core.db import Base
+from app.main import create_app
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest_asyncio.fixture
+async def app():
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    db_mod._engine = engine
+    db_mod._session_factory = factory
+
+    app = create_app()
+    async with LifespanManager(app):
+        yield app
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def client(app):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        yield ac

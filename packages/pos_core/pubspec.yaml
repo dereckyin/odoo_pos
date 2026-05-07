@@ -1,0 +1,19 @@
+name: pos_core
+description: Shared utilities (errors, result types, logger, value objects) for the POS system.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  meta: ^1.12.0
+  uuid: ^4.4.0
+  decimal: ^3.0.2
+  intl: any
+  logging: ^1.2.0
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^4.0.0

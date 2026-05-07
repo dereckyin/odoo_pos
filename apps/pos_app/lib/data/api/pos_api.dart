@@ -1,0 +1,165 @@
+import 'package:dio/dio.dart';
+
+import 'dto.dart';
+
+/// Hand-rolled API surface (no retrofit codegen) so `flutter run` works
+/// without first invoking build_runner.
+class PosApi {
+  PosApi(this._dio);
+  final Dio _dio;
+
+  // ---- Auth ----
+  Future<SessionDto> login(String username, String password, String terminalCode) async {
+    final r = await _dio.post('/auth/login', data: {
+      'username': username,
+      'password': password,
+      'terminal_code': terminalCode,
+    });
+    return SessionDto.fromJson(_asMap(r.data));
+  }
+
+  Future<SessionDto> refresh(String refreshToken) async {
+    final r = await _dio.post('/auth/refresh', data: {'refresh_token': refreshToken});
+    return SessionDto.fromJson(_asMap(r.data));
+  }
+
+  Future<Map<String, dynamic>> registerTerminal(String storeCode, String terminalCode) async {
+    final r = await _dio.post('/auth/terminals/register', data: {
+      'store_code': storeCode,
+      'terminal_code': terminalCode,
+    });
+    return _asMap(r.data);
+  }
+
+  Future<void> heartbeat(String terminalId) async {
+    await _dio.post('/auth/terminals/heartbeat', data: {'terminal_id': terminalId});
+  }
+
+  // ---- Sync ----
+  Future<DeltaPage<ProductDto>> syncProducts(DateTime since, {int limit = 500}) async {
+    final r = await _dio.get('/sync/products', queryParameters: {
+      'since': since.toUtc().toIso8601String(),
+      'limit': limit,
+    });
+    return DeltaPage.fromJson(_asMap(r.data), ProductDto.fromJson);
+  }
+
+  Future<DeltaPage<CategoryDto>> syncCategories(DateTime since, {int limit = 500}) async {
+    final r = await _dio.get('/sync/categories', queryParameters: {
+      'since': since.toUtc().toIso8601String(),
+      'limit': limit,
+    });
+    return DeltaPage.fromJson(_asMap(r.data), CategoryDto.fromJson);
+  }
+
+  Future<DeltaPage<MemberDto>> syncMembers(DateTime since, {int limit = 500}) async {
+    final r = await _dio.get('/sync/members', queryParameters: {
+      'since': since.toUtc().toIso8601String(),
+      'limit': limit,
+    });
+    return DeltaPage.fromJson(_asMap(r.data), MemberDto.fromJson);
+  }
+
+  Future<DeltaPage<MemberLevelDto>> syncMemberLevels(DateTime since, {int limit = 500}) async {
+    final r = await _dio.get('/sync/member-levels', queryParameters: {
+      'since': since.toUtc().toIso8601String(),
+      'limit': limit,
+    });
+    return DeltaPage.fromJson(_asMap(r.data), MemberLevelDto.fromJson);
+  }
+
+  Future<DeltaPage<PromotionDto>> syncPromotions(DateTime since, {int limit = 500}) async {
+    final r = await _dio.get('/sync/promotions', queryParameters: {
+      'since': since.toUtc().toIso8601String(),
+      'limit': limit,
+    });
+    return DeltaPage.fromJson(_asMap(r.data), PromotionDto.fromJson);
+  }
+
+  Future<DeltaPage<InventoryLevelDto>> syncInventory(
+    DateTime since, {
+    String? storeId,
+    int limit = 1000,
+  }) async {
+    final r = await _dio.get('/sync/inventory-levels', queryParameters: {
+      'since': since.toUtc().toIso8601String(),
+      'limit': limit,
+      if (storeId != null) 'store_id': storeId,
+    });
+    return DeltaPage.fromJson(_asMap(r.data), InventoryLevelDto.fromJson);
+  }
+
+  // ---- Orders / Refunds ----
+  Future<Map<String, dynamic>> uploadOrder(Map<String, dynamic> payload) async {
+    final r = await _dio.post('/orders', data: payload);
+    return _asMap(r.data);
+  }
+
+  Future<Map<String, dynamic>> refundOrder(String orderId, Map<String, dynamic> payload) async {
+    final r = await _dio.post('/orders/$orderId/refund', data: payload);
+    return _asMap(r.data);
+  }
+
+  Future<List<Map<String, dynamic>>> recentOrders({String? memberId, String? terminalId, int limit = 20}) async {
+    final r = await _dio.get('/orders', queryParameters: {
+      if (memberId != null) 'member_id': memberId,
+      if (terminalId != null) 'terminal_id': terminalId,
+      'limit': limit,
+    });
+    return (r.data as List).map((e) => (e as Map).cast<String, dynamic>()).toList();
+  }
+
+  // ---- Inventory / Movements ----
+  Future<void> postMovement(Map<String, dynamic> payload) async {
+    await _dio.post('/inventory/movements', data: payload);
+  }
+
+  Future<void> postMovementsBatch(List<Map<String, dynamic>> payload) async {
+    await _dio.post('/inventory/movements/batch', data: payload);
+  }
+
+  // ---- Member ----
+  Future<MemberDto?> findMemberByPhone(String phone) async {
+    try {
+      final r = await _dio.get('/members/by-phone/$phone');
+      return MemberDto.fromJson(_asMap(r.data));
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  Future<MemberDto?> findMemberByQr(String qr) async {
+    try {
+      final r = await _dio.get('/members/by-qr/$qr');
+      return MemberDto.fromJson(_asMap(r.data));
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  Future<MemberDto> createMember(Map<String, dynamic> payload) async {
+    final r = await _dio.post('/members', data: payload);
+    return MemberDto.fromJson(_asMap(r.data));
+  }
+
+  // ---- Payment / Invoice ----
+  Future<Map<String, dynamic>> charge(Map<String, dynamic> payload) async {
+    final r = await _dio.post('/payments/charge', data: payload);
+    return _asMap(r.data);
+  }
+
+  Future<Map<String, dynamic>> issueInvoice(Map<String, dynamic> payload) async {
+    final r = await _dio.post('/invoices/issue', data: payload);
+    return _asMap(r.data);
+  }
+
+  Future<Map<String, dynamic>> voidInvoice(Map<String, dynamic> payload) async {
+    final r = await _dio.post('/invoices/void', data: payload);
+    return _asMap(r.data);
+  }
+
+  // helpers
+  Map<String, dynamic> _asMap(dynamic data) => (data as Map).cast<String, dynamic>();
+}

@@ -1,0 +1,63 @@
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+**/.fvm/
+**/ios/Pods/
+**/macos/Pods/
+**/.symbols/
+
+# Dart generated
+*.g.dart
+*.freezed.dart
+*.gr.dart
+!**/lib/**/*.g.dart
+!**/lib/**/*.freezed.dart
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.local
+*.pem
+*.key
+
+# Database / logs
+*.sqlite
+*.sqlite3
+*.db
+*.log
+
+# Node (admin frontend)
+node_modules/
+dist/
+
+# Uploads
+uploads/
+
+# Misc
+.melos_tool/
+pubspec.lock

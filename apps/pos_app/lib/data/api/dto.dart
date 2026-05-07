@@ -1,0 +1,295 @@
+/// JSON DTOs - hand-rolled to avoid build_runner being a hard requirement on
+/// first checkout. They mirror the FastAPI schemas in `apps/api/app/schemas`.
+
+class StoreDto {
+  StoreDto({
+    required this.id,
+    required this.code,
+    required this.name,
+    required this.updatedAt,
+    this.taxId,
+    this.address,
+    this.phone,
+  });
+
+  factory StoreDto.fromJson(Map<String, dynamic> j) => StoreDto(
+        id: j['id'] as String,
+        code: j['code'] as String,
+        name: j['name'] as String,
+        taxId: j['tax_id'] as String?,
+        address: j['address'] as String?,
+        phone: j['phone'] as String?,
+        updatedAt: DateTime.parse(j['updated_at'] as String),
+      );
+
+  final String id, code, name;
+  final String? taxId, address, phone;
+  final DateTime updatedAt;
+}
+
+class TerminalDto {
+  TerminalDto({required this.id, required this.storeId, required this.code, this.lastSeenAt});
+  factory TerminalDto.fromJson(Map<String, dynamic> j) => TerminalDto(
+        id: j['id'] as String,
+        storeId: j['store_id'] as String,
+        code: j['code'] as String,
+        lastSeenAt: j['last_seen_at'] == null ? null : DateTime.parse(j['last_seen_at'] as String),
+      );
+  final String id, storeId, code;
+  final DateTime? lastSeenAt;
+}
+
+class SessionDto {
+  SessionDto({
+    required this.userId,
+    required this.username,
+    required this.displayName,
+    required this.role,
+    required this.storeId,
+    required this.terminalId,
+    required this.accessToken,
+    required this.refreshToken,
+    required this.expiresAt,
+  });
+
+  factory SessionDto.fromJson(Map<String, dynamic> j) => SessionDto(
+        userId: j['user_id'] as String,
+        username: j['username'] as String,
+        displayName: j['display_name'] as String,
+        role: j['role'] as String,
+        storeId: j['store_id'] as String,
+        terminalId: j['terminal_id'] as String,
+        accessToken: j['access_token'] as String,
+        refreshToken: j['refresh_token'] as String,
+        expiresAt: DateTime.fromMillisecondsSinceEpoch(((j['expires_at'] as num) * 1000).toInt()),
+      );
+
+  final String userId, username, displayName, role, storeId, terminalId, accessToken, refreshToken;
+  final DateTime expiresAt;
+}
+
+class CategoryDto {
+  CategoryDto({
+    required this.id,
+    required this.name,
+    required this.updatedAt,
+    this.parentId,
+    this.sortOrder = 0,
+    this.color,
+    this.icon,
+    this.deletedAt,
+  });
+  factory CategoryDto.fromJson(Map<String, dynamic> j) => CategoryDto(
+        id: j['id'] as String,
+        name: j['name'] as String,
+        parentId: j['parent_id'] as String?,
+        sortOrder: (j['sort_order'] as num?)?.toInt() ?? 0,
+        color: j['color'] as String?,
+        icon: j['icon'] as String?,
+        updatedAt: DateTime.parse(j['updated_at'] as String),
+        deletedAt: j['deleted_at'] == null ? null : DateTime.parse(j['deleted_at'] as String),
+      );
+  final String id, name;
+  final String? parentId, color, icon;
+  final int sortOrder;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+}
+
+class ProductDto {
+  ProductDto({
+    required this.id,
+    required this.sku,
+    required this.name,
+    required this.priceCents,
+    required this.taxRate,
+    required this.isWeighted,
+    required this.unit,
+    required this.isActive,
+    required this.barcodes,
+    required this.updatedAt,
+    this.costCents,
+    this.categoryId,
+    this.imageUrl,
+    this.description,
+    this.deletedAt,
+  });
+
+  factory ProductDto.fromJson(Map<String, dynamic> j) => ProductDto(
+        id: j['id'] as String,
+        sku: j['sku'] as String,
+        name: j['name'] as String,
+        priceCents: (j['price_cents'] as num).toInt(),
+        costCents: (j['cost_cents'] as num?)?.toInt(),
+        taxRate: (j['tax_rate'] as num?)?.toDouble() ?? 0.05,
+        isWeighted: j['is_weighted'] as bool? ?? false,
+        unit: j['unit'] as String? ?? '個',
+        isActive: j['is_active'] as bool? ?? true,
+        categoryId: j['category_id'] as String?,
+        imageUrl: j['image_url'] as String?,
+        description: j['description'] as String?,
+        barcodes: (j['barcodes'] as List?)?.cast<String>() ?? const [],
+        updatedAt: DateTime.parse(j['updated_at'] as String),
+        deletedAt: j['deleted_at'] == null ? null : DateTime.parse(j['deleted_at'] as String),
+      );
+
+  final String id, sku, name, unit;
+  final int priceCents;
+  final int? costCents;
+  final double taxRate;
+  final bool isWeighted, isActive;
+  final String? categoryId, imageUrl, description;
+  final List<String> barcodes;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+}
+
+class MemberDto {
+  MemberDto({
+    required this.id,
+    required this.phone,
+    required this.name,
+    required this.points,
+    required this.totalSpentCents,
+    required this.joinedAt,
+    required this.updatedAt,
+    this.email,
+    this.birthday,
+    this.levelId,
+    this.qrCode,
+    this.lastVisitAt,
+    this.note,
+    this.deletedAt,
+  });
+  factory MemberDto.fromJson(Map<String, dynamic> j) => MemberDto(
+        id: j['id'] as String,
+        phone: j['phone'] as String,
+        name: j['name'] as String,
+        email: j['email'] as String?,
+        birthday: j['birthday'] == null ? null : DateTime.parse(j['birthday'] as String),
+        points: (j['points'] as num?)?.toInt() ?? 0,
+        totalSpentCents: (j['total_spent_cents'] as num?)?.toInt() ?? 0,
+        levelId: j['level_id'] as String?,
+        qrCode: j['qr_code'] as String?,
+        joinedAt: DateTime.parse(j['joined_at'] as String),
+        lastVisitAt: j['last_visit_at'] == null ? null : DateTime.parse(j['last_visit_at'] as String),
+        note: j['note'] as String?,
+        updatedAt: DateTime.parse(j['updated_at'] as String),
+        deletedAt: j['deleted_at'] == null ? null : DateTime.parse(j['deleted_at'] as String),
+      );
+  final String id, phone, name;
+  final String? email, levelId, qrCode, note;
+  final int points;
+  final int totalSpentCents;
+  final DateTime? birthday, lastVisitAt, deletedAt;
+  final DateTime joinedAt;
+  final DateTime updatedAt;
+}
+
+class MemberLevelDto {
+  MemberLevelDto({
+    required this.id,
+    required this.name,
+    required this.discountRate,
+    required this.minSpend,
+    required this.minPoints,
+    this.color,
+    this.sortOrder = 0,
+  });
+  factory MemberLevelDto.fromJson(Map<String, dynamic> j) => MemberLevelDto(
+        id: j['id'] as String,
+        name: j['name'] as String,
+        discountRate: (j['discount_rate'] as num).toDouble(),
+        minSpend: (j['min_spend'] as num?)?.toInt() ?? 0,
+        minPoints: (j['min_points'] as num?)?.toInt() ?? 0,
+        color: j['color'] as String?,
+        sortOrder: (j['sort_order'] as num?)?.toInt() ?? 0,
+      );
+  final String id, name;
+  final double discountRate;
+  final int minSpend, minPoints, sortOrder;
+  final String? color;
+}
+
+class PromotionDto {
+  PromotionDto({
+    required this.id,
+    required this.name,
+    required this.strategy,
+    required this.config,
+    required this.isActive,
+    required this.priority,
+    required this.stackable,
+    required this.applicableProductIds,
+    required this.applicableCategoryIds,
+    required this.memberLevelIds,
+    required this.updatedAt,
+    this.startsAt,
+    this.endsAt,
+    this.description,
+    this.deletedAt,
+  });
+  factory PromotionDto.fromJson(Map<String, dynamic> j) => PromotionDto(
+        id: j['id'] as String,
+        name: j['name'] as String,
+        strategy: j['strategy'] as String,
+        config: (j['config'] as Map).cast<String, dynamic>(),
+        priority: (j['priority'] as num?)?.toInt() ?? 0,
+        startsAt: j['starts_at'] == null ? null : DateTime.parse(j['starts_at'] as String),
+        endsAt: j['ends_at'] == null ? null : DateTime.parse(j['ends_at'] as String),
+        isActive: j['is_active'] as bool? ?? true,
+        stackable: j['stackable'] as bool? ?? false,
+        applicableProductIds: (j['applicable_product_ids'] as List?)?.cast<String>() ?? const [],
+        applicableCategoryIds: (j['applicable_category_ids'] as List?)?.cast<String>() ?? const [],
+        memberLevelIds: (j['member_level_ids'] as List?)?.cast<String>() ?? const [],
+        description: j['description'] as String?,
+        updatedAt: DateTime.parse(j['updated_at'] as String),
+        deletedAt: j['deleted_at'] == null ? null : DateTime.parse(j['deleted_at'] as String),
+      );
+  final String id, name, strategy;
+  final Map<String, dynamic> config;
+  final int priority;
+  final DateTime? startsAt, endsAt, deletedAt;
+  final bool isActive, stackable;
+  final List<String> applicableProductIds, applicableCategoryIds, memberLevelIds;
+  final String? description;
+  final DateTime updatedAt;
+}
+
+class InventoryLevelDto {
+  InventoryLevelDto({
+    required this.id,
+    required this.storeId,
+    required this.productId,
+    required this.onHand,
+    required this.safetyStock,
+    required this.reserved,
+    required this.updatedAt,
+  });
+  factory InventoryLevelDto.fromJson(Map<String, dynamic> j) => InventoryLevelDto(
+        id: j['id'] as String,
+        storeId: j['store_id'] as String,
+        productId: j['product_id'] as String,
+        onHand: (j['on_hand'] as num).toDouble(),
+        safetyStock: (j['safety_stock'] as num).toDouble(),
+        reserved: (j['reserved'] as num).toDouble(),
+        updatedAt: DateTime.parse(j['updated_at'] as String),
+      );
+  final String id, storeId, productId;
+  final double onHand, safetyStock, reserved;
+  final DateTime updatedAt;
+}
+
+class DeltaPage<T> {
+  DeltaPage({required this.items, required this.serverTime, required this.nextSince});
+  final List<T> items;
+  final DateTime serverTime;
+  final DateTime nextSince;
+
+  static DeltaPage<T> fromJson<T>(Map<String, dynamic> j, T Function(Map<String, dynamic>) item) =>
+      DeltaPage(
+        items: (j['items'] as List).map((e) => item((e as Map).cast<String, dynamic>())).toList(),
+        serverTime: DateTime.parse(j['server_time'] as String),
+        nextSince: DateTime.parse(j['next_since'] as String),
+      );
+}

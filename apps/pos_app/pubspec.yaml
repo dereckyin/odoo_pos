@@ -1,0 +1,84 @@
+name: pos_app
+description: Enterprise POS Flutter application (Desktop + Android).
+publish_to: none
+version: 0.1.0+1
+resolution: workspace
+
+environment:
+  sdk: ^3.9.2
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Local packages
+  pos_core:
+    path: ../../packages/pos_core
+  pos_domain:
+    path: ../../packages/pos_domain
+  pos_ui_kit:
+    path: ../../packages/pos_ui_kit
+
+  # State management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Routing
+  go_router: ^14.2.7
+
+  # Local DB
+  drift: ^2.20.2
+  sqlite3_flutter_libs: ^0.5.24
+  path_provider: ^2.1.4
+  path: ^1.9.0
+
+  # Networking
+  dio: ^5.7.0
+  retrofit: 4.4.1
+  json_annotation: ^4.9.0
+  connectivity_plus: ^6.0.5
+
+  # ESC/POS
+  esc_pos_utils_plus: ^2.0.4
+  flutter_pos_printer_platform_image_3: ^1.0.5
+
+  # Barcode
+  mobile_scanner: ^5.2.3
+
+  # Storage
+  flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.3.2
+
+  # Misc
+  intl: any
+  uuid: ^4.4.0
+  decimal: ^3.0.2
+  freezed_annotation: ^2.4.4
+  collection: ^1.18.0
+  cupertino_icons: ^1.0.8
+  cached_network_image: ^3.4.1
+  workmanager: ^0.5.2
+  desktop_multi_window: ^0.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: any
+  drift_dev: any
+  riverpod_generator: any
+  retrofit_generator: any
+  json_serializable: any
+  freezed: any
+  riverpod_lint: any
+
+flutter:
+  uses-material-design: true
+  generate: true
+  assets:
+    - assets/images/

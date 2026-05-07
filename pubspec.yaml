@@ -1,0 +1,15 @@
+name: odoo_pos
+description: Enterprise POS System monorepo workspace.
+publish_to: none
+
+environment:
+  sdk: ^3.9.2
+
+workspace:
+  - apps/pos_app
+  - packages/pos_core
+  - packages/pos_domain
+  - packages/pos_ui_kit
+
+dev_dependencies:
+  melos: ^7.7.0
