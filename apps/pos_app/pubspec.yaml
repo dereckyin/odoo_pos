@@ -60,7 +60,7 @@ dependencies:
   collection: ^1.18.0
   cupertino_icons: ^1.0.8
   cached_network_image: ^3.4.1
-  workmanager: ^0.5.2
+  workmanager: ^0.9.0+3
   desktop_multi_window: ^0.2.1
 
 dev_dependencies:

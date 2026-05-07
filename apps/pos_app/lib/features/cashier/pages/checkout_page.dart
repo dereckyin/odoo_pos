@@ -50,55 +50,57 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               flex: 3,
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SectionHeader(title: '應付金額', actions: [
-                      MoneyText(cart.total,
-                          style: theme.textTheme.displayLarge?.copyWith(color: theme.colorScheme.primary)),
-                    ]),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: PaymentMethod.values
-                          .where((m) => m != PaymentMethod.points && m != PaymentMethod.voucher && m != PaymentMethod.other)
-                          .map((m) {
-                        final selected = _method == m;
-                        return ChoiceChip(
-                          label: Text(m.label),
-                          selected: selected,
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                          onSelected: (_) => setState(() => _method = m),
-                        );
-                      }).toList(),
-                    ),
-                    const Divider(height: 32),
-                    if (_method == PaymentMethod.cash) ..._buildCash(cart, tendered, change),
-                    if (_method == PaymentMethod.creditCard) _buildCreditNotice(),
-                    if (_method == PaymentMethod.linePay) _buildLinePayNotice(),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.arrow_back),
-                            label: const Text('返回'),
-                            onPressed: _busy ? null : () => context.pop(),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SectionHeader(title: '應付金額', actions: [
+                        MoneyText(cart.total,
+                            style: theme.textTheme.displayLarge?.copyWith(color: theme.colorScheme.primary)),
+                      ]),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: PaymentMethod.values
+                            .where((m) => m != PaymentMethod.points && m != PaymentMethod.voucher && m != PaymentMethod.other)
+                            .map((m) {
+                          final selected = _method == m;
+                          return ChoiceChip(
+                            label: Text(m.label),
+                            selected: selected,
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                            onSelected: (_) => setState(() => _method = m),
+                          );
+                        }).toList(),
+                      ),
+                      const Divider(height: 32),
+                      if (_method == PaymentMethod.cash) ..._buildCash(cart, tendered, change),
+                      if (_method == PaymentMethod.creditCard) _buildCreditNotice(),
+                      if (_method == PaymentMethod.linePay) _buildLinePayNotice(),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.arrow_back),
+                              label: const Text('返回'),
+                              onPressed: _busy ? null : () => context.pop(),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: BigButton(
-                            icon: Icons.check_circle_outline,
-                            label: '確認結帳 ${cart.total.format()}',
-                            onPressed: !canPay || _busy ? null : () => _doCheckout(cart, tendered, change),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: BigButton(
+                              icon: Icons.check_circle_outline,
+                              label: '確認結帳 ${cart.total.format()}',
+                              onPressed: !canPay || _busy ? null : () => _doCheckout(cart, tendered, change),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -107,40 +109,42 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               flex: 2,
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SectionHeader(title: '電子發票'),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        for (final t in InvoiceCarrierType.values)
-                          ChoiceChip(
-                            label: Text(_carrierLabel(t)),
-                            selected: _carrierType == t,
-                            onSelected: (_) => setState(() => _carrierType = t),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SectionHeader(title: '電子發票'),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          for (final t in InvoiceCarrierType.values)
+                            ChoiceChip(
+                              label: Text(_carrierLabel(t)),
+                              selected: _carrierType == t,
+                              onSelected: (_) => setState(() => _carrierType = t),
+                            ),
+                        ],
+                      ),
+                      if (_carrierType == InvoiceCarrierType.mobile ||
+                          _carrierType == InvoiceCarrierType.citizenDigital ||
+                          _carrierType == InvoiceCarrierType.member) ...[
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _carrierCtl,
+                          decoration: InputDecoration(
+                            labelText: _carrierType == InvoiceCarrierType.mobile
+                                ? '手機條碼 (e.g. /ABC1234)'
+                                : '載具碼',
                           ),
+                        ),
                       ],
-                    ),
-                    if (_carrierType == InvoiceCarrierType.mobile ||
-                        _carrierType == InvoiceCarrierType.citizenDigital ||
-                        _carrierType == InvoiceCarrierType.member) ...[
                       const SizedBox(height: 12),
                       TextField(
-                        controller: _carrierCtl,
-                        decoration: InputDecoration(
-                          labelText: _carrierType == InvoiceCarrierType.mobile
-                              ? '手機條碼 (e.g. /ABC1234)'
-                              : '載具碼',
-                        ),
+                        controller: _taxIdCtl,
+                        decoration: const InputDecoration(labelText: '統一編號 (B2B 三聯式)'),
                       ),
                     ],
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _taxIdCtl,
-                      decoration: const InputDecoration(labelText: '統一編號 (B2B 三聯式)'),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
