@@ -3,8 +3,15 @@ import 'package:pos_core/pos_core.dart';
 import 'package:pos_domain/pos_domain.dart';
 
 import '../../../core/providers.dart';
+import '../../../data/api/dto.dart';
 import '../../products/providers/product_providers.dart';
 import '../../promotions/providers/promotion_providers.dart';
+
+/// Holds the guest_order id currently "imported" into the cashier's cart
+/// (when they pulled a QR-scanned table-side order in for checkout). Stamped
+/// onto the paid Order via ``source_guest_order_id`` so the backend can
+/// auto-merge it. Reset whenever the cart is cleared.
+final pendingGuestOrderIdProvider = StateProvider<String?>((ref) => null);
 
 /// In-memory cart state. Persists in memory only; if the app is killed mid
 /// transaction we lose the draft (intentional for POS — the operator should
@@ -49,6 +56,35 @@ class CartController extends StateNotifier<Cart> {
 
   void clear() {
     state = Cart();
+    _ref.read(pendingGuestOrderIdProvider.notifier).state = null;
+  }
+
+  /// Pull a guest (table-side) order into the active cart so the cashier
+  /// can finalise payment. Snapshots line prices to the values quoted to
+  /// the customer when they submitted via QR — the cart can still apply
+  /// discounts/promotions on top.
+  Future<void> importGuestOrder(GuestOrderDto guestOrder) async {
+    if (state.lines.isNotEmpty) {
+      throw const ValidationError('cart not empty; clear first');
+    }
+    final repo = _ref.read(productRepositoryProvider);
+    final lines = <CartLine>[];
+    for (final l in guestOrder.lines) {
+      final product = await repo.findById(l.productId);
+      if (product == null) {
+        throw ValidationError('product not found: ${l.productName}');
+      }
+      lines.add(CartLine.custom(
+        id: newUuid(),
+        product: product,
+        qty: l.qty,
+        unitPrice: Money(l.unitPriceCents),
+        note: l.note,
+      ));
+    }
+    state = state.copyWith(lines: lines, note: guestOrder.customerNote);
+    _ref.read(pendingGuestOrderIdProvider.notifier).state = guestOrder.id;
+    await _evaluatePromotions();
   }
 
   void setLineDiscount(String lineId, Discount d) {

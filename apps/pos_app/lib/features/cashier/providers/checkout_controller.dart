@@ -44,6 +44,7 @@ class CheckoutController {
     final db = _ref.read(databaseProvider);
     final dao = SyncQueueDao(db);
     final now = DateTime.now();
+    final sourceGuestOrderId = _ref.read(pendingGuestOrderIdProvider);
     final order = Order.fromCart(
       cart: cart,
       storeId: session.storeId,
@@ -115,7 +116,7 @@ class CheckoutController {
       // Enqueue order upload
       await dao.enqueue(
         SyncOpKind.uploadOrder,
-        _orderToPayload(order, now),
+        _orderToPayload(order, now, sourceGuestOrderId: sourceGuestOrderId),
       );
 
       // Enqueue invoice issue (always; let server reject if duplicate)
@@ -155,7 +156,11 @@ class CheckoutController {
     return CheckoutResult(order: order, invoiceId: null);
   }
 
-  Map<String, dynamic> _orderToPayload(Order o, DateTime clientCreatedAt) {
+  Map<String, dynamic> _orderToPayload(
+    Order o,
+    DateTime clientCreatedAt, {
+    String? sourceGuestOrderId,
+  }) {
     return {
       'id': o.id,
       'store_id': o.storeId,
@@ -169,6 +174,7 @@ class CheckoutController {
       'total_cents': o.total.cents,
       'invoice_carrier': o.invoiceCarrier,
       'note': o.note,
+      if (sourceGuestOrderId != null) 'source_guest_order_id': sourceGuestOrderId,
       'client_created_at': clientCreatedAt.toUtc().toIso8601String(),
       'lines': o.lines
           .map((l) => {

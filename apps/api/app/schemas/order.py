@@ -44,6 +44,7 @@ class OrderCreate(BaseModel):
     total_cents: int
     invoice_carrier: str | None = None
     note: str | None = None
+    source_guest_order_id: str | None = None
     client_created_at: datetime
     lines: list[OrderLineCreate]
     payments: list[PaymentCreate]
@@ -87,6 +88,7 @@ class OrderRead(ORMModel):
     invoice_number: str | None
     invoice_carrier: str | None
     note: str | None
+    source_guest_order_id: str | None = None
     created_at: datetime
     client_created_at: datetime | None
     lines: list[OrderLineRead]

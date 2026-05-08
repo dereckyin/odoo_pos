@@ -34,18 +34,27 @@ class PrinterPreferences {
         paperWidth: (j['paperWidth'] as num?)?.toInt() ?? 80,
         enabled: j['enabled'] as bool? ?? false,
       );
+
+  PrinterPreferences copyWith({String? host, int? port, int? paperWidth, bool? enabled}) =>
+      PrinterPreferences(
+        host: host ?? this.host,
+        port: port ?? this.port,
+        paperWidth: paperWidth ?? this.paperWidth,
+        enabled: enabled ?? this.enabled,
+      );
 }
 
 class PrinterPrefsController extends StateNotifier<PrinterPreferences> {
-  PrinterPrefsController() : super(PrinterPreferences()) {
+  PrinterPrefsController({required this.storageKey, PrinterPreferences? defaults})
+      : super(defaults ?? PrinterPreferences()) {
     _load();
   }
 
-  static const _kKey = 'pos.printer.prefs';
+  final String storageKey;
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_kKey);
+    final raw = prefs.getString(storageKey);
     if (raw == null) return;
     state = PrinterPreferences.fromJson(jsonDecode(raw) as Map<String, dynamic>);
   }
@@ -53,12 +62,24 @@ class PrinterPrefsController extends StateNotifier<PrinterPreferences> {
   Future<void> save(PrinterPreferences p) async {
     state = p;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kKey, jsonEncode(p.toJson()));
+    await prefs.setString(storageKey, jsonEncode(p.toJson()));
   }
 }
 
+/// Receipt printer (front-of-house, attached to cashier's lane).
 final printerPrefsProvider =
-    StateNotifierProvider<PrinterPrefsController, PrinterPreferences>((_) => PrinterPrefsController());
+    StateNotifierProvider<PrinterPrefsController, PrinterPreferences>(
+        (_) => PrinterPrefsController(storageKey: 'pos.printer.prefs'));
+
+/// Kitchen printer (back-of-house). Defaults are different so we don't
+/// accidentally overwrite the cashier printer's IP.
+final kitchenPrinterPrefsProvider =
+    StateNotifierProvider<PrinterPrefsController, PrinterPreferences>((_) {
+  return PrinterPrefsController(
+    storageKey: 'pos.printer.kitchen.prefs',
+    defaults: PrinterPreferences(host: '192.168.1.110', enabled: false),
+  );
+});
 
 final printerServiceProvider = Provider<PrinterService>((ref) {
   return PrinterService(
@@ -66,6 +87,15 @@ final printerServiceProvider = Provider<PrinterService>((ref) {
     builder: EscPosReceiptBuilder(),
     driver: TcpPrinterDriver(),
     logger: AppLogger.named('printer'),
+  );
+});
+
+final kitchenPrinterServiceProvider = Provider<KitchenPrinterService>((ref) {
+  return KitchenPrinterService(
+    ref: ref,
+    builder: EscPosKitchenBuilder(),
+    driver: TcpPrinterDriver(),
+    logger: AppLogger.named('kitchen-printer'),
   );
 });
 
@@ -90,6 +120,39 @@ class PrinterService {
       await driver.printRaw(hostOverride ?? prefs.host, bytes, port: prefs.port);
     } catch (e, st) {
       logger.warn('print failed', e, st);
+      rethrow;
+    }
+  }
+}
+
+/// Sends kitchen tickets to the back-of-house ESC/POS printer.
+class KitchenPrinterService {
+  KitchenPrinterService({
+    required this.ref,
+    required this.builder,
+    required this.driver,
+    required this.logger,
+  });
+
+  final Ref ref;
+  final EscPosKitchenBuilder builder;
+  final TcpPrinterDriver driver;
+  final AppLogger logger;
+
+  /// Prints [ticket] to the configured kitchen printer. Returns ``true``
+  /// when the printer is **disabled** in preferences (silent no-op so the
+  /// KDS UI flow still works on dev machines without a kitchen printer
+  /// physically attached). Throws on real I/O failure so the caller can
+  /// keep the order in `submitted` and surface a retry.
+  Future<bool> printTicket(KitchenTicket ticket) async {
+    final prefs = ref.read(kitchenPrinterPrefsProvider);
+    if (!prefs.enabled) return true; // silently skip
+    final bytes = Uint8List.fromList(await builder.build(ticket));
+    try {
+      await driver.printRaw(prefs.host, bytes, port: prefs.port);
+      return true;
+    } catch (e, st) {
+      logger.warn('kitchen print failed', e, st);
       rethrow;
     }
   }

@@ -6,6 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from ...core.deps import CurrentUserDep, DbSession
 from ...models import (
+    GuestOrder,
     InventoryLevel,
     InventoryMovement,
     Member,
@@ -45,6 +46,7 @@ async def upload_order(payload: OrderCreate, db: DbSession, user: CurrentUserDep
         total_cents=payload.total_cents,
         invoice_carrier=payload.invoice_carrier,
         note=payload.note,
+        source_guest_order_id=payload.source_guest_order_id,
         client_created_at=payload.client_created_at,
     )
     db.add(order)
@@ -97,6 +99,17 @@ async def upload_order(payload: OrderCreate, db: DbSession, user: CurrentUserDep
                 )
             member.total_spent_cents = member.total_spent_cents + order.total_cents
             member.last_visit_at = datetime.now(timezone.utc)
+
+    # If this paid order originates from a QR-scanned guest order (table-side
+    # ordering), automatically flip the guest order to ``merged``. This is
+    # what closes the loop between the customer Vue submission and the
+    # cashier's payment at the counter — see plan: "僅櫃台付".
+    if order.source_guest_order_id:
+        g = await db.get(GuestOrder, order.source_guest_order_id)
+        if g and g.status not in ("merged", "cancelled"):
+            g.status = "merged"
+            g.merged_at = datetime.now(timezone.utc)
+            g.merged_order_id = order.id
 
     await db.commit()
     fresh = (

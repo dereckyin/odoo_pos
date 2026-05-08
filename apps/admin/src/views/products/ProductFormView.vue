@@ -50,8 +50,9 @@
           >
             <a-button :loading="uploading">上傳圖片</a-button>
           </a-upload>
-          <div v-if="form.image_url" style="margin-top: 8px">
+          <div v-if="form.image_url" style="margin-top: 8px; display: flex; align-items: flex-start; gap: 12px">
             <a-image :src="form.image_url" :width="120" />
+            <a-button danger @click="removeImage">刪除圖片</a-button>
           </div>
         </a-form-item>
 
@@ -121,6 +122,11 @@ async function handleUpload(file: File) {
     uploading.value = false
   }
   return false
+}
+
+function removeImage() {
+  form.image_url = null
+  message.success('已移除圖片，請記得按儲存')
 }
 
 async function handleSubmit() {

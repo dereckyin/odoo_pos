@@ -39,7 +39,13 @@
           <template #icon><ShopOutlined /></template>
           <template #title>門店帳號</template>
           <a-menu-item key="stores" @click="$router.push({ name: 'stores' })">門店管理</a-menu-item>
+          <a-menu-item key="tables" @click="$router.push({ name: 'tables' })">桌位管理</a-menu-item>
           <a-menu-item key="users" @click="$router.push({ name: 'users' })">使用者管理</a-menu-item>
+        </a-sub-menu>
+        <a-sub-menu key="qr-group">
+          <template #icon><QrcodeOutlined /></template>
+          <template #title>QR 點餐</template>
+          <a-menu-item key="guest-orders" @click="$router.push({ name: 'guest-orders' })">桌邊訂單</a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="order-group">
           <template #icon><FileTextOutlined /></template>
@@ -85,7 +91,7 @@ import { useAuthStore } from '@/stores/auth'
 import {
   DashboardOutlined, ShoppingOutlined, GiftOutlined, TeamOutlined,
   InboxOutlined, ShopOutlined, FileTextOutlined, UserOutlined,
-  MenuFoldOutlined, MenuUnfoldOutlined,
+  MenuFoldOutlined, MenuUnfoldOutlined, QrcodeOutlined,
 } from '@ant-design/icons-vue'
 
 const collapsed = ref(false)
@@ -102,6 +108,8 @@ const nameMap: Record<string, string> = {
   members: '會員列表', 'member-detail': '會員詳情', 'member-levels': '等級管理',
   inventory: '庫存水位', transfers: '調撥管理',
   stores: '門店管理', users: '使用者管理',
+  tables: '桌位管理', 'tables-print': 'QR 列印',
+  'guest-orders': '桌邊訂單',
   orders: '訂單查詢', 'order-detail': '訂單詳情', reports: '銷售報表',
 }
 

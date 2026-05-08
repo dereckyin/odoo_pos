@@ -75,12 +75,15 @@ async def seed() -> None:
             cats[n] = c
         await db.flush()
 
+        # Keep seed images empty by default. Demo environments often have
+        # restricted outbound network and external wiki image URLs cause
+        # inconsistent rendering between clients.
         sample_products = [
-            ("4710001000017", "可口可樂 350ml", 25, "飲料", "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/15-09-26-RasijsRadworworksksklolp-RR2_4186.jpg/220px-15-09-26-RaijsRadlolp-RR2_4186.jpg"),
-            ("4710001000024", "雪碧 350ml", 25, "飲料", "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Sprite_logo_2019.svg/150px-Sprite_logo_2019.svg.png"),
+            ("4710001000017", "可口可樂 350ml", 25, "飲料", None),
+            ("4710001000024", "雪碧 350ml", 25, "飲料", None),
             ("4710001000031", "礦泉水 600ml", 18, "飲料", None),
             ("4710001000048", "舒跑 350ml", 25, "飲料", None),
-            ("4710002000016", "樂事洋芋片", 35, "零食", "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Lays_logo.svg/220px-Lays_logo.svg.png"),
+            ("4710002000016", "樂事洋芋片", 35, "零食", None),
             ("4710002000023", "波卡洋芋片", 30, "零食", None),
             ("4710002000030", "義美夾心酥", 45, "零食", None),
             ("4710003000015", "御便當-雞腿", 95, "便當/熟食", None),

@@ -75,4 +75,44 @@ melos run build_runner
 - `pos_domain/test/`: pure-Dart promotion + cart math tests.
 - `apps/pos_app/test/`: widget + use-case tests.
 - `apps/pos_app/integration_test/`: end-to-end (Desktop preferred for headless CI).
-- `apps/api/tests/`: pytest with httpx + factory-boy.
+- `apps/api/tests/`: pytest with httpx + factory-boy. End-to-end coverage of
+  the QR table-side ordering flow lives in
+  [test_qr_ordering.py](../apps/api/tests/test_qr_ordering.py).
+
+## QR table-side ordering
+
+```mermaid
+sequenceDiagram
+    participant Customer as 顧客手機 (customer_order_web)
+    participant API as FastAPI 後端
+    participant KDS as Flutter POS (kitchen role)
+    participant Cashier as Flutter POS (cashier)
+    participant Printer as 廚房 ESC/POS
+
+    Customer->>API: GET /public/menu/{token}
+    Customer->>API: POST /public/orders/{token} (lines)
+    API-->>Customer: guest_order (status=submitted)
+
+    KDS->>API: GET /guest-orders?status_in=submitted,accepted,ready (poll)
+    KDS->>API: POST /guest-orders/{id}/accept
+    KDS->>Printer: ESC/POS kitchen ticket (no prices)
+    KDS->>API: POST /guest-orders/{id}/ready
+
+    Cashier->>API: GET /guest-orders?status_in=ready
+    Cashier->>Cashier: import to local cart, finalize payment
+    Cashier->>API: POST /orders (with source_guest_order_id)
+    API->>API: auto-flip guest_order to "merged"
+```
+
+- Customer Vue SPA: [apps/customer_order_web](../apps/customer_order_web) — renders the
+  menu, builds a cart, submits a `guest_order`. **No payment gateway** —
+  the customer always pays at the counter.
+- Admin tables management + QR print: [apps/admin](../apps/admin) under
+  `/tables` and `/tables/print` routes.
+- Backend: `dining_tables`, `guest_orders`, `guest_order_lines` tables and
+  the `/public`, `/admin/tables`, `/guest-orders` routes in
+  [apps/api/app/api/v1](../apps/api/app/api/v1).
+- Flutter POS: `kitchen` role lands on the KDS board
+  ([kds_board_page.dart](../apps/pos_app/lib/features/kds/pages/kds_board_page.dart));
+  the cashier pulls "ready" guest orders into the cart via the
+  `/table-orders` page.

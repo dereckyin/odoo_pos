@@ -312,3 +312,58 @@ export interface Paginated<T> {
   items: T[]
   total: number
 }
+
+export interface DiningTableRead {
+  id: string
+  store_id: string
+  label: string
+  public_token: string
+  seats: number | null
+  is_active: boolean
+  note: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface DiningTableCreate {
+  store_id: string
+  label: string
+  seats?: number | null
+  is_active?: boolean
+  note?: string | null
+}
+
+export type DiningTableUpdate = Partial<Omit<DiningTableCreate, 'store_id'>>
+
+export interface GuestOrderLineRead {
+  id: string
+  product_id: string
+  product_name: string
+  sku: string
+  qty: number
+  unit_price_cents: number
+  line_total_cents: number
+  note: string | null
+  created_at: string
+}
+
+export interface GuestOrderRead {
+  id: string
+  store_id: string
+  table_id: string
+  table_label: string | null
+  status: 'submitted' | 'accepted' | 'ready' | 'merged' | 'cancelled'
+  customer_note: string | null
+  party_size: number | null
+  estimated_subtotal_cents: number
+  accepted_at: string | null
+  ready_at: string | null
+  merged_at: string | null
+  cancelled_at: string | null
+  accepted_by_user_id: string | null
+  merged_order_id: string | null
+  cancel_reason: string | null
+  created_at: string
+  updated_at: string
+  lines: GuestOrderLineRead[]
+}

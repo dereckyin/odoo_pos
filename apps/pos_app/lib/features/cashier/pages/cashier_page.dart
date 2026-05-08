@@ -114,6 +114,11 @@ class _CashierPageState extends ConsumerState<CashierPage> {
               onPressed: () => context.push('/promotions'),
             ),
             IconButton(
+              tooltip: '桌邊訂單',
+              icon: const Icon(Icons.table_restaurant_outlined),
+              onPressed: () => context.push('/table-orders'),
+            ),
+            IconButton(
               tooltip: '訂單記錄',
               icon: const Icon(Icons.receipt_long_outlined),
               onPressed: () => context.push('/history'),

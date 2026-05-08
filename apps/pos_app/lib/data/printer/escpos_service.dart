@@ -104,6 +104,101 @@ class EscPosReceiptBuilder {
   String _money(Money m) => m.format(withSymbol: true);
 }
 
+/// Builds the kitchen-side ESC/POS ticket for a [KitchenTicket] (one
+/// guest order). Intentionally omits prices: the kitchen only needs the
+/// table label, item names, quantities and notes.
+class KitchenTicket {
+  KitchenTicket({
+    required this.guestOrderId,
+    required this.tableLabel,
+    required this.placedAt,
+    required this.lines,
+    this.partySize,
+    this.note,
+  });
+
+  final String guestOrderId;
+  final String tableLabel;
+  final DateTime placedAt;
+  final int? partySize;
+  final String? note;
+  final List<KitchenTicketLine> lines;
+}
+
+class KitchenTicketLine {
+  KitchenTicketLine({required this.name, required this.qty, this.note});
+  final String name;
+  final num qty;
+  final String? note;
+}
+
+class EscPosKitchenBuilder {
+  EscPosKitchenBuilder({this.paperWidth = PaperSize.mm80});
+  final PaperSize paperWidth;
+
+  Future<List<int>> build(KitchenTicket ticket) async {
+    final profile = await CapabilityProfile.load();
+    final gen = Generator(paperWidth, profile);
+    final bytes = <int>[];
+
+    bytes.addAll(gen.text(
+      '*** 廚房製作單 ***',
+      styles: const PosStyles(align: PosAlign.center, bold: true),
+    ));
+    bytes.addAll(gen.text(
+      '桌號 ${ticket.tableLabel}',
+      styles: const PosStyles(
+        align: PosAlign.center,
+        bold: true,
+        height: PosTextSize.size3,
+        width: PosTextSize.size3,
+      ),
+    ));
+    final df = DateFormat('HH:mm:ss');
+    bytes.addAll(gen.text(
+      '時間: ${df.format(ticket.placedAt.toLocal())}'
+      '${ticket.partySize != null ? '   ${ticket.partySize}人' : ''}',
+      styles: const PosStyles(align: PosAlign.center),
+    ));
+    bytes.addAll(gen.text(
+      '單號: ${ticket.guestOrderId.substring(0, 8)}',
+      styles: const PosStyles(align: PosAlign.center),
+    ));
+    bytes.addAll(gen.text('=' * 32, styles: const PosStyles(align: PosAlign.center)));
+
+    for (final ln in ticket.lines) {
+      final qty = ln.qty is int ? ln.qty.toString() : ln.qty.toString();
+      bytes.addAll(gen.text(
+        '${ln.name}  x $qty',
+        styles: const PosStyles(
+          bold: true,
+          height: PosTextSize.size2,
+          width: PosTextSize.size2,
+        ),
+      ));
+      if (ln.note != null && ln.note!.isNotEmpty) {
+        bytes.addAll(gen.text(
+          '  → ${ln.note}',
+          styles: const PosStyles(),
+        ));
+      }
+      bytes.addAll(gen.feed(1));
+    }
+
+    if (ticket.note != null && ticket.note!.isNotEmpty) {
+      bytes.addAll(gen.text('-' * 32, styles: const PosStyles(align: PosAlign.center)));
+      bytes.addAll(gen.text(
+        '備註: ${ticket.note}',
+        styles: const PosStyles(bold: true),
+      ));
+    }
+
+    bytes.addAll(gen.feed(2));
+    bytes.addAll(gen.cut());
+    return bytes;
+  }
+}
+
 /// Sends raw ESC/POS bytes to a TCP printer (e.g. RJ-45 thermal printers
 /// listening on port 9100).
 class TcpPrinterDriver {

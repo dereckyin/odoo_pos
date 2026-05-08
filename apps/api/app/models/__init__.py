@@ -14,6 +14,8 @@ from .inventory import (
 from .promotion import Promotion
 from .invoice import Invoice
 from .idempotency import IdempotencyKey
+from .dining_table import DiningTable
+from .guest_order import GuestOrder, GuestOrderLine
 
 __all__ = [
     "Store",
@@ -40,4 +42,7 @@ __all__ = [
     "Promotion",
     "Invoice",
     "IdempotencyKey",
+    "DiningTable",
+    "GuestOrder",
+    "GuestOrderLine",
 ]

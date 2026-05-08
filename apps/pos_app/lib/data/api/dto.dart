@@ -293,3 +293,92 @@ class DeltaPage<T> {
         nextSince: DateTime.parse(j['next_since'] as String),
       );
 }
+
+/// A line inside a guest (table-side) order.
+class GuestOrderLineDto {
+  GuestOrderLineDto({
+    required this.id,
+    required this.productId,
+    required this.productName,
+    required this.sku,
+    required this.qty,
+    required this.unitPriceCents,
+    required this.lineTotalCents,
+    required this.createdAt,
+    this.note,
+  });
+  factory GuestOrderLineDto.fromJson(Map<String, dynamic> j) => GuestOrderLineDto(
+        id: j['id'] as String,
+        productId: j['product_id'] as String,
+        productName: j['product_name'] as String,
+        sku: j['sku'] as String,
+        qty: (j['qty'] as num).toDouble(),
+        unitPriceCents: (j['unit_price_cents'] as num).toInt(),
+        lineTotalCents: (j['line_total_cents'] as num).toInt(),
+        note: j['note'] as String?,
+        createdAt: DateTime.parse(j['created_at'] as String),
+      );
+  final String id, productId, productName, sku;
+  final double qty;
+  final int unitPriceCents, lineTotalCents;
+  final String? note;
+  final DateTime createdAt;
+}
+
+/// The customer-facing table-side order pulled from the backend by the KDS
+/// and the cashier's "table orders" panel.
+class GuestOrderDto {
+  GuestOrderDto({
+    required this.id,
+    required this.storeId,
+    required this.tableId,
+    required this.status,
+    required this.estimatedSubtotalCents,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.lines,
+    this.tableLabel,
+    this.customerNote,
+    this.partySize,
+    this.acceptedAt,
+    this.readyAt,
+    this.mergedAt,
+    this.cancelledAt,
+    this.cancelReason,
+    this.acceptedByUserId,
+    this.mergedOrderId,
+  });
+
+  factory GuestOrderDto.fromJson(Map<String, dynamic> j) => GuestOrderDto(
+        id: j['id'] as String,
+        storeId: j['store_id'] as String,
+        tableId: j['table_id'] as String,
+        tableLabel: j['table_label'] as String?,
+        status: j['status'] as String,
+        customerNote: j['customer_note'] as String?,
+        partySize: (j['party_size'] as num?)?.toInt(),
+        estimatedSubtotalCents: (j['estimated_subtotal_cents'] as num?)?.toInt() ?? 0,
+        acceptedAt: j['accepted_at'] == null ? null : DateTime.parse(j['accepted_at'] as String),
+        readyAt: j['ready_at'] == null ? null : DateTime.parse(j['ready_at'] as String),
+        mergedAt: j['merged_at'] == null ? null : DateTime.parse(j['merged_at'] as String),
+        cancelledAt:
+            j['cancelled_at'] == null ? null : DateTime.parse(j['cancelled_at'] as String),
+        cancelReason: j['cancel_reason'] as String?,
+        acceptedByUserId: j['accepted_by_user_id'] as String?,
+        mergedOrderId: j['merged_order_id'] as String?,
+        createdAt: DateTime.parse(j['created_at'] as String),
+        updatedAt: DateTime.parse(j['updated_at'] as String),
+        lines: (j['lines'] as List)
+            .map((e) => GuestOrderLineDto.fromJson((e as Map).cast<String, dynamic>()))
+            .toList(),
+      );
+
+  final String id, storeId, tableId, status;
+  final String? tableLabel;
+  final String? customerNote, cancelReason, acceptedByUserId, mergedOrderId;
+  final int? partySize;
+  final int estimatedSubtotalCents;
+  final DateTime? acceptedAt, readyAt, mergedAt, cancelledAt;
+  final DateTime createdAt, updatedAt;
+  final List<GuestOrderLineDto> lines;
+}

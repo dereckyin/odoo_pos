@@ -160,6 +160,44 @@ class PosApi {
     return _asMap(r.data);
   }
 
+  // ---- Guest orders (QR table-side ordering) ----
+  Future<List<GuestOrderDto>> listGuestOrders({
+    String? storeId,
+    String statusIn = 'submitted,accepted,ready',
+    int limit = 100,
+  }) async {
+    final r = await _dio.get('/guest-orders', queryParameters: {
+      if (storeId != null) 'store_id': storeId,
+      'status_in': statusIn,
+      'limit': limit,
+    });
+    return (r.data as List)
+        .map((e) => GuestOrderDto.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  Future<GuestOrderDto> acceptGuestOrder(String id) async {
+    final r = await _dio.post('/guest-orders/$id/accept');
+    return GuestOrderDto.fromJson(_asMap(r.data));
+  }
+
+  Future<GuestOrderDto> markGuestOrderReady(String id) async {
+    final r = await _dio.post('/guest-orders/$id/ready');
+    return GuestOrderDto.fromJson(_asMap(r.data));
+  }
+
+  Future<GuestOrderDto> cancelGuestOrder(String id, {String? reason}) async {
+    final r = await _dio.post('/guest-orders/$id/cancel', data: {
+      if (reason != null) 'reason': reason,
+    });
+    return GuestOrderDto.fromJson(_asMap(r.data));
+  }
+
+  Future<GuestOrderDto> mergeGuestOrder(String id, String orderId) async {
+    final r = await _dio.post('/guest-orders/$id/merge', data: {'order_id': orderId});
+    return GuestOrderDto.fromJson(_asMap(r.data));
+  }
+
   // helpers
   Map<String, dynamic> _asMap(dynamic data) => (data as Map).cast<String, dynamic>();
 }
