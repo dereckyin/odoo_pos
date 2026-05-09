@@ -24,6 +24,7 @@ class VoidInvoiceRequest(BaseModel):
 
 class InvoiceRead(ORMModel):
     id: str
+    tenant_id: str
     order_id: str
     status: str
     invoice_number: str | None

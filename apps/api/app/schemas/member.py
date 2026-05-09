@@ -7,6 +7,7 @@ from ._base import ORMModel
 
 class MemberLevelRead(ORMModel):
     id: str
+    tenant_id: str
     name: str
     discount_rate: float
     min_spend: int
@@ -26,6 +27,7 @@ class MemberLevelCreate(BaseModel):
 
 class MemberRead(ORMModel):
     id: str
+    tenant_id: str
     phone: str
     name: str
     email: str | None
@@ -65,6 +67,7 @@ class MemberUpdate(BaseModel):
 
 class CouponRead(ORMModel):
     id: str
+    tenant_id: str
     code: str
     type: str
     value: float
@@ -93,6 +96,7 @@ class PointTransactionCreate(BaseModel):
 
 class PointTransactionRead(ORMModel):
     id: str
+    tenant_id: str
     member_id: str
     delta: int
     reason: str

@@ -29,12 +29,19 @@ def _ecpay_sign(params: dict[str, Any], hash_key: str, hash_iv: str) -> str:
 class EcpayDriver(PaymentDriver):
     name = "ecpay"
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        merchant_id: str | None = None,
+        hash_key: str | None = None,
+        hash_iv: str | None = None,
+        base_url: str | None = None,
+    ) -> None:
         s = get_settings()
-        self.merchant_id = s.ECPAY_MERCHANT_ID
-        self.hash_key = s.ECPAY_HASH_KEY
-        self.hash_iv = s.ECPAY_HASH_IV
-        self.base_url = s.ECPAY_BASE_URL
+        self.merchant_id = merchant_id or s.ECPAY_MERCHANT_ID
+        self.hash_key = hash_key or s.ECPAY_HASH_KEY
+        self.hash_iv = hash_iv or s.ECPAY_HASH_IV
+        self.base_url = base_url or s.ECPAY_BASE_URL
 
     async def charge(self, req: ChargeRequest) -> PaymentResult:
         params = {

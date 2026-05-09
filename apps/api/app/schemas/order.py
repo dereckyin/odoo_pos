@@ -30,12 +30,18 @@ class PaymentCreate(BaseModel):
 
 
 class OrderCreate(BaseModel):
-    """Payload uploaded by POS once an order is paid."""
+    """Payload uploaded by POS once an order is paid.
+
+    ``tenant_id`` / ``store_id`` / ``terminal_id`` / ``cashier_id`` are derived
+    from the JWT on the server side and any matching field in the request
+    body is ignored. They stay in the schema as optional only so older POS
+    clients keep parsing.
+    """
 
     id: str
-    store_id: str
-    terminal_id: str
-    cashier_id: str
+    store_id: str | None = None
+    terminal_id: str | None = None
+    cashier_id: str | None = None
     member_id: str | None = None
     status: str = "paid"
     subtotal_cents: int
@@ -75,6 +81,7 @@ class PaymentRead(ORMModel):
 
 class OrderRead(ORMModel):
     id: str
+    tenant_id: str
     store_id: str
     terminal_id: str
     cashier_id: str
@@ -102,8 +109,11 @@ class RefundLineCreate(BaseModel):
 
 
 class RefundCreate(BaseModel):
+    """Refund payload. ``user_id`` is now optional because the server
+    automatically uses the authenticated cashier."""
+
     id: str
-    user_id: str
+    user_id: str | None = None
     method: str = "cash"
     reason: str | None = None
     lines: list[RefundLineCreate] = Field(default_factory=list)

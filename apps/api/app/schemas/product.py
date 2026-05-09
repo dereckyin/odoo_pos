@@ -7,6 +7,7 @@ from ._base import ORMModel
 
 class CategoryRead(ORMModel):
     id: str
+    tenant_id: str
     name: str
     parent_id: str | None
     sort_order: int
@@ -34,6 +35,7 @@ class CategoryUpdate(BaseModel):
 
 class ProductRead(ORMModel):
     id: str
+    tenant_id: str
     sku: str
     name: str
     price_cents: int
@@ -53,6 +55,7 @@ class ProductRead(ORMModel):
     def from_orm_with_barcodes(cls, p) -> "ProductRead":
         return cls(
             id=p.id,
+            tenant_id=p.tenant_id,
             sku=p.sku,
             name=p.name,
             price_cents=p.price_cents,

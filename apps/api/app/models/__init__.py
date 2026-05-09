@@ -1,5 +1,22 @@
+from .tenant import (
+    AuditLog,
+    EmailOtp,
+    RefreshToken,
+    SubscriptionPlan,
+    Tenant,
+    TenantApplication,
+    TenantInvoiceSetting,
+    TenantPaymentSetting,
+    TenantSubscription,
+    UsageCounter,
+)
 from .store import Store, Terminal
-from .user import User
+from .user import (
+    ALL_ROLES,
+    STORE_ADMIN_ROLES,
+    TENANT_ADMIN_ROLES,
+    User,
+)
 from .product import Category, Product, ProductBarcode
 from .member import Member, MemberLevel, Coupon, PointTransaction
 from .order import Order, OrderLine, Payment, Refund, RefundLine
@@ -18,9 +35,22 @@ from .dining_table import DiningTable
 from .guest_order import GuestOrder, GuestOrderLine
 
 __all__ = [
+    "Tenant",
+    "TenantApplication",
+    "EmailOtp",
+    "RefreshToken",
+    "AuditLog",
+    "TenantPaymentSetting",
+    "TenantInvoiceSetting",
+    "SubscriptionPlan",
+    "TenantSubscription",
+    "UsageCounter",
     "Store",
     "Terminal",
     "User",
+    "ALL_ROLES",
+    "TENANT_ADMIN_ROLES",
+    "STORE_ADMIN_ROLES",
     "Category",
     "Product",
     "ProductBarcode",

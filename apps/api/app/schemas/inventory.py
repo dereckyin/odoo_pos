@@ -7,6 +7,7 @@ from ._base import ORMModel
 
 class InventoryLevelRead(ORMModel):
     id: str
+    tenant_id: str
     store_id: str
     product_id: str
     on_hand: float
@@ -20,8 +21,11 @@ class InventoryLevelUpdate(BaseModel):
 
 
 class MovementCreate(BaseModel):
+    """``store_id`` is optional; defaults to the JWT's store. ``user_id`` and
+    ``terminal_id`` are likewise derived from the session."""
+
     id: str
-    store_id: str
+    store_id: str | None = None
     product_id: str
     qty_delta: float
     reason: str
@@ -35,6 +39,7 @@ class MovementCreate(BaseModel):
 
 class MovementRead(ORMModel):
     id: str
+    tenant_id: str
     store_id: str
     product_id: str
     qty_delta: float
@@ -66,6 +71,7 @@ class TransferUpdate(BaseModel):
 
 class TransferRead(ORMModel):
     id: str
+    tenant_id: str
     from_store_id: str
     to_store_id: str
     status: str
@@ -84,13 +90,14 @@ class StocktakeLineIn(BaseModel):
 
 class StocktakeCreate(BaseModel):
     id: str
-    store_id: str
+    store_id: str | None = None
     note: str | None = None
     lines: list[StocktakeLineIn]
 
 
 class StocktakeRead(ORMModel):
     id: str
+    tenant_id: str
     store_id: str
     completed_at: datetime | None
     note: str | None

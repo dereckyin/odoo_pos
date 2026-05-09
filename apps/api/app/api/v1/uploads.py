@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
-from ...core.deps import AdminDep
+from ...core.deps import StoreAdminDep
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 
@@ -14,7 +14,9 @@ MAX_SIZE = 5 * 1024 * 1024
 
 
 @router.post("/images")
-async def upload_image(_: AdminDep, file: UploadFile = File(...)) -> dict:
+async def upload_image(
+    scope: StoreAdminDep, file: UploadFile = File(...)
+) -> dict:
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"unsupported type: {file.content_type}")
 
@@ -25,9 +27,12 @@ async def upload_image(_: AdminDep, file: UploadFile = File(...)) -> dict:
     ext = file.filename.rsplit(".", 1)[-1] if file.filename and "." in file.filename else "jpg"
     filename = f"{uuid.uuid4().hex}.{ext}"
 
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    dest = UPLOAD_DIR / filename
+    # Store under per-tenant subdirectory so future per-tenant lifecycle
+    # (cleanup on tenant deletion, signed URLs) is straightforward.
+    tenant_dir = UPLOAD_DIR / (scope.tenant_id or "_platform")
+    tenant_dir.mkdir(parents=True, exist_ok=True)
+    dest = tenant_dir / filename
     dest.write_bytes(data)
 
-    url = f"/uploads/{filename}"
+    url = f"/uploads/{tenant_dir.name}/{filename}"
     return {"url": url, "filename": filename}

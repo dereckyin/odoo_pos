@@ -17,12 +17,19 @@ from .base import InvoiceDriver, InvoiceIssueRequest, InvoiceResult, InvoiceVoid
 class EcpayInvoiceDriver(InvoiceDriver):
     name = "ecpay_invoice"
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        merchant_id: str | None = None,
+        hash_key: str | None = None,
+        hash_iv: str | None = None,
+        base_url: str | None = None,
+    ) -> None:
         s = get_settings()
-        self.merchant_id = s.ECPAY_INVOICE_MERCHANT_ID
-        self.hash_key = s.ECPAY_INVOICE_HASH_KEY
-        self.hash_iv = s.ECPAY_INVOICE_HASH_IV
-        self.base_url = s.ECPAY_INVOICE_BASE_URL
+        self.merchant_id = merchant_id or s.ECPAY_INVOICE_MERCHANT_ID
+        self.hash_key = hash_key or s.ECPAY_INVOICE_HASH_KEY
+        self.hash_iv = hash_iv or s.ECPAY_INVOICE_HASH_IV
+        self.base_url = base_url or s.ECPAY_INVOICE_BASE_URL
 
     async def issue(self, req: InvoiceIssueRequest) -> InvoiceResult:
         if not self.merchant_id:

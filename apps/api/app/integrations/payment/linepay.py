@@ -23,13 +23,21 @@ from .base import ChargeRequest, PaymentDriver, PaymentResult, RefundRequest, Re
 class LinePayDriver(PaymentDriver):
     name = "linepay"
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        channel_id: str | None = None,
+        channel_secret: str | None = None,
+        base_url: str | None = None,
+        confirm_url: str | None = None,
+        cancel_url: str | None = None,
+    ) -> None:
         s = get_settings()
-        self.channel_id = s.LINEPAY_CHANNEL_ID
-        self.channel_secret = s.LINEPAY_CHANNEL_SECRET
-        self.base_url = s.LINEPAY_BASE_URL
-        self.confirm_url = s.LINEPAY_CONFIRM_URL
-        self.cancel_url = s.LINEPAY_CANCEL_URL
+        self.channel_id = channel_id or s.LINEPAY_CHANNEL_ID
+        self.channel_secret = channel_secret or s.LINEPAY_CHANNEL_SECRET
+        self.base_url = base_url or s.LINEPAY_BASE_URL
+        self.confirm_url = confirm_url or s.LINEPAY_CONFIRM_URL
+        self.cancel_url = cancel_url or s.LINEPAY_CANCEL_URL
 
     def _sign(self, uri: str, body: str, nonce: str) -> str:
         msg = (self.channel_secret + uri + body + nonce).encode("utf-8")

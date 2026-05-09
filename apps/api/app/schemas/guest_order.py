@@ -35,6 +35,7 @@ class GuestOrderLineRead(ORMModel):
 
 class GuestOrderRead(ORMModel):
     id: str
+    tenant_id: str
     store_id: str
     table_id: str
     table_label: str | None = None

@@ -15,13 +15,14 @@ class GuestOrder(Base, UUIDPrimaryKey, Timestamped):
 
     Lifecycle (see plan):
         submitted -> accepted -> ready -> merged
-                                      \-> cancelled
+                                      \\-> cancelled
     Inventory is NOT touched here. Stock and revenue are deducted when the
     cashier merges this into a paid ``Order`` at the counter.
     """
 
     __tablename__ = "guest_orders"
 
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True, nullable=False)
     store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"), nullable=False, index=True)
     table_id: Mapped[str] = mapped_column(ForeignKey("dining_tables.id"), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="submitted", index=True)
@@ -29,11 +30,8 @@ class GuestOrder(Base, UUIDPrimaryKey, Timestamped):
     customer_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     party_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    # Estimated total at the time of submission, for display only. Authoritative
-    # totals come from the cashier ``Order`` once the guest_order is merged.
     estimated_subtotal_cents: Mapped[int] = mapped_column(Integer, default=0)
 
-    # State transition timestamps
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     merged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -43,8 +41,6 @@ class GuestOrder(Base, UUIDPrimaryKey, Timestamped):
     merged_order_id: Mapped[str | None] = mapped_column(ForeignKey("orders.id"), nullable=True)
     cancel_reason: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
-    # Free-form metadata (e.g. customer-supplied modifier text per line that
-    # never made it into structured columns).
     extras: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     lines: Mapped[list["GuestOrderLine"]] = relationship(

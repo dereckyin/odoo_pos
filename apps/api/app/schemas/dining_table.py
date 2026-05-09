@@ -7,6 +7,7 @@ from ._base import ORMModel
 
 class DiningTableRead(ORMModel):
     id: str
+    tenant_id: str
     store_id: str
     label: str
     public_token: str
@@ -18,7 +19,7 @@ class DiningTableRead(ORMModel):
 
 
 class DiningTableCreate(BaseModel):
-    store_id: str
+    store_id: str | None = None
     label: str = Field(min_length=1, max_length=32)
     seats: int | None = None
     is_active: bool = True

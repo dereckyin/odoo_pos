@@ -1,36 +1,14 @@
 """Promotion CRUD endpoints smoke test."""
 
 from app.core import db as db_mod
-from app.core.security import hash_password
-from app.models import Store, Terminal, User
 
-
-async def _login_admin(client) -> str:
-    factory = db_mod.get_session_factory()
-    async with factory() as db:
-        store = Store(code="S001", name="Demo")
-        db.add(store)
-        await db.flush()
-        db.add(Terminal(store_id=store.id, code="T01", api_key_hash=hash_password("k")))
-        db.add(
-            User(
-                username="admin",
-                password_hash=hash_password("admin123"),
-                display_name="Admin",
-                role="admin",
-                store_id=store.id,
-            )
-        )
-        await db.commit()
-    r = await client.post(
-        "/auth/login",
-        json={"username": "admin", "password": "admin123", "terminal_code": "T01"},
-    )
-    return r.json()["access_token"]
+from .helpers import build_tenant, login_pos
 
 
 async def test_promotion_lifecycle(app, client):
-    token = await _login_admin(client)
+    factory = db_mod.get_session_factory()
+    bundle = await build_tenant(factory)
+    token = await login_pos(client, bundle)
     headers = {"Authorization": f"Bearer {token}"}
 
     r = await client.post(
@@ -46,6 +24,7 @@ async def test_promotion_lifecycle(app, client):
     )
     assert r.status_code == 201, r.text
     pid = r.json()["id"]
+    assert r.json()["tenant_id"] == bundle.tenant.id
 
     r = await client.get("/promotions", headers=headers)
     assert r.status_code == 200

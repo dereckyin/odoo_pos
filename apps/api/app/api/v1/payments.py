@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, status
 
-from ...core.deps import CurrentUserDep, DbSession
+from ...core.deps import DbSession, TenantScope, ensure_same_tenant
 from ...integrations.payment import (
     ChargeRequest,
     RefundRequest,
-    driver_for,
     registered_drivers,
+    tenant_driver_for,
 )
 from ...models import Order, Payment
 
@@ -13,13 +13,13 @@ router = APIRouter(prefix="/payments", tags=["payments"])
 
 
 @router.get("/drivers")
-async def list_drivers(_: CurrentUserDep) -> list[dict]:
+async def list_drivers(_: TenantScope) -> list[dict]:
     return [{"name": name} for name in registered_drivers()]
 
 
 @router.post("/charge")
 async def charge(
-    payload: dict, db: DbSession, _: CurrentUserDep
+    payload: dict, db: DbSession, scope: TenantScope
 ) -> dict:
     driver_name = payload["driver"]
     order_id = payload["order_id"]
@@ -30,8 +30,12 @@ async def charge(
     order = await db.get(Order, order_id)
     if not order:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "order not found")
+    ensure_same_tenant(scope, order)
 
-    drv = driver_for(driver_name)
+    # Per-tenant credentials are pulled from tenant_payment_settings
+    # (Fernet-encrypted at rest); falls back to platform settings only
+    # when the tenant has not configured this driver.
+    drv = await tenant_driver_for(db, scope.tenant_id, driver_name)
     res = await drv.charge(
         ChargeRequest(
             order_id=order_id,
@@ -52,17 +56,21 @@ async def charge(
 
 
 @router.post("/refund")
-async def refund(payload: dict, db: DbSession, _: CurrentUserDep) -> dict:
+async def refund(payload: dict, db: DbSession, scope: TenantScope) -> dict:
     payment_id = payload["payment_id"]
     amount_cents = int(payload["amount_cents"])
 
     payment = await db.get(Payment, payment_id)
     if not payment:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "payment not found")
+    order = await db.get(Order, payment.order_id) if payment.order_id else None
+    ensure_same_tenant(scope, order)
     if not payment.gateway_ref:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "payment has no gateway_ref")
 
-    drv = driver_for(payment.method.replace("credit_card", "newebpay"))
+    drv = await tenant_driver_for(
+        db, scope.tenant_id, payment.method.replace("credit_card", "newebpay")
+    )
     res = await drv.refund(
         RefundRequest(
             payment_id=payment.id,
@@ -83,8 +91,8 @@ async def refund(payload: dict, db: DbSession, _: CurrentUserDep) -> dict:
 
 
 @router.post("/{driver}/confirm")
-async def gateway_confirm(driver: str, payload: dict, db: DbSession, _: CurrentUserDep) -> dict:
-    drv = driver_for(driver)
+async def gateway_confirm(driver: str, payload: dict, db: DbSession, scope: TenantScope) -> dict:
+    drv = await tenant_driver_for(db, scope.tenant_id, driver)
     gateway_ref = payload.pop("gateway_ref", "")
     res = await drv.confirm(gateway_ref, payload)
     if res.status == "captured":
@@ -105,5 +113,5 @@ async def gateway_confirm(driver: str, payload: dict, db: DbSession, _: CurrentU
 
 
 def _select_payment_by_ref(ref: str):
-    from sqlalchemy import select  # local import to avoid cycle
+    from sqlalchemy import select
     return select(Payment).where(Payment.gateway_ref == ref)

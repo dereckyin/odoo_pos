@@ -1,53 +1,38 @@
 from datetime import datetime, timezone
 
 from app.core import db as db_mod
-from app.core.security import hash_password
-from app.models import Member, Product, Store, Terminal, User
+from app.models import Member, Product
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-
-async def _login(client, username="admin", password="admin123", terminal_code="T01") -> str:
-    r = await client.post(
-        "/auth/login",
-        json={"username": username, "password": password, "terminal_code": terminal_code},
-    )
-    assert r.status_code == 200, r.text
-    return r.json()["access_token"]
+from .helpers import build_tenant, login_pos
 
 
-async def _seed(factory: async_sessionmaker):
+async def _seed_product_member(factory: async_sessionmaker, *, tenant_id: str, sku: str = "SKU-1"):
     async with factory() as db:
-        store = Store(code="S001", name="Demo")
-        db.add(store)
-        await db.flush()
-        terminal = Terminal(store_id=store.id, code="T01", api_key_hash=hash_password("k"))
-        db.add(terminal)
-        admin = User(
-            username="admin",
-            password_hash=hash_password("admin123"),
-            display_name="Admin",
-            role="admin",
-            store_id=store.id,
-        )
-        db.add(admin)
-        product = Product(sku="SKU-1", name="可樂", price_cents=25)
+        product = Product(tenant_id=tenant_id, sku=sku, name="可樂", price_cents=25)
         db.add(product)
-        member = Member(phone="0911111111", name="客戶 A", joined_at=datetime.now(timezone.utc))
+        member = Member(
+            tenant_id=tenant_id, phone="0911111111", name="客戶 A",
+            joined_at=datetime.now(timezone.utc),
+        )
         db.add(member)
         await db.commit()
-        return store, terminal, admin, product, member
+        await db.refresh(product)
+        await db.refresh(member)
+        return product, member
 
 
 async def test_upload_order_decrements_inventory_and_grants_points(app, client):
     factory = db_mod.get_session_factory()
-    store, terminal, admin, product, member = await _seed(factory)
-    token = await _login(client)
+    bundle = await build_tenant(factory)
+    product, member = await _seed_product_member(factory, tenant_id=bundle.tenant.id)
+    token = await login_pos(client, bundle)
 
     payload = {
         "id": "order-uuid-1",
-        "store_id": store.id,
-        "terminal_id": terminal.id,
-        "cashier_id": admin.id,
+        "store_id": bundle.store.id,
+        "terminal_id": bundle.terminal.id,
+        "cashier_id": bundle.admin.id,
         "member_id": member.id,
         "status": "paid",
         "subtotal_cents": 250,
@@ -78,27 +63,64 @@ async def test_upload_order_decrements_inventory_and_grants_points(app, client):
     }
     r = await client.post("/orders", json=payload, headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 201, r.text
+    assert r.json()["tenant_id"] == bundle.tenant.id
 
-    # Re-uploading is a no-op (idempotent)
     r2 = await client.post("/orders", json=payload, headers={"Authorization": f"Bearer {token}"})
     assert r2.status_code == 201
 
-    # Member earned 2 points (262 // 100)
     r3 = await client.get(f"/members/{member.id}", headers={"Authorization": f"Bearer {token}"})
     assert r3.status_code == 200
-    assert r3.json()["points"] == 2  # 262 // 100 = 2
+    assert r3.json()["points"] == 2
 
-    # Inventory level should now be -10
     r4 = await client.get("/inventory/levels", headers={"Authorization": f"Bearer {token}"})
     assert r4.status_code == 200
     levels = r4.json()
     assert any(lv["product_id"] == product.id and lv["on_hand"] == -10 for lv in levels)
 
 
+async def test_upload_order_rejects_mismatched_store(app, client):
+    """A POS session bound to store A must not be able to upload an order
+    that claims store_id=B (the previous code trusted the body)."""
+    factory = db_mod.get_session_factory()
+    a = await build_tenant(factory, tenant_code="alpha", store_code="A1", admin_username="alphaA",
+                           cashier_username="alphaC")
+    b = await build_tenant(factory, tenant_code="beta", store_code="B1", admin_username="betaA",
+                           cashier_username="betaC")
+    product_a, _ = await _seed_product_member(factory, tenant_id=a.tenant.id, sku="A-SKU")
+
+    token = await login_pos(client, a, username="alphaA")
+    payload = {
+        "id": "order-cross-1",
+        "store_id": b.store.id,  # ⚠ wrong store
+        "terminal_id": a.terminal.id,
+        "cashier_id": a.admin.id,
+        "subtotal_cents": 25,
+        "discount_cents": 0,
+        "tax_cents": 1,
+        "total_cents": 26,
+        "client_created_at": datetime.now(timezone.utc).isoformat(),
+        "lines": [
+            {
+                "id": "ln-x",
+                "product_id": product_a.id,
+                "product_name": product_a.name,
+                "sku": product_a.sku,
+                "qty": 1,
+                "unit_price_cents": 25,
+                "line_total_cents": 25,
+            }
+        ],
+        "payments": [{"id": "pay-x", "method": "cash", "amount_cents": 26}],
+    }
+    r = await client.post("/orders", json=payload, headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 403, r.text
+
+
 async def test_refund_reverses_inventory(app, client):
     factory = db_mod.get_session_factory()
-    store, terminal, admin, product, member = await _seed(factory)
-    token = await _login(client)
+    bundle = await build_tenant(factory)
+    product, _ = await _seed_product_member(factory, tenant_id=bundle.tenant.id)
+    token = await login_pos(client, bundle)
 
     order_id = "order-uuid-2"
     await client.post(
@@ -106,9 +128,9 @@ async def test_refund_reverses_inventory(app, client):
         headers={"Authorization": f"Bearer {token}"},
         json={
             "id": order_id,
-            "store_id": store.id,
-            "terminal_id": terminal.id,
-            "cashier_id": admin.id,
+            "store_id": bundle.store.id,
+            "terminal_id": bundle.terminal.id,
+            "cashier_id": bundle.admin.id,
             "subtotal_cents": 50,
             "discount_cents": 0,
             "tax_cents": 2,
@@ -129,16 +151,14 @@ async def test_refund_reverses_inventory(app, client):
         },
     )
 
-    # Full refund
     r = await client.post(
         f"/orders/{order_id}/refund",
         headers={"Authorization": f"Bearer {token}"},
-        json={"id": "refund-1", "user_id": admin.id, "method": "cash", "lines": []},
+        json={"id": "refund-1", "method": "cash", "lines": []},
     )
     assert r.status_code == 201, r.text
     assert r.json()["total_amount_cents"] == 50
 
     r2 = await client.get(f"/orders/{order_id}", headers={"Authorization": f"Bearer {token}"})
-    # 50 cents refunded but order total is 52 (includes tax), so it's partial.
     assert r2.json()["status"] in ("refunded", "partiallyRefunded")
     assert r2.json()["refunded_cents"] == 50

@@ -3,11 +3,79 @@ export interface SessionRead {
   username: string
   display_name: string
   role: string
-  store_id: string
-  terminal_id: string
+  tenant_id: string | null
+  tenant_code: string | null
+  store_id: string | null
+  terminal_id: string | null
   access_token: string
   refresh_token: string
   expires_at: number
+  must_change_password?: boolean
+}
+
+export interface TenantApplyRequest {
+  company_name: string
+  contact_name: string
+  contact_email: string
+  contact_phone?: string
+  tax_id?: string
+  plan_code?: string
+  proposed_subdomain?: string
+  address?: string
+  note?: string
+  captcha_token?: string
+}
+
+export interface TenantApplyResponse {
+  application_id: string
+  contact_email: string
+  status: string
+  message: string
+}
+
+export interface TenantApplicationRead {
+  id: string
+  company_name: string
+  contact_name: string
+  contact_email: string
+  contact_phone: string | null
+  tax_id: string | null
+  plan_code: string | null
+  proposed_subdomain: string | null
+  address: string | null
+  note: string | null
+  status: string
+  email_verified_at: number | null
+  reviewed_at: number | null
+  reject_reason: string | null
+  provisioned_tenant_id: string | null
+}
+
+export interface TenantRead {
+  id: string
+  code: string
+  name: string
+  contact_email: string
+  contact_phone: string | null
+  tax_id: string | null
+  status: string
+  plan_code: string | null
+  trial_ends_at: string | null
+  created_at: string
+}
+
+export interface SubscriptionPlanRead {
+  id: string
+  code: string
+  name: string
+  price_cents: number
+  interval: string
+  max_stores: number
+  max_terminals: number
+  max_orders_per_month: number
+  max_products: number
+  is_active: boolean
+  description: string | null
 }
 
 export interface CategoryRead {
@@ -182,6 +250,7 @@ export interface PointTransactionRead {
 
 export interface StoreRead {
   id: string
+  tenant_id: string
   code: string
   name: string
   tax_id: string | null
@@ -261,6 +330,7 @@ export interface PaymentRead {
 
 export interface OrderRead {
   id: string
+  tenant_id: string
   store_id: string
   terminal_id: string
   cashier_id: string
@@ -282,11 +352,15 @@ export interface OrderRead {
 
 export interface UserRead {
   id: string
+  tenant_id: string | null
   username: string
   display_name: string
+  email: string | null
   role: string
   store_id: string | null
   is_active: boolean
+  must_change_password: boolean
+  last_login_at: string | null
   created_at: string
   updated_at: string
 }
@@ -295,9 +369,11 @@ export interface UserCreate {
   username: string
   password: string
   display_name: string
+  email?: string | null
   role: string
   store_id?: string | null
   is_active?: boolean
+  must_change_password?: boolean
 }
 
 export interface UserUpdate {
@@ -306,6 +382,8 @@ export interface UserUpdate {
   store_id?: string | null
   is_active?: boolean
   password?: string
+  email?: string | null
+  must_change_password?: boolean
 }
 
 export interface Paginated<T> {
@@ -326,7 +404,7 @@ export interface DiningTableRead {
 }
 
 export interface DiningTableCreate {
-  store_id: string
+  store_id?: string
   label: string
   seats?: number | null
   is_active?: boolean
@@ -349,6 +427,7 @@ export interface GuestOrderLineRead {
 
 export interface GuestOrderRead {
   id: string
+  tenant_id: string
   store_id: string
   table_id: string
   table_label: string | null

@@ -1,10 +1,10 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
 
-from ...core.deps import AdminDep, DbSession
+from ...core.deps import DbSession, TenantAdminDep, apply_tenant
 from ...models import Order, OrderLine
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -27,16 +27,19 @@ class TopProduct(BaseModel):
 @router.get("/sales-summary", response_model=SalesSummary)
 async def sales_summary(
     db: DbSession,
-    _: AdminDep,
+    scope: TenantAdminDep,
     since: datetime | None = None,
     until: datetime | None = None,
     store_id: str | None = None,
 ) -> SalesSummary:
-    stmt = select(
-        func.coalesce(func.sum(Order.total_cents), 0).label("revenue"),
-        func.count(Order.id).label("cnt"),
-    ).where(Order.status == "paid")
-
+    stmt = apply_tenant(
+        select(
+            func.coalesce(func.sum(Order.total_cents), 0).label("revenue"),
+            func.count(Order.id).label("cnt"),
+        ).where(Order.status == "paid"),
+        Order,
+        scope,
+    )
     if since:
         stmt = stmt.where(Order.created_at >= since)
     if until:
@@ -57,12 +60,13 @@ async def sales_summary(
 @router.get("/top-products", response_model=list[TopProduct])
 async def top_products(
     db: DbSession,
-    _: AdminDep,
+    scope: TenantAdminDep,
     since: datetime | None = None,
     until: datetime | None = None,
+    store_id: str | None = None,
     limit: int = Query(20, le=100),
 ) -> list[TopProduct]:
-    stmt = (
+    base = (
         select(
             OrderLine.product_id,
             OrderLine.product_name,
@@ -71,18 +75,21 @@ async def top_products(
             func.sum(OrderLine.line_total_cents).label("total_revenue_cents"),
         )
         .join(Order, Order.id == OrderLine.order_id)
-        .where(Order.status == "paid")
+        .where(Order.status == "paid", Order.tenant_id == scope.tenant_id)
         .group_by(OrderLine.product_id, OrderLine.product_name, OrderLine.sku)
         .order_by(func.sum(OrderLine.line_total_cents).desc())
         .limit(limit)
     )
-
+    if scope.tenant_id is None and not scope.is_platform_super:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "tenant required")
     if since:
-        stmt = stmt.where(Order.created_at >= since)
+        base = base.where(Order.created_at >= since)
     if until:
-        stmt = stmt.where(Order.created_at <= until)
+        base = base.where(Order.created_at <= until)
+    if store_id:
+        base = base.where(Order.store_id == store_id)
 
-    rows = (await db.execute(stmt)).all()
+    rows = (await db.execute(base)).all()
     return [
         TopProduct(
             product_id=r.product_id,

@@ -1,5 +1,5 @@
 from .base import InvoiceDriver, InvoiceIssueRequest, InvoiceVoidRequest, InvoiceResult
-from .registry import invoice_driver_for
+from .registry import invoice_driver_for, tenant_invoice_driver_for
 
 __all__ = [
     "InvoiceDriver",
@@ -7,4 +7,5 @@ __all__ = [
     "InvoiceVoidRequest",
     "InvoiceResult",
     "invoice_driver_for",
+    "tenant_invoice_driver_for",
 ]

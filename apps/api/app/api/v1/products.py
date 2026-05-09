@@ -6,35 +6,48 @@ from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
-from ...core.deps import AdminDep, CurrentUserDep, DbSession
+from ...core.audit import audit
+from ...core.deps import (
+    DbSession,
+    StoreAdminDep,
+    TenantAdminDep,
+    TenantScope,
+    apply_tenant,
+    ensure_same_tenant,
+)
+from ...core.usage import assert_can_add_product
 from ...models import Product, ProductBarcode
 from ...schemas.product import ProductCreate, ProductRead, ProductUpdate
 
 router = APIRouter(prefix="/products", tags=["products"])
 
 
-async def _ensure_barcodes(db, product: Product, barcodes: list[str]) -> None:
-    """Replace product barcodes with the supplied list."""
+async def _ensure_barcodes(
+    db, product: Product, barcodes: list[str], tenant_id: str
+) -> None:
     existing = {b.barcode: b for b in product.barcodes}
     target = set(barcodes)
     for code, row in list(existing.items()):
         if code not in target:
             await db.delete(row)
     for code in target - set(existing.keys()):
-        db.add(ProductBarcode(product_id=product.id, barcode=code))
+        db.add(ProductBarcode(tenant_id=tenant_id, product_id=product.id, barcode=code))
 
 
 @router.get("", response_model=list[ProductRead])
 async def list_products(
     db: DbSession,
-    _: CurrentUserDep,
+    scope: TenantScope,
     q: str | None = None,
     category_id: str | None = None,
     is_active: bool | None = None,
     limit: int = Query(50, le=200),
     offset: int = 0,
 ) -> list[ProductRead]:
-    stmt = select(Product).where(Product.deleted_at.is_(None)).options(selectinload(Product.barcodes))
+    stmt = select(Product).where(Product.deleted_at.is_(None)).options(
+        selectinload(Product.barcodes)
+    )
+    stmt = apply_tenant(stmt, Product, scope)
     if q:
         like = f"%{q}%"
         stmt = stmt.outerjoin(ProductBarcode).where(
@@ -50,62 +63,84 @@ async def list_products(
 
 
 @router.post("", response_model=ProductRead, status_code=201)
-async def create_product(payload: ProductCreate, db: DbSession, _: AdminDep) -> ProductRead:
-    p = Product(**payload.model_dump(exclude={"barcodes"}))
+async def create_product(
+    payload: ProductCreate, db: DbSession, scope: StoreAdminDep
+) -> ProductRead:
+    await assert_can_add_product(db, scope.tenant_id)
+    p = Product(tenant_id=scope.tenant_id, **payload.model_dump(exclude={"barcodes"}))
     db.add(p)
     await db.flush()
     for code in payload.barcodes:
-        db.add(ProductBarcode(product_id=p.id, barcode=code))
+        db.add(ProductBarcode(tenant_id=scope.tenant_id, product_id=p.id, barcode=code))
+    await audit(db, scope, action="product_create", resource_type="product",
+                resource_id=p.id, flush=False)
     await db.commit()
     p = (
-        await db.execute(select(Product).where(Product.id == p.id).options(selectinload(Product.barcodes)))
+        await db.execute(
+            select(Product).where(Product.id == p.id).options(selectinload(Product.barcodes))
+        )
     ).scalar_one()
     return ProductRead.from_orm_with_barcodes(p)
 
 
 @router.get("/{pid}", response_model=ProductRead)
-async def get_product(pid: str, db: DbSession, _: CurrentUserDep) -> ProductRead:
+async def get_product(pid: str, db: DbSession, scope: TenantScope) -> ProductRead:
     p = (
-        await db.execute(select(Product).where(Product.id == pid).options(selectinload(Product.barcodes)))
+        await db.execute(
+            select(Product).where(Product.id == pid).options(selectinload(Product.barcodes))
+        )
     ).scalar_one_or_none()
     if not p or p.deleted_at:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
+    ensure_same_tenant(scope, p)
     return ProductRead.from_orm_with_barcodes(p)
 
 
 @router.patch("/{pid}", response_model=ProductRead)
-async def update_product(pid: str, payload: ProductUpdate, db: DbSession, _: AdminDep) -> ProductRead:
+async def update_product(
+    pid: str, payload: ProductUpdate, db: DbSession, scope: StoreAdminDep
+) -> ProductRead:
     p = (
-        await db.execute(select(Product).where(Product.id == pid).options(selectinload(Product.barcodes)))
+        await db.execute(
+            select(Product).where(Product.id == pid).options(selectinload(Product.barcodes))
+        )
     ).scalar_one_or_none()
     if not p or p.deleted_at:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
+    ensure_same_tenant(scope, p)
     data = payload.model_dump(exclude_unset=True)
     barcodes = data.pop("barcodes", None)
     for k, v in data.items():
         setattr(p, k, v)
     if barcodes is not None:
-        await _ensure_barcodes(db, p, barcodes)
+        await _ensure_barcodes(db, p, barcodes, scope.tenant_id)
+    await audit(db, scope, action="product_update", resource_type="product",
+                resource_id=pid, flush=False)
     await db.commit()
     p = (
-        await db.execute(select(Product).where(Product.id == pid).options(selectinload(Product.barcodes)))
+        await db.execute(
+            select(Product).where(Product.id == pid).options(selectinload(Product.barcodes))
+        )
     ).scalar_one()
     return ProductRead.from_orm_with_barcodes(p)
 
 
 @router.delete("/{pid}", status_code=204)
-async def delete_product(pid: str, db: DbSession, _: AdminDep) -> None:
+async def delete_product(pid: str, db: DbSession, scope: StoreAdminDep) -> None:
     p = await db.get(Product, pid)
     if not p:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
+    ensure_same_tenant(scope, p)
     p.deleted_at = datetime.now(timezone.utc)
+    await audit(db, scope, action="product_delete", resource_type="product",
+                resource_id=pid, flush=False)
     await db.commit()
 
 
 @router.post("/import-csv", status_code=201)
 async def import_products_csv(
     db: DbSession,
-    _: AdminDep,
+    scope: TenantAdminDep,
     file: UploadFile = File(...),
 ) -> dict:
     """CSV columns: sku,name,price_cents,category_id,barcode,is_weighted,unit"""
@@ -118,7 +153,11 @@ async def import_products_csv(
         if not sku:
             continue
         existing = (
-            await db.execute(select(Product).where(Product.sku == sku))
+            await db.execute(
+                select(Product).where(
+                    Product.tenant_id == scope.tenant_id, Product.sku == sku
+                )
+            )
         ).scalar_one_or_none()
         defaults = dict(
             sku=sku,
@@ -135,12 +174,14 @@ async def import_products_csv(
             p = existing
             updated += 1
         else:
-            p = Product(**defaults)
+            p = Product(tenant_id=scope.tenant_id, **defaults)
             db.add(p)
             created += 1
         await db.flush()
         bc = (row.get("barcode") or "").strip()
         if bc:
-            await _ensure_barcodes(db, p, [bc])
+            await _ensure_barcodes(db, p, [bc], scope.tenant_id)
+    await audit(db, scope, action="product_import_csv", resource_type="product",
+                extra={"created": created, "updated": updated}, flush=False)
     await db.commit()
     return {"created": created, "updated": updated}

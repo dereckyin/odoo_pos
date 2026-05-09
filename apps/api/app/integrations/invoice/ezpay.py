@@ -28,12 +28,19 @@ from .base import InvoiceDriver, InvoiceIssueRequest, InvoiceResult, InvoiceVoid
 class EzpayInvoiceDriver(InvoiceDriver):
     name = "ezpay"
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        merchant_id: str | None = None,
+        hash_key: str | None = None,
+        hash_iv: str | None = None,
+        base_url: str | None = None,
+    ) -> None:
         s = get_settings()
-        self.merchant_id = s.EZPAY_MERCHANT_ID
-        self.hash_key = s.EZPAY_HASH_KEY
-        self.hash_iv = s.EZPAY_HASH_IV
-        self.base_url = s.EZPAY_BASE_URL
+        self.merchant_id = merchant_id or s.EZPAY_MERCHANT_ID
+        self.hash_key = hash_key or s.EZPAY_HASH_KEY
+        self.hash_iv = hash_iv or s.EZPAY_HASH_IV
+        self.base_url = base_url or s.EZPAY_BASE_URL
 
     def _aes_encrypt(self, plaintext: str) -> str:
         cipher = AES.new(self.hash_key.encode(), AES.MODE_CBC, self.hash_iv.encode())

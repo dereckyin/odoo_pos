@@ -84,6 +84,8 @@ class AuthController extends StateNotifier<AuthState> {
         username: dto.username,
         displayName: dto.displayName,
         role: dto.role,
+        tenantId: dto.tenantId,
+        tenantCode: dto.tenantCode,
         storeId: dto.storeId,
         terminalId: dto.terminalId,
         accessToken: dto.accessToken,

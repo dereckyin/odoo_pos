@@ -21,6 +21,11 @@ from . import (
     dining_tables,
     guest_orders,
     public_orders,
+    public_plans,
+    tenant_apply,
+    tenant_settings,
+    tenant_export,
+    platform,
 )
 
 api_router = APIRouter()
@@ -44,3 +49,8 @@ api_router.include_router(dashboard.router)
 api_router.include_router(dining_tables.router)
 api_router.include_router(guest_orders.router)
 api_router.include_router(public_orders.router)
+api_router.include_router(public_plans.router)
+api_router.include_router(tenant_apply.router)
+api_router.include_router(tenant_settings.router)
+api_router.include_router(tenant_export.router)
+api_router.include_router(platform.router)

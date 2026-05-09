@@ -1,6 +1,7 @@
 from . import (  # noqa: F401
     auth,
     store,
+    tenant,
     product,
     member,
     order,

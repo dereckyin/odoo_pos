@@ -7,6 +7,7 @@ from ._base import ORMModel
 
 class PromotionRead(ORMModel):
     id: str
+    tenant_id: str
     name: str
     strategy: str
     config: dict

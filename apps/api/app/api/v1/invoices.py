@@ -4,11 +4,12 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from ...core.deps import CurrentUserDep, DbSession
+from ...core.audit import audit
+from ...core.deps import DbSession, TenantScope, ensure_same_tenant
 from ...integrations.invoice import (
     InvoiceIssueRequest,
     InvoiceVoidRequest,
-    invoice_driver_for,
+    tenant_invoice_driver_for,
 )
 from ...integrations.invoice.base import InvoiceLine
 from ...models import Invoice, Order
@@ -18,7 +19,9 @@ router = APIRouter(prefix="/invoices", tags=["invoices"])
 
 
 @router.post("/issue", response_model=InvoiceRead, status_code=201)
-async def issue_invoice(payload: IssueInvoiceRequest, db: DbSession, _: CurrentUserDep) -> Invoice:
+async def issue_invoice(
+    payload: IssueInvoiceRequest, db: DbSession, scope: TenantScope
+) -> Invoice:
     order = (
         await db.execute(
             select(Order).where(Order.id == payload.order_id).options(selectinload(Order.lines))
@@ -26,6 +29,7 @@ async def issue_invoice(payload: IssueInvoiceRequest, db: DbSession, _: CurrentU
     ).scalar_one_or_none()
     if not order:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "order not found")
+    ensure_same_tenant(scope, order)
 
     existing = (
         await db.execute(select(Invoice).where(Invoice.order_id == order.id))
@@ -34,6 +38,7 @@ async def issue_invoice(payload: IssueInvoiceRequest, db: DbSession, _: CurrentU
         return existing
 
     invoice = existing or Invoice(
+        tenant_id=order.tenant_id,
         order_id=order.id,
         total_cents=order.total_cents,
         tax_cents=order.tax_cents,
@@ -49,7 +54,7 @@ async def issue_invoice(payload: IssueInvoiceRequest, db: DbSession, _: CurrentU
         db.add(invoice)
     await db.flush()
 
-    drv = invoice_driver_for(payload.gateway)
+    drv = await tenant_invoice_driver_for(db, scope.tenant_id, payload.gateway)
     lines = [
         InvoiceLine(
             name=ln.product_name,
@@ -84,21 +89,26 @@ async def issue_invoice(payload: IssueInvoiceRequest, db: DbSession, _: CurrentU
         invoice.status = "failed"
         invoice.last_error = str(res.raw)
 
+    await audit(db, scope, action="invoice_issue", resource_type="invoice",
+                resource_id=invoice.id, flush=False)
     await db.commit()
     await db.refresh(invoice)
     return invoice
 
 
 @router.post("/void", response_model=InvoiceRead)
-async def void_invoice(payload: VoidInvoiceRequest, db: DbSession, _: CurrentUserDep) -> Invoice:
+async def void_invoice(
+    payload: VoidInvoiceRequest, db: DbSession, scope: TenantScope
+) -> Invoice:
     invoice = await db.get(Invoice, payload.invoice_id)
     if not invoice:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "invoice not found")
+    ensure_same_tenant(scope, invoice)
     if invoice.status not in ("issued",):
         raise HTTPException(status.HTTP_409_CONFLICT, "invoice not issued")
     if not invoice.gateway or not invoice.invoice_number:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "missing gateway or invoice_number")
-    drv = invoice_driver_for(invoice.gateway)
+    drv = await tenant_invoice_driver_for(db, scope.tenant_id, invoice.gateway)
     res = await drv.void(
         InvoiceVoidRequest(invoice_number=invoice.invoice_number, reason=payload.reason)
     )
@@ -107,6 +117,8 @@ async def void_invoice(payload: VoidInvoiceRequest, db: DbSession, _: CurrentUse
         invoice.gateway_response = res.raw
     else:
         invoice.last_error = str(res.raw)
+    await audit(db, scope, action="invoice_void", resource_type="invoice",
+                resource_id=invoice.id, flush=False)
     await db.commit()
     await db.refresh(invoice)
     return invoice

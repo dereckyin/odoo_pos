@@ -16,6 +16,8 @@ class SessionStorage {
       'username': s.username,
       'displayName': s.displayName,
       'role': s.role,
+      'tenantId': s.tenantId,
+      'tenantCode': s.tenantCode,
       'storeId': s.storeId,
       'terminalId': s.terminalId,
       'accessToken': s.accessToken,
@@ -34,8 +36,10 @@ class SessionStorage {
       username: j['username'] as String,
       displayName: j['displayName'] as String,
       role: j['role'] as String,
-      storeId: j['storeId'] as String,
-      terminalId: j['terminalId'] as String,
+      tenantId: j['tenantId'] as String?,
+      tenantCode: j['tenantCode'] as String?,
+      storeId: j['storeId'] as String?,
+      terminalId: j['terminalId'] as String?,
       accessToken: j['accessToken'] as String,
       refreshToken: j['refreshToken'] as String,
       expiresAt: DateTime.parse(j['expiresAt'] as String),
@@ -46,10 +50,23 @@ class SessionStorage {
     await _storage.delete(key: _kSession);
   }
 
-  Future<void> saveTerminalCreds(String storeCode, String terminalCode, String apiKey) async {
+  /// Persist the credentials needed to log into this physical terminal.
+  /// The ``apiKey`` returned by ``/auth/terminals/register`` MUST also be
+  /// kept locally — it's required by every subsequent ``/auth/login``.
+  Future<void> saveTerminalCreds({
+    required String tenantCode,
+    required String storeCode,
+    required String terminalCode,
+    required String apiKey,
+  }) async {
     await _storage.write(
       key: _kTerminal,
-      value: jsonEncode({'storeCode': storeCode, 'terminalCode': terminalCode, 'apiKey': apiKey}),
+      value: jsonEncode({
+        'tenantCode': tenantCode,
+        'storeCode': storeCode,
+        'terminalCode': terminalCode,
+        'apiKey': apiKey,
+      }),
     );
   }
 

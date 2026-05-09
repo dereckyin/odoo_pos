@@ -6,6 +6,11 @@ import 'package:pos_ui_kit/pos_ui_kit.dart';
 import '../../../core/providers.dart';
 import 'terminal_register_page.dart';
 
+/// Tenant-aware POS login.
+///
+/// Most fields are pre-populated from the locally-stored ``TerminalCreds``
+/// (which the operator filled in once during registration). The cashier
+/// only needs to type their username and password each shift.
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -14,10 +19,14 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  final _user = TextEditingController(text: 'admin');
-  final _pass = TextEditingController(text: 'admin123');
-  final _terminal = TextEditingController(text: 'T01');
+  final _tenant = TextEditingController();
+  final _store = TextEditingController();
+  final _terminal = TextEditingController();
+  String _apiKey = '';
+  final _user = TextEditingController(text: 'cashier');
+  final _pass = TextEditingController();
   bool _busy = false;
+  bool _terminalReady = false;
   String? _error;
 
   @override
@@ -26,7 +35,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final creds = await ref.read(sessionStorageProvider).loadTerminalCreds();
       if (creds != null && mounted) {
-        _terminal.text = creds['terminalCode'] as String;
+        _tenant.text = (creds['tenantCode'] as String?) ?? '';
+        _store.text = (creds['storeCode'] as String?) ?? '';
+        _terminal.text = (creds['terminalCode'] as String?) ?? '';
+        _apiKey = (creds['apiKey'] as String?) ?? '';
+        setState(() => _terminalReady = _apiKey.isNotEmpty);
       }
     });
   }
@@ -43,38 +56,80 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Icon(Icons.point_of_sale, size: 72, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(height: 16),
-                Center(
-                    child: Text('企業 POS 系統',
-                        style: Theme.of(context).textTheme.headlineMedium)),
-                const SizedBox(height: 32),
-                TextField(controller: _user, decoration: const InputDecoration(labelText: '帳號')),
-                const SizedBox(height: 12),
-                TextField(controller: _pass, obscureText: true, decoration: const InputDecoration(labelText: '密碼')),
-                const SizedBox(height: 12),
-                TextField(controller: _terminal, decoration: const InputDecoration(labelText: '終端機代號')),
-                const SizedBox(height: 16),
-                if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                const SizedBox(height: 16),
-                BigButton(
-                  icon: Icons.login,
-                  label: _busy ? '登入中…' : '登入',
-                  onPressed: _busy ? null : _login,
-                ),
-                const SizedBox(height: 12),
-                TextButton.icon(
-                  icon: const Icon(Icons.app_registration),
-                  label: const Text('終端機註冊'),
-                  onPressed: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const TerminalRegisterPage()),
-                    );
-                  },
-                ),
-              ],
+                children: [
+                  Icon(Icons.point_of_sale, size: 72, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(height: 16),
+                  Center(
+                      child: Text('企業 POS 系統',
+                          style: Theme.of(context).textTheme.headlineMedium)),
+                  const SizedBox(height: 8),
+                  if (!_terminalReady)
+                    Card(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      child: const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text(
+                          '此裝置尚未註冊，請先點擊下方「終端機註冊」並由店家管理員完成設定。',
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _tenant,
+                    enabled: !_terminalReady,
+                    decoration: const InputDecoration(labelText: '租戶代號 (tenant_code)'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _store,
+                    enabled: !_terminalReady,
+                    decoration: const InputDecoration(labelText: '店別代號 (store_code)'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _terminal,
+                    enabled: !_terminalReady,
+                    decoration: const InputDecoration(labelText: '終端機代號'),
+                  ),
+                  const Divider(height: 28),
+                  TextField(controller: _user, decoration: const InputDecoration(labelText: '帳號')),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _pass,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: '密碼'),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                  const SizedBox(height: 16),
+                  BigButton(
+                    icon: Icons.login,
+                    label: _busy ? '登入中…' : '登入',
+                    onPressed: (_busy || !_terminalReady) ? null : _login,
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    icon: const Icon(Icons.app_registration),
+                    label: const Text('終端機註冊 / 重新註冊'),
+                    onPressed: () async {
+                      final ok = await Navigator.push<bool?>(
+                        context,
+                        MaterialPageRoute(builder: (_) => const TerminalRegisterPage()),
+                      );
+                      if (ok == true) {
+                        final creds =
+                            await ref.read(sessionStorageProvider).loadTerminalCreds();
+                        if (creds != null && mounted) {
+                          _tenant.text = (creds['tenantCode'] as String?) ?? '';
+                          _store.text = (creds['storeCode'] as String?) ?? '';
+                          _terminal.text = (creds['terminalCode'] as String?) ?? '';
+                          _apiKey = (creds['apiKey'] as String?) ?? '';
+                          setState(() => _terminalReady = _apiKey.isNotEmpty);
+                        }
+                      }
+                    },
+                  ),
+                ],
               ),
             ),
           ),
@@ -90,12 +145,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
     try {
       final api = ref.read(posApiProvider);
-      final dto = await api.login(_user.text.trim(), _pass.text, _terminal.text.trim());
+      final dto = await api.login(
+        tenantCode: _tenant.text.trim(),
+        storeCode: _store.text.trim(),
+        terminalCode: _terminal.text.trim(),
+        terminalApiKey: _apiKey,
+        username: _user.text.trim(),
+        password: _pass.text,
+      );
       await ref.read(authStateProvider.notifier).setSession(Session(
             userId: dto.userId,
             username: dto.username,
             displayName: dto.displayName,
             role: dto.role,
+            tenantId: dto.tenantId,
+            tenantCode: dto.tenantCode,
             storeId: dto.storeId,
             terminalId: dto.terminalId,
             accessToken: dto.accessToken,

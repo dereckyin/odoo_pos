@@ -25,12 +25,19 @@ from .base import ChargeRequest, PaymentDriver, PaymentResult, RefundRequest, Re
 class NewebPayDriver(PaymentDriver):
     name = "newebpay"
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        merchant_id: str | None = None,
+        hash_key: str | None = None,
+        hash_iv: str | None = None,
+        base_url: str | None = None,
+    ) -> None:
         s = get_settings()
-        self.merchant_id = s.NEWEBPAY_MERCHANT_ID
-        self.hash_key = s.NEWEBPAY_HASH_KEY.encode()
-        self.hash_iv = s.NEWEBPAY_HASH_IV.encode()
-        self.base_url = s.NEWEBPAY_BASE_URL
+        self.merchant_id = merchant_id or s.NEWEBPAY_MERCHANT_ID
+        self.hash_key = (hash_key or s.NEWEBPAY_HASH_KEY).encode()
+        self.hash_iv = (hash_iv or s.NEWEBPAY_HASH_IV).encode()
+        self.base_url = base_url or s.NEWEBPAY_BASE_URL
 
     def _aes_encrypt(self, plaintext: str) -> str:
         cipher = AES.new(self.hash_key, AES.MODE_CBC, self.hash_iv)

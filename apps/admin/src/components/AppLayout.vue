@@ -53,6 +53,16 @@
           <a-menu-item key="orders" @click="$router.push({ name: 'orders' })">訂單查詢</a-menu-item>
           <a-menu-item key="reports" @click="$router.push({ name: 'reports' })">銷售報表</a-menu-item>
         </a-sub-menu>
+        <a-menu-item v-if="auth.isTenantAdmin" key="tenant-settings" @click="$router.push({ name: 'tenant-settings' })">
+          <template #icon><SafetyOutlined /></template>
+          <span>租戶設定</span>
+        </a-menu-item>
+        <a-sub-menu v-if="auth.isPlatformSuper" key="platform-group">
+          <template #icon><CrownOutlined /></template>
+          <template #title>平台管理</template>
+          <a-menu-item key="platform-applications" @click="$router.push({ name: 'platform-applications' })">店家申請審核</a-menu-item>
+          <a-menu-item key="platform-tenants" @click="$router.push({ name: 'platform-tenants' })">租戶管理</a-menu-item>
+        </a-sub-menu>
       </a-menu>
     </a-layout-sider>
     <a-layout>
@@ -91,7 +101,8 @@ import { useAuthStore } from '@/stores/auth'
 import {
   DashboardOutlined, ShoppingOutlined, GiftOutlined, TeamOutlined,
   InboxOutlined, ShopOutlined, FileTextOutlined, UserOutlined,
-  MenuFoldOutlined, MenuUnfoldOutlined, QrcodeOutlined,
+  MenuFoldOutlined, MenuUnfoldOutlined, QrcodeOutlined, CrownOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons-vue'
 
 const collapsed = ref(false)
@@ -111,6 +122,8 @@ const nameMap: Record<string, string> = {
   tables: '桌位管理', 'tables-print': 'QR 列印',
   'guest-orders': '桌邊訂單',
   orders: '訂單查詢', 'order-detail': '訂單詳情', reports: '銷售報表',
+  'tenant-settings': '租戶設定',
+  'platform-applications': '店家申請審核', 'platform-tenants': '租戶管理',
 }
 
 const selectedKeys = ref<string[]>([])

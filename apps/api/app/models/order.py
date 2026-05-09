@@ -10,6 +10,7 @@ from ._mixins import Timestamped, UUIDPrimaryKey
 class Order(Base, UUIDPrimaryKey, Timestamped):
     __tablename__ = "orders"
 
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True, nullable=False)
     store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"), index=True)
     terminal_id: Mapped[str] = mapped_column(ForeignKey("terminals.id"), index=True)
     cashier_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
@@ -26,8 +27,6 @@ class Order(Base, UUIDPrimaryKey, Timestamped):
     invoice_carrier: Mapped[str | None] = mapped_column(String(64), nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    # When the order originates from a QR-scanned guest_order (table-side
-    # ordering), this column carries that guest_order id for reconciliation.
     source_guest_order_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
 
     client_created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

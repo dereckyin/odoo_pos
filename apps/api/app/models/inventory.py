@@ -11,6 +11,7 @@ class InventoryLevel(Base, UUIDPrimaryKey, Timestamped):
     __tablename__ = "inventory_levels"
     __table_args__ = (UniqueConstraint("store_id", "product_id", name="uq_inv_store_product"),)
 
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True, nullable=False)
     store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"), index=True)
     product_id: Mapped[str] = mapped_column(ForeignKey("products.id"), index=True)
     on_hand: Mapped[float] = mapped_column(Numeric(12, 3), default=0)
@@ -21,6 +22,7 @@ class InventoryLevel(Base, UUIDPrimaryKey, Timestamped):
 class InventoryMovement(Base, UUIDPrimaryKey, Timestamped):
     __tablename__ = "inventory_movements"
 
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True, nullable=False)
     store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"), index=True)
     product_id: Mapped[str] = mapped_column(ForeignKey("products.id"), index=True)
     qty_delta: Mapped[float] = mapped_column(Numeric(12, 3))
@@ -36,6 +38,7 @@ class InventoryMovement(Base, UUIDPrimaryKey, Timestamped):
 class TransferOrder(Base, UUIDPrimaryKey, Timestamped):
     __tablename__ = "transfer_orders"
 
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True, nullable=False)
     from_store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"))
     to_store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"))
     status: Mapped[str] = mapped_column(String(16), default="draft")
@@ -60,6 +63,7 @@ class TransferLine(Base, UUIDPrimaryKey, Timestamped):
 class Stocktake(Base, UUIDPrimaryKey, Timestamped):
     __tablename__ = "stocktakes"
 
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True, nullable=False)
     store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)

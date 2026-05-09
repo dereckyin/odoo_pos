@@ -9,11 +9,21 @@ class PosApi {
   final Dio _dio;
 
   // ---- Auth ----
-  Future<SessionDto> login(String username, String password, String terminalCode) async {
+  Future<SessionDto> login({
+    required String tenantCode,
+    required String storeCode,
+    required String terminalCode,
+    required String terminalApiKey,
+    required String username,
+    required String password,
+  }) async {
     final r = await _dio.post('/auth/login', data: {
+      'tenant_code': tenantCode,
+      'store_code': storeCode,
+      'terminal_code': terminalCode,
+      'terminal_api_key': terminalApiKey,
       'username': username,
       'password': password,
-      'terminal_code': terminalCode,
     });
     return SessionDto.fromJson(_asMap(r.data));
   }
@@ -23,12 +33,35 @@ class PosApi {
     return SessionDto.fromJson(_asMap(r.data));
   }
 
-  Future<Map<String, dynamic>> registerTerminal(String storeCode, String terminalCode) async {
-    final r = await _dio.post('/auth/terminals/register', data: {
-      'store_code': storeCode,
-      'terminal_code': terminalCode,
-    });
+  /// Register a new terminal or rotate an existing one's API key.
+  /// Now requires an admin-level JWT (server-side enforced) — the caller
+  /// must supply ``adminToken`` (e.g. from a prior /auth/admin-login call).
+  Future<Map<String, dynamic>> registerTerminal({
+    required String storeCode,
+    required String terminalCode,
+    required String adminToken,
+  }) async {
+    final r = await _dio.post(
+      '/auth/terminals/register',
+      data: {'store_code': storeCode, 'terminal_code': terminalCode},
+      options: Options(headers: {'Authorization': 'Bearer $adminToken'}),
+    );
     return _asMap(r.data);
+  }
+
+  /// Browser-style login used by the terminal-register flow to obtain an
+  /// admin JWT before calling [registerTerminal].
+  Future<SessionDto> adminLogin({
+    required String tenantCode,
+    required String username,
+    required String password,
+  }) async {
+    final r = await _dio.post('/auth/admin-login', data: {
+      'tenant_code': tenantCode,
+      'username': username,
+      'password': password,
+    });
+    return SessionDto.fromJson(_asMap(r.data));
   }
 
   Future<void> heartbeat(String terminalId) async {

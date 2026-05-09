@@ -45,11 +45,14 @@ class SessionDto {
     required this.username,
     required this.displayName,
     required this.role,
-    required this.storeId,
-    required this.terminalId,
     required this.accessToken,
     required this.refreshToken,
     required this.expiresAt,
+    this.tenantId,
+    this.tenantCode,
+    this.storeId,
+    this.terminalId,
+    this.mustChangePassword = false,
   });
 
   factory SessionDto.fromJson(Map<String, dynamic> j) => SessionDto(
@@ -57,14 +60,19 @@ class SessionDto {
         username: j['username'] as String,
         displayName: j['display_name'] as String,
         role: j['role'] as String,
-        storeId: j['store_id'] as String,
-        terminalId: j['terminal_id'] as String,
+        tenantId: j['tenant_id'] as String?,
+        tenantCode: j['tenant_code'] as String?,
+        storeId: j['store_id'] as String?,
+        terminalId: j['terminal_id'] as String?,
         accessToken: j['access_token'] as String,
         refreshToken: j['refresh_token'] as String,
         expiresAt: DateTime.fromMillisecondsSinceEpoch(((j['expires_at'] as num) * 1000).toInt()),
+        mustChangePassword: j['must_change_password'] as bool? ?? false,
       );
 
-  final String userId, username, displayName, role, storeId, terminalId, accessToken, refreshToken;
+  final String userId, username, displayName, role, accessToken, refreshToken;
+  final String? tenantId, tenantCode, storeId, terminalId;
+  final bool mustChangePassword;
   final DateTime expiresAt;
 }
 

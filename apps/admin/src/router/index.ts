@@ -9,6 +9,12 @@ const routes: RouteRecordRaw[] = [
     meta: { public: true },
   },
   {
+    path: '/signup',
+    name: 'signup',
+    component: () => import('@/views/auth/SignupView.vue'),
+    meta: { public: true },
+  },
+  {
     path: '/',
     component: () => import('@/components/AppLayout.vue'),
     children: [
@@ -47,6 +53,21 @@ const routes: RouteRecordRaw[] = [
       { path: 'orders/:id', name: 'order-detail', component: () => import('@/views/orders/OrderDetailView.vue') },
       // Reports
       { path: 'reports', name: 'reports', component: () => import('@/views/reports/ReportsView.vue') },
+      // Tenant self-service settings (payment / invoice / audit / usage)
+      { path: 'tenant-settings', name: 'tenant-settings', component: () => import('@/views/tenant/TenantSettingsView.vue') },
+      // Platform super-admin
+      {
+        path: 'platform/applications',
+        name: 'platform-applications',
+        component: () => import('@/views/platform/ApplicationListView.vue'),
+        meta: { platformOnly: true },
+      },
+      {
+        path: 'platform/tenants',
+        name: 'platform-tenants',
+        component: () => import('@/views/platform/TenantListView.vue'),
+        meta: { platformOnly: true },
+      },
     ],
   },
 ]
@@ -60,5 +81,8 @@ router.beforeEach((to) => {
   const auth = useAuthStore()
   if (!to.meta.public && !auth.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+  if (to.meta.platformOnly && !auth.isPlatformSuper) {
+    return { name: 'dashboard' }
   }
 })

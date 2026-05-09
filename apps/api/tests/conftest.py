@@ -4,8 +4,10 @@ import pathlib
 
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("JWT_SECRET", "test-secret")
+# Disable network-backed limiter; use in-memory backend in tests.
+os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
+os.environ.setdefault("ENV", "dev")
 
-# Ensure the project root is importable when running `pytest` from here.
 import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 

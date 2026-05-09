@@ -4,17 +4,16 @@ A request must carry ``token`` (the table's ``public_token``) to identify
 the table and store. Tokens are opaque, high-entropy strings; rotating a
 token instantly invalidates any previously printed QR for that table.
 
-Inventory is intentionally NOT touched here. Orders submitted via this
-path are stored as ``guest_orders`` with status ``submitted`` and need to
-be accepted by kitchen staff (KDS) to begin preparation. The cashier
-later resolves payment at the counter — see plan: "僅櫃台付".
+The menu is **strictly tenant-scoped** to ``table.tenant_id`` so a QR code
+in store A never leaks store B's catalogue.
 """
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 
 from ...core.deps import DbSession
+from ...core.ratelimit import per_ip
 from ...models import (
     Category,
     DiningTable,
@@ -53,20 +52,28 @@ async def _resolve_table(db, token: str) -> tuple[DiningTable, Store]:
 
 
 @router.get("/menu/{token}", response_model=PublicMenu)
-async def get_menu(token: str, db: DbSession):
+@per_ip("60/minute")
+async def get_menu(request: Request, token: str, db: DbSession):
     table, store = await _resolve_table(db, token)
 
     cats = (
         await db.execute(
             select(Category)
-            .where(Category.deleted_at.is_(None))
+            .where(
+                Category.tenant_id == table.tenant_id,
+                Category.deleted_at.is_(None),
+            )
             .order_by(Category.sort_order, Category.name)
         )
     ).scalars().all()
     products = (
         await db.execute(
             select(Product)
-            .where(Product.deleted_at.is_(None), Product.is_active.is_(True))
+            .where(
+                Product.tenant_id == table.tenant_id,
+                Product.deleted_at.is_(None),
+                Product.is_active.is_(True),
+            )
             .order_by(Product.name)
         )
     ).scalars().all()
@@ -102,18 +109,21 @@ async def get_menu(token: str, db: DbSession):
 
 
 @router.post("/orders/{token}", response_model=GuestOrderRead, status_code=201)
-async def submit_order(token: str, payload: GuestOrderSubmit, db: DbSession):
+@per_ip("30/minute")
+async def submit_order(
+    request: Request, token: str, payload: GuestOrderSubmit, db: DbSession
+):
     if not payload.lines:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "empty cart")
 
     table, _store = await _resolve_table(db, token)
 
-    # Resolve products and snapshot prices/names.
     product_ids = list({ln.product_id for ln in payload.lines})
     products = (
         await db.execute(
             select(Product).where(
                 Product.id.in_(product_ids),
+                Product.tenant_id == table.tenant_id,
                 Product.deleted_at.is_(None),
                 Product.is_active.is_(True),
             )
@@ -147,6 +157,7 @@ async def submit_order(token: str, payload: GuestOrderSubmit, db: DbSession):
         )
 
     g = GuestOrder(
+        tenant_id=table.tenant_id,
         store_id=table.store_id,
         table_id=table.id,
         status="submitted",
@@ -168,13 +179,16 @@ async def submit_order(token: str, payload: GuestOrderSubmit, db: DbSession):
             .options(selectinload(GuestOrder.lines), selectinload(GuestOrder.table))
         )
     ).scalar_one()
-    from .guest_orders import _to_read  # avoid circular import at module load
+    from .guest_orders import _to_read
 
     return _to_read(g_full)
 
 
 @router.get("/orders/{token}/{order_id}", response_model=GuestOrderRead)
-async def get_order_status(token: str, order_id: str, db: DbSession):
+@per_ip("120/minute")
+async def get_order_status(
+    request: Request, token: str, order_id: str, db: DbSession
+):
     """Customer can poll this to see whether the kitchen has accepted /
     is preparing / is done. Token must match the table the order was
     placed at, to prevent simply enumerating other tables' orders."""
@@ -182,7 +196,11 @@ async def get_order_status(token: str, order_id: str, db: DbSession):
     g = (
         await db.execute(
             select(GuestOrder)
-            .where(GuestOrder.id == order_id, GuestOrder.table_id == table.id)
+            .where(
+                GuestOrder.id == order_id,
+                GuestOrder.table_id == table.id,
+                GuestOrder.tenant_id == table.tenant_id,
+            )
             .options(selectinload(GuestOrder.lines), selectinload(GuestOrder.table))
         )
     ).scalar_one_or_none()

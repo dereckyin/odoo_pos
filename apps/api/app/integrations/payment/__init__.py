@@ -1,5 +1,5 @@
 from .base import PaymentDriver, PaymentResult, RefundResult, ChargeRequest, RefundRequest
-from .registry import driver_for, registered_drivers
+from .registry import driver_for, registered_drivers, tenant_driver_for
 
 __all__ = [
     "PaymentDriver",
@@ -9,4 +9,5 @@ __all__ = [
     "RefundRequest",
     "driver_for",
     "registered_drivers",
+    "tenant_driver_for",
 ]

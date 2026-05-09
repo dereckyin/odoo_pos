@@ -1,9 +1,9 @@
-
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from ...core.deps import CurrentUserDep, DbSession
+from ...core.audit import audit
+from ...core.deps import DbSession, TenantScope, ensure_same_tenant
 from ...models import (
     InventoryLevel,
     InventoryMovement,
@@ -20,13 +20,18 @@ router = APIRouter(prefix="/orders", tags=["refunds"])
 
 
 @router.post("/{oid}/refund", response_model=RefundRead, status_code=201)
-async def refund_order(oid: str, payload: RefundCreate, db: DbSession, user: CurrentUserDep) -> Refund:
+async def refund_order(
+    oid: str, payload: RefundCreate, db: DbSession, scope: TenantScope
+) -> Refund:
     order = (
         await db.execute(
             select(Order).where(Order.id == oid).options(selectinload(Order.lines))
         )
     ).scalar_one_or_none()
     if not order:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "order not found")
+    ensure_same_tenant(scope, order)
+    if scope.store_id and not scope.is_tenant_admin and order.store_id != scope.store_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "order not found")
     if order.status not in ("paid", "partiallyRefunded"):
         raise HTTPException(status.HTTP_409_CONFLICT, "order not refundable")
@@ -46,13 +51,16 @@ async def refund_order(oid: str, payload: RefundCreate, db: DbSession, user: Cur
         for r in payload.lines:
             ln: OrderLine | None = line_map.get(r.order_line_id)
             if not ln:
-                raise HTTPException(status.HTTP_400_BAD_REQUEST, f"order line {r.order_line_id} not found")
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    f"order line {r.order_line_id} not found",
+                )
             line_inputs.append((ln.id, r.qty, r.amount_cents))
 
     refund = Refund(
         id=payload.id,
         order_id=order.id,
-        user_id=payload.user_id,
+        user_id=payload.user_id or scope.user_id,
         method=payload.method,
         total_amount_cents=0,
         reason=payload.reason,
@@ -62,9 +70,11 @@ async def refund_order(oid: str, payload: RefundCreate, db: DbSession, user: Cur
 
     for line_id, qty, amount in line_inputs:
         ln = line_map[line_id]
-        db.add(RefundLine(refund_id=refund.id, order_line_id=line_id, qty=qty, amount_cents=amount))
-        # Reverse inventory movement
+        db.add(
+            RefundLine(refund_id=refund.id, order_line_id=line_id, qty=qty, amount_cents=amount)
+        )
         mvt = InventoryMovement(
+            tenant_id=order.tenant_id,
             store_id=order.store_id,
             product_id=ln.product_id,
             qty_delta=float(qty),
@@ -72,7 +82,7 @@ async def refund_order(oid: str, payload: RefundCreate, db: DbSession, user: Cur
             ref_type="refund",
             ref_id=refund.id,
             terminal_id=order.terminal_id,
-            user_id=payload.user_id,
+            user_id=refund.user_id,
         )
         db.add(mvt)
         level = (
@@ -84,7 +94,12 @@ async def refund_order(oid: str, payload: RefundCreate, db: DbSession, user: Cur
             )
         ).scalar_one_or_none()
         if level is None:
-            db.add(InventoryLevel(store_id=order.store_id, product_id=ln.product_id, on_hand=float(qty)))
+            db.add(InventoryLevel(
+                tenant_id=order.tenant_id,
+                store_id=order.store_id,
+                product_id=ln.product_id,
+                on_hand=float(qty),
+            ))
         else:
             level.on_hand = float(level.on_hand) + float(qty)
         total_cents += amount
@@ -101,6 +116,7 @@ async def refund_order(oid: str, payload: RefundCreate, db: DbSession, user: Cur
                 member.points = max(0, member.points - deduct)
                 db.add(
                     PointTransaction(
+                        tenant_id=order.tenant_id,
                         member_id=member.id,
                         delta=-deduct,
                         reason=f"refund:{refund.id}",
@@ -108,6 +124,8 @@ async def refund_order(oid: str, payload: RefundCreate, db: DbSession, user: Cur
                     )
                 )
 
+    await audit(db, scope, action="order_refund", resource_type="order",
+                resource_id=order.id, extra={"total_cents": total_cents}, flush=False)
     await db.commit()
     await db.refresh(refund)
     return refund

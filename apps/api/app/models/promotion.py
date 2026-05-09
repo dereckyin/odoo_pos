@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, JSON, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..core.db import Base
@@ -10,6 +10,7 @@ from ._mixins import SoftDelete, Timestamped, UUIDPrimaryKey
 class Promotion(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     __tablename__ = "promotions"
 
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(128))
     strategy: Mapped[str] = mapped_column(String(32), index=True)
     config: Mapped[dict] = mapped_column(JSON, default=dict)
