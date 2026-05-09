@@ -54,6 +54,7 @@ Thumbs.db
 # Node (admin frontend)
 node_modules/
 dist/
+*.tsbuildinfo
 
 # Uploads
 uploads/
