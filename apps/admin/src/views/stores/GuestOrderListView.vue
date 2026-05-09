@@ -41,8 +41,8 @@
               <a-list-item-meta :title="`${item.product_name} × ${item.qty}`">
                 <template #description>
                   <span v-if="item.note">備註：{{ item.note }}・</span>
-                  <span>單價 ${{ (item.unit_price_cents / 100).toFixed(0) }}・小計 ${{
-                    (item.line_total_cents / 100).toFixed(0)
+                  <span>單價 ${{ item.unit_price_cents.toFixed(0) }}・小計 ${{
+                    item.line_total_cents.toFixed(0)
                   }}</span>
                 </template>
               </a-list-item-meta>
@@ -60,7 +60,7 @@
           <a-tag :color="statusColor(record.status)">{{ statusLabel(record.status) }}</a-tag>
         </template>
         <template v-if="column.key === 'estimated_subtotal_cents'">
-          ${{ (record.estimated_subtotal_cents / 100).toFixed(0) }}
+          ${{ record.estimated_subtotal_cents.toFixed(0) }}
         </template>
         <template v-if="column.key === 'created_at'">
           {{ formatTime(record.created_at) }}

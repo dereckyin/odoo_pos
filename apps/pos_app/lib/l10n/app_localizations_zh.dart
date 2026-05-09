@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => '企業 POS';
+  String get appTitle => '點餐趣';
 
   @override
   String get cashier => '收銀';
@@ -86,7 +86,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   AppLocalizationsZhTw() : super('zh_TW');
 
   @override
-  String get appTitle => '企業 POS';
+  String get appTitle => '點餐趣';
 
   @override
   String get cashier => '收銀';

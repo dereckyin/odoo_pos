@@ -2,7 +2,10 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
-export default defineConfig({
+// 生產環境掛在主網域子路徑（與管理後台同 host），避免兩套 Vue 搶同一個 / 路由。
+// 開發 `npm run dev` 仍用根路徑 /，方便直接開 http://localhost:5174/order?t=...
+export default defineConfig(({ command }) => ({
+  base: command === 'serve' ? '/' : '/customer/',
   plugins: [vue()],
   resolve: {
     alias: {
@@ -24,4 +27,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

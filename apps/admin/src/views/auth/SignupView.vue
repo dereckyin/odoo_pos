@@ -4,7 +4,7 @@
       <template #title>
         <div class="card-title">
           <ShopOutlined style="margin-right: 8px" />
-          店家申請開通
+          點餐趣｜店家申請開通
         </div>
       </template>
 

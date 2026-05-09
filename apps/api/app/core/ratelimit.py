@@ -30,7 +30,9 @@ limiter = Limiter(
     key_func=_key_func,
     storage_uri=_storage_uri,
     enabled=_settings.RATE_LIMIT_ENABLED,
-    headers_enabled=True,
+    # FastAPI routes return plain models / JSON; slowapi header injection requires a
+    # Starlette ``Response`` on the handler. Disable headers to avoid 500s on limit paths.
+    headers_enabled=False,
     strategy="fixed-window",
 )
 

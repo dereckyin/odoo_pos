@@ -25,12 +25,12 @@
           <ul class="lines">
             <li v-for="ln in order.lines" :key="ln.id">
               <span>{{ ln.product_name }} × {{ ln.qty }}</span>
-              <span class="amt">${{ Math.round(ln.line_total_cents / 100) }}</span>
+              <span class="amt">${{ Math.round(ln.line_total_cents) }}</span>
             </li>
           </ul>
           <div class="total-row">
             <span>估計合計</span>
-            <strong>${{ Math.round(order.estimated_subtotal_cents / 100) }}</strong>
+            <strong>${{ Math.round(order.estimated_subtotal_cents) }}</strong>
           </div>
           <p class="hint">※ 實際金額以櫃台結帳為準</p>
         </section>
@@ -43,6 +43,7 @@
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchOrderStatus } from '@/api'
+import { tableTokenFromRoute } from '@/tableToken'
 import type { GuestOrderRead } from '@/types'
 
 const route = useRoute()
@@ -55,7 +56,7 @@ let pollHandle: number | null = null
 const orderId = String(route.params.orderId || '')
 
 async function load() {
-  const t = (route.query.t as string) || ''
+  const t = tableTokenFromRoute(route)
   if (!t || !orderId) return
   try {
     const { data } = await fetchOrderStatus(t, orderId)
@@ -68,7 +69,8 @@ async function load() {
 }
 
 function newOrder() {
-  router.push({ path: '/order', query: { t: route.query.t } })
+  const t = tableTokenFromRoute(route)
+  router.push({ path: '/order', query: t ? { t } : {} })
 }
 
 function statusClass(s: GuestOrderRead['status']) {

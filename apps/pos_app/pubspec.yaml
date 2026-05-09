@@ -1,5 +1,5 @@
 name: pos_app
-description: Enterprise POS Flutter application (Desktop + Android).
+description: 點餐趣 — Flutter 收銀／點餐端（Desktop + Android）。
 publish_to: none
 version: 0.1.0+1
 resolution: workspace
@@ -76,6 +76,16 @@ dev_dependencies:
   json_serializable: any
   freezed: any
   riverpod_lint: any
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  windows:
+    generate: true
+  macos:
+    generate: true
+  image_path: assets/images/app_icon.png
 
 flutter:
   uses-material-design: true

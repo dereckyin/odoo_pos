@@ -1,0 +1,34 @@
+# Merged snapshot for 192.168.0.168 — replace /etc/caddy/Caddyfile if this matches your intent.
+# Other hostnames unchanged; pos.myvnc.com adds /customer static + 9088.
+
+finance.myvnc.com {
+	reverse_proxy http://localhost:8080
+	encode gzip
+}
+
+dereckyin.myvnc.com {
+	reverse_proxy http://localhost:8081
+	encode gzip
+}
+
+cvsmap.myvnc.com {
+	reverse_proxy http://localhost:5000
+	encode gzip
+}
+
+dreamwalker.myvnc.com {
+	reverse_proxy http://localhost:8081
+	encode gzip
+}
+
+pos.myvnc.com {
+	handle_path /customer* {
+		root * /home/login/odoo_pos/apps/customer_order_web/dist
+		try_files {path} /index.html
+		file_server
+	}
+	handle {
+		reverse_proxy http://127.0.0.1:9088
+		encode gzip
+	}
+}

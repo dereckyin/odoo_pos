@@ -76,7 +76,9 @@ class _CashierPageState extends ConsumerState<CashierPage> {
             const Text('收銀'),
             const SizedBox(width: 12),
             if (session != null)
-              Chip(label: Text('店 ${session.storeId.substring(0, 6)} / 機 ${session.terminalId.substring(0, 6)}')),
+              Chip(
+                  label: Text(
+                      '店 ${_shortIdChip(session.storeId)} / 機 ${_shortIdChip(session.terminalId)}')),
           ]),
           actions: [
             _SyncIndicator(),
@@ -270,4 +272,9 @@ class _SearchBar extends StatelessWidget {
       ),
     );
   }
+}
+
+String _shortIdChip(String? id) {
+  if (id == null || id.isEmpty) return '—';
+  return id.length < 6 ? id : id.substring(0, 6);
 }

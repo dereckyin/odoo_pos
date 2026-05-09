@@ -14,7 +14,7 @@ class PosApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
     final mode = ref.watch(themeModeProvider);
     return MaterialApp.router(
-      title: '企業 POS',
+      title: '點餐趣',
       debugShowCheckedModeBanner: false,
       theme: PosTheme.light(),
       darkTheme: PosTheme.dark(),

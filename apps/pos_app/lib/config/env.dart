@@ -3,7 +3,7 @@
 ///   flutter run -d macos --dart-define=API_BASE_URL=http://10.0.0.5:8000
 class Env {
   static const apiBaseUrl =
-      String.fromEnvironment('API_BASE_URL', defaultValue: 'http://192.168.0.229:8000');
+      String.fromEnvironment('API_BASE_URL', defaultValue: 'https://pos.myvnc.com/api');
 
   static const flavor = String.fromEnvironment('FLAVOR', defaultValue: 'dev');
 

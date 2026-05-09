@@ -102,7 +102,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In zh_TW, this message translates to:
-  /// **'企業 POS'**
+  /// **'點餐趣'**
   String get appTitle;
 
   /// No description provided for @cashier.

@@ -19,9 +19,9 @@ def create_app() -> FastAPI:
     logging.basicConfig(level=logging.INFO)
 
     app = FastAPI(
-        title="POS Backend",
+        title="點餐趣 API",
         version="0.2.0",
-        description="Multi-tenant POS SaaS backend (FastAPI + PostgreSQL).",
+        description="點餐趣／多租戶 POS SaaS 後端（FastAPI + PostgreSQL）。",
     )
 
     app.state.limiter = limiter
@@ -43,7 +43,7 @@ def create_app() -> FastAPI:
 
     @app.get("/")
     async def root() -> dict:
-        return {"app": "pos-backend", "env": settings.ENV}
+        return {"app": "點餐趣", "env": settings.ENV}
 
     @app.get("/health")
     async def health() -> dict:

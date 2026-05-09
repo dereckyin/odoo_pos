@@ -1,6 +1,6 @@
 <template>
   <div class="login-wrapper">
-    <a-card class="login-card" title="POS 後台管理系統">
+    <a-card class="login-card" title="點餐趣｜後台管理系統">
       <a-form :model="form" @finish="handleLogin" layout="vertical">
         <a-form-item label="租戶代號" name="tenant_code" extra="平台超管登入時可留白">
           <a-input

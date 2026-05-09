@@ -1,6 +1,6 @@
-# Enterprise POS System (odoo_pos)
+# 點餐趣 · Enterprise POS（odoo_pos）
 
-企業級 POS 系統 monorepo：**多租戶 SaaS** 架構（申請審核制開店）、Flutter 收銀端、Vue 管理後台，以及 FastAPI + PostgreSQL + Redis 後端。
+**點餐趣**：企業級 POS／點餐 monorepo：**多租戶 SaaS**（申請審核制開店）、Flutter 收銀端、Vue 管理後台與 FastAPI + PostgreSQL + Redis 後端。
 
 ## 主要功能
 

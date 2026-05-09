@@ -12,7 +12,8 @@ class EscPosReceiptBuilder {
   EscPosReceiptBuilder({this.paperWidth = PaperSize.mm80});
   final PaperSize paperWidth;
 
-  Future<List<int>> build(dom.Order order, {dom.Invoice? invoice, String storeName = 'POS Demo'}) async {
+  Future<List<int>> build(dom.Order order,
+      {dom.Invoice? invoice, String storeName = '點餐趣 Demo'}) async {
     final profile = await CapabilityProfile.load();
     final gen = Generator(paperWidth, profile);
     final bytes = <int>[];

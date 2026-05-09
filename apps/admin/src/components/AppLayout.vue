@@ -2,8 +2,8 @@
   <a-layout style="min-height: 100vh">
     <a-layout-sider v-model:collapsed="collapsed" collapsible :trigger="null" breakpoint="lg" @collapse="collapsed = $event">
       <div class="logo">
-        <span v-if="!collapsed">POS 管理後台</span>
-        <span v-else>POS</span>
+        <span v-if="!collapsed">點餐趣｜後台</span>
+        <span v-else>點</span>
       </div>
       <a-menu v-model:selectedKeys="selectedKeys" v-model:openKeys="openKeys" theme="dark" mode="inline">
         <a-menu-item key="dashboard" @click="$router.push({ name: 'dashboard' })">

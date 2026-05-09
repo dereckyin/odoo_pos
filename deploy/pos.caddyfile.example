@@ -1,0 +1,7 @@
+# 範例：後台 + API 在 Docker nginx（9088）；顧客點餐請用靜態挂在 /customer/
+#（見 caddy-pos-snippet.caddyfile；勿把 Vite dev 5174 對外反向代理）。
+
+your-pos-hostname.example.com {
+	reverse_proxy http://127.0.0.1:9088
+	encode gzip
+}

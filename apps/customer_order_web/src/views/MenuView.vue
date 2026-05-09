@@ -54,15 +54,16 @@
     <footer class="cart-bar" v-if="cart.itemCount > 0" @click="goCart">
       <span class="count">{{ cart.itemCount }}</span>
       <span>查看購物車</span>
-      <span class="subtotal">${{ Math.round(cart.subtotalCents / 100) }}</span>
+      <span class="subtotal">${{ Math.round(cart.subtotalCents) }}</span>
     </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { fetchMenu } from '@/api'
+import { fetchMenu, resolveUploadPath } from '@/api'
+import { tableTokenFromRoute } from '@/tableToken'
 import type { PublicMenu, PublicProduct } from '@/types'
 import { useCartStore } from '@/stores/cart'
 
@@ -80,9 +81,10 @@ const listEl = ref<HTMLElement | null>(null)
 const activeCat = ref<string>('')
 const failedImageIds = ref(new Set<string>())
 
-function setSectionRef(id: string, el: Element | null) {
-  if (!(el instanceof HTMLElement)) return
-  if (el) sectionRefs.set(id, el)
+function setSectionRef(id: string, el: unknown) {
+  const node = el instanceof HTMLElement ? el : null
+  if (!node) return
+  sectionRefs.set(id, node)
 }
 
 function productsByCat(catId: string) {
@@ -91,7 +93,7 @@ function productsByCat(catId: string) {
 }
 
 function priceLabel(p: PublicProduct) {
-  return Math.round(p.price_cents / 100).toString()
+  return Math.round(p.price_cents).toString()
 }
 
 function addOne(p: PublicProduct) {
@@ -99,9 +101,7 @@ function addOne(p: PublicProduct) {
 }
 
 function resolveImageUrl(url: string) {
-  // Uploaded product images are stored as `/uploads/...`. In dev this is
-  // proxied by Vite; in production same-origin deployment also works.
-  return url
+  return resolveUploadPath(url)
 }
 
 function onImageError(e: Event) {
@@ -139,7 +139,7 @@ async function loadMenu() {
   loading.value = true
   error.value = ''
   try {
-    const t = (route.query.t as string) || ''
+    const t = tableTokenFromRoute(route)
     if (!t) {
       router.replace({ name: 'no-token' })
       return
@@ -155,7 +155,7 @@ async function loadMenu() {
   }
 }
 
-onMounted(loadMenu)
+watch(() => tableTokenFromRoute(route), () => void loadMenu(), { immediate: true })
 </script>
 
 <style scoped>

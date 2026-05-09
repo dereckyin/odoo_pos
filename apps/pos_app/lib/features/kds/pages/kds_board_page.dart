@@ -47,7 +47,9 @@ class _KdsBoardPageState extends ConsumerState<KdsBoardPage> {
           const Text('廚房 KDS'),
           const SizedBox(width: 12),
           if (session != null)
-            Chip(label: Text('店 ${session.storeId.substring(0, 6)}・${session.displayName}')),
+            Chip(
+                label: Text(
+                    '店 ${_shortIdChip(session.storeId)}・${session.displayName}')),
         ]),
         actions: [
           IconButton(
@@ -257,4 +259,9 @@ class _Column extends StatelessWidget {
       ),
     );
   }
+}
+
+String _shortIdChip(String? id) {
+  if (id == null || id.isEmpty) return '—';
+  return id.length < 6 ? id : id.substring(0, 6);
 }

@@ -31,3 +31,16 @@ export function fetchOrderStatus(token: string, orderId: string) {
     `/public/orders/${encodeURIComponent(token)}/${encodeURIComponent(orderId)}`,
   )
 }
+
+/** 後端若在 DB 存 `/uploads/...` 相對路徑；當 VITE_API_BASE 為絕對網址時要補上 API 站點 origin，瀏覽器才載得到圖。 */
+export function resolveUploadPath(url: string): string {
+  if (!url.startsWith('/uploads')) return url
+  const apiBase = (import.meta.env.VITE_API_BASE || '/api').replace(/\/+$/, '')
+  if (!apiBase.startsWith('http')) return url
+  try {
+    return new URL(apiBase).origin + url
+  } catch {
+    return url
+  }
+}
+

@@ -38,6 +38,11 @@ class CheckoutController {
     if (session == null) {
       throw const AuthError('not logged in');
     }
+    final storeId = session.storeId;
+    final terminalId = session.terminalId;
+    if (storeId == null || terminalId == null) {
+      throw const ValidationError('缺少門市或終端資訊，請使用收銀登入');
+    }
     if (cart.isEmpty) {
       throw const ValidationError('cart is empty');
     }
@@ -47,8 +52,8 @@ class CheckoutController {
     final sourceGuestOrderId = _ref.read(pendingGuestOrderIdProvider);
     final order = Order.fromCart(
       cart: cart,
-      storeId: session.storeId,
-      terminalId: session.terminalId,
+      storeId: storeId,
+      terminalId: terminalId,
       cashierId: session.userId,
       payments: payments,
       now: now,

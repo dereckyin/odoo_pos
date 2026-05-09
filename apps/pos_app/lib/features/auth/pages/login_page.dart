@@ -60,7 +60,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   Icon(Icons.point_of_sale, size: 72, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(height: 16),
                   Center(
-                      child: Text('企業 POS 系統',
+                      child: Text('點餐趣',
                           style: Theme.of(context).textTheme.headlineMedium)),
                   const SizedBox(height: 8),
                   if (!_terminalReady)

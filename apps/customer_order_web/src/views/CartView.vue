@@ -10,14 +10,14 @@
       <div v-for="line in cart.lines" :key="line.product.id" class="line">
         <div class="line-head">
           <div class="name">{{ line.product.name }}</div>
-          <div class="price">${{ Math.round(line.product.price_cents / 100) }}</div>
+          <div class="price">${{ Math.round(line.product.price_cents) }}</div>
         </div>
         <div class="qty-row">
           <button @click="dec(line.product.id, line.qty)">−</button>
           <span class="qty">{{ line.qty }}</span>
           <button @click="inc(line.product.id, line.qty)">+</button>
           <span class="line-total">小計 ${{
-            Math.round((line.product.price_cents * line.qty) / 100)
+            Math.round(line.product.price_cents * line.qty)
           }}</span>
         </div>
         <input
@@ -55,7 +55,7 @@
     <footer v-if="cart.lines.length > 0" class="submit-bar">
       <div class="total">
         <span>合計</span>
-        <strong>${{ Math.round(cart.subtotalCents / 100) }}</strong>
+        <strong>${{ Math.round(cart.subtotalCents) }}</strong>
       </div>
       <button class="submit-btn" :disabled="submitting" @click="submit">
         {{ submitting ? '送出中…' : '送出至廚房' }}
@@ -68,6 +68,7 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { submitOrder } from '@/api'
+import { tableTokenFromRoute } from '@/tableToken'
 import { useCartStore } from '@/stores/cart'
 
 const router = useRouter()
@@ -76,7 +77,8 @@ const cart = useCartStore()
 const submitting = ref(false)
 
 function goBack() {
-  router.push({ path: '/order', query: { t: route.query.t } })
+  const t = tableTokenFromRoute(route)
+  router.push({ path: '/order', query: t ? { t } : {} })
 }
 
 function inc(productId: string, q: number) {
@@ -87,7 +89,7 @@ function dec(productId: string, q: number) {
 }
 
 async function submit() {
-  const t = (route.query.t as string) || ''
+  const t = tableTokenFromRoute(route)
   if (!t) {
     alert('沒有桌位資訊，請重新掃碼')
     return
