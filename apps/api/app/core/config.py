@@ -36,7 +36,8 @@ class Settings(BaseSettings):
     CAPTCHA_SECRET: str = ""
 
     # Email / OTP. Stub mode (default) just logs the OTP code; production
-    # should plug a real SMTP / transactional provider in `core/notify.py`.
+    # should plug Resend (RESEND_API_KEY) or SMTP in `core/notify.py`.
+    RESEND_API_KEY: str = ""
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""

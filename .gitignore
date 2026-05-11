@@ -42,6 +42,7 @@ Thumbs.db
 # Env / secrets
 .env
 .env.local
+deploy/.env.api
 *.pem
 *.key
 

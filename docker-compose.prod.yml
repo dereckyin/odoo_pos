@@ -61,6 +61,18 @@ services:
     depends_on:
       - api
 
+  # 顧客掃碼點餐靜態站（build 輸出 → apps/customer_order_web/dist）
+  # 僅綁 localhost，由主機 Caddy 以 handle_path /customer 反代至 9089
+  customer_web:
+    image: nginx:alpine
+    container_name: pos_customer_web_prod
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9089:80"
+    volumes:
+      - ./apps/customer_order_web/dist:/usr/share/nginx/html:ro
+      - ./deploy/nginx.customer.conf:/etc/nginx/conf.d/default.conf:ro
+
 volumes:
   pos_pgdata:
   pos_redisdata:

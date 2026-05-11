@@ -23,9 +23,8 @@ dreamwalker.myvnc.com {
 
 pos.myvnc.com {
 	handle_path /customer* {
-		root * /home/login/odoo_pos/apps/customer_order_web/dist
-		try_files {path} /index.html
-		file_server
+		reverse_proxy http://127.0.0.1:9089
+		encode gzip
 	}
 	handle {
 		reverse_proxy http://127.0.0.1:9088

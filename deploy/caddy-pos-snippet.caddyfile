@@ -1,7 +1,8 @@
 # 片段說明：將「管理後台 + API」（Docker nginx :9088）與「顧客點餐靜態站」掛在同一主機名。
 #
-# 顧客端請用 production build（base=/customer/），並將 dist 複製到伺服器例如：
-#   /home/login/odoo_pos/apps/customer_order_web/dist
+# 顧客端請用 production build（base=/customer/），並將 dist 留在 repo：
+#   apps/customer_order_web/dist
+# 正式機由 docker-compose「customer_web」容器（埠 127.0.0.1:9089）伺服的 Nginx 提供。
 #
 # 使用方法：把下列 handle / handle_path 合併進現有的 pos.myvnc.com { ... } 區塊，
 # 且順序建議：先匹配 /customer，再走預設 reverse_proxy 到 9088。
@@ -10,14 +11,11 @@
 #
 # pos.myvnc.com {
 #
-#     # 顧客掃碼點餐 SPA（子路徑 → 靜態檔；handle_path 會去掉 /customer 再接 try_files）
 #     handle_path /customer* {
-#         root * /home/login/odoo_pos/apps/customer_order_web/dist
-#         try_files {path} /index.html
-#         file_server
+#         reverse_proxy http://127.0.0.1:9089
+#         encode gzip
 #     }
 #
-#     # 後台 + /api（沿用既有 Docker nginx）
 #     handle {
 #         reverse_proxy http://127.0.0.1:9088
 #         encode gzip
@@ -28,7 +26,7 @@
 #
 # 為何不用「reverse_proxy 到 5174」？
 # - 5174 是 Vite 開發伺服器埠，不應在正式機對外暴露。
-# - 正式機請 `npm run build` 後用 Caddy `file_server`（或另開一個只送靜態的小型 nginx）即可。
+# - 正式機請 `npm run build` 後由 Docker「customer_web」掛載 dist（見 docker-compose.prod.yml）。
 #
 # 後台列印 QR：在 admin 設 VITE_CUSTOMER_BASE_URL=https://pos.myvnc.com/customer
 #
