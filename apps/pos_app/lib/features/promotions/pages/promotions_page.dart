@@ -4,6 +4,7 @@ import 'package:pos_domain/pos_domain.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
 import '../providers/promotion_providers.dart';
+import '../../sync/widgets/master_data_sync_button.dart';
 
 class PromotionsPage extends ConsumerWidget {
   const PromotionsPage({super.key});
@@ -12,7 +13,10 @@ class PromotionsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncList = ref.watch(activePromotionsStreamProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('行銷活動')),
+      appBar: AppBar(
+        title: const Text('行銷活動'),
+        actions: const [MasterDataSyncButton()],
+      ),
       body: asyncList.when(
         data: (list) {
           if (list.isEmpty) {

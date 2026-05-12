@@ -6,6 +6,10 @@ import '../../config/env.dart';
 typedef TokenProvider = Future<String?> Function();
 typedef OnUnauthorized = Future<void> Function();
 
+bool _isAuthRefreshCall(RequestOptions options) {
+  return options.uri.path.endsWith('/auth/refresh');
+}
+
 class ApiClient {
   ApiClient._(this.dio);
 
@@ -45,7 +49,9 @@ class ApiClient {
         handler.next(resp);
       },
       onError: (e, handler) async {
-        if (e.response?.statusCode == 401) {
+        // Never chain refresh-on-401 for /auth/refresh itself (deadlock with
+        // single-flight refresh + recursive tryRefresh).
+        if (e.response?.statusCode == 401 && !_isAuthRefreshCall(e.requestOptions)) {
           await onUnauthorized();
         }
         logger.warn(

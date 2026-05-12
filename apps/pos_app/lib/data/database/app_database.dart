@@ -61,6 +61,19 @@ class AppDatabase extends _$AppDatabase {
   Future<void> setMeta(String key, String value) async {
     await into(kvMeta).insertOnConflictUpdate(KvMetaCompanion.insert(key: key, value: Value(value)));
   }
+
+  Future<void> clearMasterData() async {
+    await transaction(() async {
+      await delete(productBarcodes).go();
+      await delete(products).go();
+      await delete(categories).go();
+      await delete(memberLevels).go();
+      await delete(members).go();
+      await delete(promotions).go();
+      await delete(inventoryLevels).go();
+      await (delete(kvMeta)..where((t) => t.key.like('sync.since.%'))).go();
+    });
+  }
 }
 
 LazyDatabase _openConnection() {

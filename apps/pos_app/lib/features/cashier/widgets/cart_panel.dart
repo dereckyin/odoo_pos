@@ -172,7 +172,7 @@ class _Totals extends StatelessWidget {
         children: [
           _row(context, '小計', cart.subtotal),
           if (!cart.orderLevelDiscountAmount.isZero) _row(context, '優惠/折扣', cart.orderLevelDiscountAmount.negate),
-          _row(context, '稅', cart.tax),
+          _row(context, '稅(內含)', cart.tax),
           const Divider(),
           _row(context, '應付', cart.total, big: true),
         ],

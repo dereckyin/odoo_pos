@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
 import '../providers/product_providers.dart';
+import '../../sync/widgets/master_data_sync_button.dart';
 
 class ProductsPage extends ConsumerStatefulWidget {
   const ProductsPage({super.key});
@@ -18,10 +19,13 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
   @override
   Widget build(BuildContext context) {
     final asyncProducts =
-        ref.watch(productSearchProvider((query: _q, categoryId: _cat)));
+        ref.watch(productListProvider((query: _q, categoryId: _cat)));
     final cats = ref.watch(categoriesProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('商品')),
+      appBar: AppBar(
+        title: const Text('商品'),
+        actions: const [MasterDataSyncButton()],
+      ),
       body: Column(
         children: [
           Padding(

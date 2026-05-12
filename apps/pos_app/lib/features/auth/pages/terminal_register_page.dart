@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
 import '../../../core/providers.dart';
+import '../../../data/sync/sync_providers.dart';
 
 /// Two-step registration flow:
 ///   1. Operator authenticates with their tenant_admin / store_manager
@@ -91,10 +92,22 @@ class _TerminalRegisterPageState extends ConsumerState<TerminalRegisterPage> {
         terminalCode: _terminal.text.trim(),
         adminToken: adminSession.accessToken,
       );
+      final tenantCode = _tenant.text.trim();
+      final storeCode = _store.text.trim();
+      final terminalCode = _terminal.text.trim();
+      final previous = await ref.read(sessionStorageProvider).loadTerminalCreds();
+      final identityChanged = previous == null ||
+          previous['tenantCode'] != tenantCode ||
+          previous['storeCode'] != storeCode ||
+          previous['terminalCode'] != terminalCode;
+      if (identityChanged) {
+        await ref.read(databaseProvider).clearMasterData();
+        await ref.read(masterDataScopeStoreProvider).clearScope();
+      }
       await ref.read(sessionStorageProvider).saveTerminalCreds(
-            tenantCode: _tenant.text.trim(),
-            storeCode: _store.text.trim(),
-            terminalCode: _terminal.text.trim(),
+            tenantCode: tenantCode,
+            storeCode: storeCode,
+            terminalCode: terminalCode,
             apiKey: res['api_key'] as String,
           );
       setState(() {

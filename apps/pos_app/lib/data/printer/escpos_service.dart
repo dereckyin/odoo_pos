@@ -58,7 +58,7 @@ class EscPosReceiptBuilder {
     if (!order.discount.isZero) {
       bytes.addAll(_kv(gen, '折扣', order.discount.negate));
     }
-    bytes.addAll(_kv(gen, '稅 5%', order.tax));
+    bytes.addAll(_kv(gen, '稅(內含) 5%', order.tax));
     bytes.addAll(gen.row([
       PosColumn(text: '合計', width: 4, styles: const PosStyles(bold: true, height: PosTextSize.size2)),
       PosColumn(

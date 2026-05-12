@@ -17,18 +17,17 @@ void main() {
         CartLine(id: 'l2', product: _p('B', 50), qty: 3),
       ]);
       expect(cart.subtotal.major.toDouble(), 350);
-      // TWD has no minor units, tax rounds up.
-      expect(cart.tax.major.toDouble(), closeTo(18, 0.5));
-      expect(cart.total.major.toDouble(), closeTo(368, 0.5));
+      expect(cart.tax.major.toDouble(), closeTo(16.67, 0.5));
+      expect(cart.total.major.toDouble(), closeTo(350, 0.5));
     });
 
-    test('order percentage discount applies to subtotal not tax', () {
+    test('order percentage discount applies to tax-inclusive subtotal', () {
       final cart = Cart(
         lines: [CartLine(id: 'l1', product: _p('A', 1000), qty: 1)],
         orderDiscount: const Discount(type: DiscountType.percentage, value: 10),
       );
       expect(cart.orderLevelDiscountAmount.major.toDouble(), 100);
-      expect(cart.total.major.toDouble(), closeTo(945.0, 0.01));
+      expect(cart.total.major.toDouble(), closeTo(900.0, 0.01));
     });
 
     test('combined line + order discount', () {
@@ -43,9 +42,8 @@ void main() {
         ],
         orderDiscount: const Discount(type: DiscountType.amount, value: 50),
       );
-      // gross 400 - line 50 - order 50 = 300, tax 15
       expect(cart.subtotal.major.toDouble(), 350);
-      expect(cart.total.major.toDouble(), closeTo(315.0, 0.01));
+      expect(cart.total.major.toDouble(), closeTo(300.0, 0.01));
     });
   });
 

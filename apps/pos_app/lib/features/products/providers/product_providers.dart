@@ -64,6 +64,37 @@ class ProductRepositoryImpl {
     return stmt.watch().asyncMap(_hydrate);
   }
 
+  Stream<List<Product>> watchFiltered({
+    String query = '',
+    String? categoryId,
+    int limit = 50,
+  }) {
+    return watchAll(categoryId: categoryId).asyncMap((products) async {
+      final trimmed = query.trim();
+      if (trimmed.isEmpty) {
+        return products.take(limit).toList(growable: false);
+      }
+
+      final exact = await findByBarcode(trimmed);
+      if (exact != null) {
+        if (categoryId != null && exact.categoryId != categoryId) {
+          return const <Product>[];
+        }
+        return [exact];
+      }
+
+      final needle = trimmed.toLowerCase();
+      return products
+          .where((product) {
+            if (product.name.toLowerCase().contains(needle)) return true;
+            if (product.sku.toLowerCase().contains(needle)) return true;
+            return product.barcodes.any((barcode) => barcode.toLowerCase().contains(needle));
+          })
+          .take(limit)
+          .toList(growable: false);
+    });
+  }
+
   Future<List<Product>> _hydrate(List<ProductRow> rows) async {
     if (rows.isEmpty) return const [];
     final ids = rows.map((r) => r.id).toList();
@@ -102,6 +133,13 @@ class ProductRepositoryImpl {
 final productRepositoryProvider = Provider<ProductRepositoryImpl>(
   (ref) => ProductRepositoryImpl(ref.read(databaseProvider)),
 );
+
+final productListProvider = StreamProvider.autoDispose
+    .family<List<Product>, ({String query, String? categoryId})>((ref, args) {
+  return ref
+      .read(productRepositoryProvider)
+      .watchFiltered(query: args.query, categoryId: args.categoryId);
+});
 
 final productSearchProvider = FutureProvider.autoDispose
     .family<List<Product>, ({String query, String? categoryId})>((ref, args) {

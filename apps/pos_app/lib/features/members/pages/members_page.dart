@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
 import '../providers/member_providers.dart';
+import '../../sync/widgets/master_data_sync_button.dart';
 
 class MembersPage extends ConsumerStatefulWidget {
   const MembersPage({super.key});
@@ -18,7 +19,10 @@ class _MembersPageState extends ConsumerState<MembersPage> {
   Widget build(BuildContext context) {
     final asyncList = ref.watch(memberSearchProvider(_q));
     return Scaffold(
-      appBar: AppBar(title: const Text('會員')),
+      appBar: AppBar(
+        title: const Text('會員'),
+        actions: const [MasterDataSyncButton()],
+      ),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.all(12),

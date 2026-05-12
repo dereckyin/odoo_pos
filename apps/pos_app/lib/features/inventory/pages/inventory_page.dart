@@ -4,6 +4,7 @@ import 'package:pos_ui_kit/pos_ui_kit.dart';
 
 import '../../../core/providers.dart';
 import '../providers/inventory_providers.dart';
+import '../../sync/widgets/master_data_sync_button.dart';
 
 class InventoryPage extends ConsumerStatefulWidget {
   const InventoryPage({super.key});
@@ -25,6 +26,7 @@ class _InventoryPageState extends ConsumerState<InventoryPage> {
       appBar: AppBar(
         title: const Text('庫存'),
         actions: [
+          const MasterDataSyncButton(),
           Padding(
             padding: const EdgeInsets.all(8),
             child: FilterChip(

@@ -130,17 +130,18 @@ class Cart {
     return total;
   }
 
+  /// Taxable amount after discounts. Shelf prices are treated as tax-inclusive.
+  Money get _taxableInclusive => subtotal - orderLevelDiscountAmount;
+
   Money get tax {
     if (lines.isEmpty) return Money.zero();
-    final preTax = subtotal - orderLevelDiscountAmount;
+    final inclusive = _taxableInclusive;
+    if (inclusive.isZero || inclusive.isNegative) return Money.zero();
     final rate = lines.first.product.taxRate;
-    return preTax * rate;
+    return inclusive * rate / (1 + rate);
   }
 
-  Money get total {
-    final pre = subtotal - orderLevelDiscountAmount;
-    return pre + tax;
-  }
+  Money get total => _taxableInclusive;
 
   Cart copyWith({
     List<CartLine>? lines,

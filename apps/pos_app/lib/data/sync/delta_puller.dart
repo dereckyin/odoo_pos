@@ -10,10 +10,6 @@ import '../database/app_database.dart';
 
 /// Pulls master data changes (products, categories, members, levels, promotions,
 /// inventory levels) from the server and upserts them into the local DB.
-///
-/// Runs automatically on a periodic timer (default 30s) and reacts to
-/// connectivity changes, so backend edits (product images, prices, etc.)
-/// propagate to the app without restart.
 class DeltaPuller {
   DeltaPuller({required this.db, required this.api, required this.logger});
 
@@ -25,65 +21,98 @@ class DeltaPuller {
 
   Timer? _ticker;
   StreamSubscription? _connSub;
-  bool _running = false;
+  bool _started = false;
   String? _storeId;
   DateTime? _lastPullAt;
+  Future<DeltaPullResult>? _pullInFlight;
 
   final _statusCtrl = StreamController<DeltaPullStatus>.broadcast();
   Stream<DeltaPullStatus> get status => _statusCtrl.stream;
   DateTime? get lastPullAt => _lastPullAt;
 
-  /// Start periodic delta pull (every [interval]).
-  /// Call once after login; safe to call multiple times.
-  void start({String? storeId, Duration interval = const Duration(seconds: 30)}) {
+  void startAfterLogin({String? storeId, Duration interval = const Duration(seconds: 30)}) {
+    if (_started && _storeId == storeId) return;
     _storeId = storeId;
+    _started = true;
     _ticker?.cancel();
-    _ticker = Timer.periodic(interval, (_) => pullAll());
+    _ticker = Timer.periodic(interval, (_) => unawaited(pullAll()));
     _connSub?.cancel();
     _connSub = Connectivity().onConnectivityChanged.listen((event) {
       if (event.any((c) => c != ConnectivityResult.none)) {
-        pullAll();
+        unawaited(pullAll());
       }
     });
-    // Immediate first pull
-    pullAll();
+    unawaited(pullAll());
   }
 
   Future<void> stop() async {
+    _started = false;
     _ticker?.cancel();
     _ticker = null;
     await _connSub?.cancel();
     _connSub = null;
+    await _statusCtrl.close();
   }
 
-  Future<void> pullAll({String? storeId}) async {
-    if (_running) return;
-    _running = true;
-    final sid = storeId ?? _storeId;
-    _emit(DeltaPullState.syncing);
+  Future<DeltaPullResult> pullAll({
+    String? storeId,
+    bool forceFullResync = false,
+  }) async {
+    if (_pullInFlight != null && !forceFullResync) {
+      return _pullInFlight!;
+    }
+
+    final future = _runPullAll(storeId: storeId, forceFullResync: forceFullResync);
+    _pullInFlight = future;
     try {
-      await Future.wait([
-        _pull('products', () => _pullProducts()),
-        _pull('categories', () => _pullCategories()),
-        _pull('members', () => _pullMembers()),
-        _pull('member_levels', () => _pullMemberLevels()),
-        _pull('promotions', () => _pullPromotions()),
-        _pull('inventory_levels', () => _pullInventory(storeId: sid)),
-      ]);
-      _lastPullAt = DateTime.now();
-      _emit(DeltaPullState.idle);
-    } catch (e) {
-      _emit(DeltaPullState.error, error: e.toString());
+      return await future;
     } finally {
-      _running = false;
+      if (identical(_pullInFlight, future)) {
+        _pullInFlight = null;
+      }
     }
   }
 
-  Future<void> _pull(String name, Future<void> Function() fn) async {
+  Future<DeltaPullResult> _runPullAll({
+    required String? storeId,
+    required bool forceFullResync,
+  }) async {
+    final sid = storeId ?? _storeId;
+    _emit(DeltaPullState.syncing);
+    if (forceFullResync) {
+      await db.clearMasterData();
+    }
+
+    final failures = <String, String>{};
+    await Future.wait([
+      _pull('products', failures, _pullProducts),
+      _pull('categories', failures, _pullCategories),
+      _pull('members', failures, _pullMembers),
+      _pull('member_levels', failures, _pullMemberLevels),
+      _pull('promotions', failures, _pullPromotions),
+      _pull('inventory_levels', failures, () => _pullInventory(storeId: sid)),
+    ]);
+
+    final result = DeltaPullResult(failures: failures);
+    if (result.isSuccess) {
+      _lastPullAt = DateTime.now();
+      _emit(DeltaPullState.idle);
+    } else {
+      _emit(DeltaPullState.error, error: result.summary);
+    }
+    return result;
+  }
+
+  Future<void> _pull(
+    String name,
+    Map<String, String> failures,
+    Future<void> Function() fn,
+  ) async {
     try {
       await fn();
     } catch (e, st) {
       logger.warn('delta pull $name failed', e, st);
+      failures[name] = e.toString();
     }
   }
 
@@ -129,7 +158,6 @@ class DeltaPuller {
           ),
           mode: InsertMode.insertOrReplace,
         );
-        // refresh barcodes
         b.deleteWhere(db.productBarcodes, (t) => t.productId.equals(p.id));
         for (final code in p.barcodes) {
           b.insert(
@@ -142,7 +170,7 @@ class DeltaPuller {
     });
     await _writeSince('products', page.nextSince);
     if (page.items.length >= 500) {
-      await _pullProducts(); // continue
+      await _pullProducts();
     }
   }
 
@@ -296,4 +324,14 @@ class DeltaPullStatus {
   final DeltaPullState state;
   final DateTime? lastPullAt;
   final String? error;
+}
+
+class DeltaPullResult {
+  const DeltaPullResult({required this.failures});
+
+  final Map<String, String> failures;
+
+  bool get isSuccess => failures.isEmpty;
+
+  String get summary => failures.entries.map((e) => '${e.key}: ${e.value}').join('\n');
 }

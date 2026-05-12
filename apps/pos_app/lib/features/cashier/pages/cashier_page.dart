@@ -7,8 +7,8 @@ import 'package:pos_domain/pos_domain.dart';
 
 import '../../../core/providers.dart';
 import '../../../data/scanner/barcode_listener.dart';
-import '../../../data/sync/delta_puller.dart';
 import '../../../data/sync/sync_providers.dart';
+import '../../sync/widgets/master_data_sync_button.dart';
 import '../providers/cart_controller.dart';
 import '../widgets/cart_panel.dart';
 import '../widgets/category_bar.dart';
@@ -26,16 +26,6 @@ class _CashierPageState extends ConsumerState<CashierPage> {
   String _query = '';
   String? _categoryId;
   Timer? _debounce;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final storeId = ref.read(authStateProvider).session?.storeId;
-      ref.read(syncWorkerProvider).start();
-      ref.read(deltaPullerProvider).start(storeId: storeId);
-    });
-  }
 
   @override
   void dispose() {
@@ -81,7 +71,7 @@ class _CashierPageState extends ConsumerState<CashierPage> {
                       '店 ${_shortIdChip(session.storeId)} / 機 ${_shortIdChip(session.terminalId)}')),
           ]),
           actions: [
-            _SyncIndicator(),
+            const MasterDataSyncButton(),
             if (pendingCount > 0)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -198,52 +188,6 @@ class _CashierPageState extends ConsumerState<CashierPage> {
         ],
       ),
     );
-  }
-}
-
-class _SyncIndicator extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final status = ref.watch(deltaPullStatusProvider);
-    return status.when(
-      data: (s) {
-        final isSyncing = s.state == DeltaPullState.syncing;
-        final tooltip = s.lastPullAt != null
-            ? '上次同步: ${_formatTime(s.lastPullAt!)}'
-            : '尚未同步';
-        return IconButton(
-          tooltip: isSyncing ? '同步中…' : '$tooltip（點擊立即同步）',
-          icon: isSyncing
-              ? const SizedBox(
-                  width: 20, height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2))
-              : Icon(
-                  s.state == DeltaPullState.error
-                      ? Icons.sync_problem
-                      : Icons.sync,
-                  color: s.state == DeltaPullState.error
-                      ? Theme.of(context).colorScheme.error
-                      : null,
-                ),
-          onPressed: isSyncing ? null : () => ref.read(deltaPullerProvider).pullAll(),
-        );
-      },
-      loading: () => const SizedBox(
-        width: 20, height: 20,
-        child: CircularProgressIndicator(strokeWidth: 2)),
-      error: (_, __) => IconButton(
-        tooltip: '同步失敗，點擊重試',
-        icon: Icon(Icons.sync_problem, color: Theme.of(context).colorScheme.error),
-        onPressed: () => ref.read(deltaPullerProvider).pullAll(),
-      ),
-    );
-  }
-
-  String _formatTime(DateTime t) {
-    final h = t.hour.toString().padLeft(2, '0');
-    final m = t.minute.toString().padLeft(2, '0');
-    final s = t.second.toString().padLeft(2, '0');
-    return '$h:$m:$s';
   }
 }
 

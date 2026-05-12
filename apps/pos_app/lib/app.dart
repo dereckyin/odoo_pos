@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
 import 'routing/router.dart';
+import 'data/sync/sync_providers.dart';
 import 'theme/theme_controller.dart';
 
 class PosApp extends ConsumerWidget {
@@ -11,6 +12,7 @@ class PosApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(syncSessionLifecycleProvider);
     final router = ref.watch(routerProvider);
     final mode = ref.watch(themeModeProvider);
     return MaterialApp.router(
