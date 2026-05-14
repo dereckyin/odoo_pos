@@ -29,7 +29,10 @@ from ...models import (
     Product,
     ProductBarcode,
     Promotion,
+    PurchaseOrder,
+    PurchaseOrderLine,
     Store,
+    Supplier,
     Tenant,
     Terminal,
     User,
@@ -93,6 +96,8 @@ async def export_tenant(db: DbSession, scope: TenantAdminDep) -> dict[str, Any]:
         "coupons": await _all(Coupon),
         "promotions": await _all(Promotion),
         "inventory_levels": await _all(InventoryLevel),
+        "suppliers": await _all(Supplier, where=Supplier.deleted_at.is_(None)),
+        "purchase_orders": await _all(PurchaseOrder),
         "dining_tables": await _all(DiningTable),
         "orders": await _all(Order),
         "invoices": await _all(Invoice),
@@ -118,6 +123,19 @@ async def export_tenant(db: DbSession, scope: TenantAdminDep) -> dict[str, Any]:
     else:
         snapshot["order_lines"] = []
         snapshot["payments"] = []
+
+    po_ids = [p["id"] for p in snapshot["purchase_orders"]]
+    if po_ids:
+        snapshot["purchase_order_lines"] = [
+            _serialize(r)
+            for r in (
+                await db.execute(
+                    select(PurchaseOrderLine).where(PurchaseOrderLine.purchase_order_id.in_(po_ids))
+                )
+            ).scalars().all()
+        ]
+    else:
+        snapshot["purchase_order_lines"] = []
 
     await audit(
         db, scope, action="tenant_export", resource_type="tenant",

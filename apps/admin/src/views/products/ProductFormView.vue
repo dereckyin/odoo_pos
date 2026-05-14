@@ -42,6 +42,16 @@
           <a-switch v-model:checked="form.is_active" />
         </a-form-item>
 
+        <a-form-item label="不顯示於 QR／桌邊點餐菜單">
+          <a-switch v-model:checked="form.hide_from_public_ordering" />
+          <div style="color: #888; font-size: 12px">勾選後顧客掃碼點餐看不到此商品（仍可在 POS 結帳）。</div>
+        </a-form-item>
+
+        <a-form-item label="不顯示於 POS「全部」瀏覽">
+          <a-switch v-model:checked="form.hide_from_pos_browse" />
+          <div style="color: #888; font-size: 12px">勾選後收銀「全部」網格不列出；條碼／搜尋與所屬分類內仍可點選。</div>
+        </a-form-item>
+
         <a-form-item label="商品圖片">
           <a-upload
             :before-upload="handleUpload"
@@ -83,8 +93,9 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { formatApiError } from '@/api/formatApiError'
 import { getProduct, createProduct, updateProduct, listCategories, uploadImage } from '@/api/products'
-import type { CategoryRead } from '@/types'
+import type { CategoryRead, ProductCreate, ProductUpdate } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -103,6 +114,8 @@ const form = reactive({
   is_weighted: false,
   unit: '個',
   is_active: true,
+  hide_from_public_ordering: false,
+  hide_from_pos_browse: false,
   image_url: '' as string | null,
   description: '' as string | null,
 })
@@ -132,22 +145,51 @@ function removeImage() {
 async function handleSubmit() {
   submitting.value = true
   try {
-    const payload = {
-      ...form,
-      price_cents: Math.round(priceDisplay.value),
-      cost_cents: costDisplay.value != null ? Math.round(costDisplay.value) : null,
-      barcodes: barcodes.value.filter(b => b.trim()),
+    const rawPrice = priceDisplay.value
+    const priceCents = typeof rawPrice === 'number' ? Math.round(rawPrice) : Math.round(Number(rawPrice))
+    if (!Number.isFinite(priceCents) || priceCents < 0) {
+      message.error('請輸入有效售價（元）')
+      return
     }
+    const costRaw = costDisplay.value
+    const costCents =
+      costRaw === null || costRaw === undefined
+        ? null
+        : Math.round(typeof costRaw === 'number' ? costRaw : Number(costRaw))
+    if (costCents !== null && (!Number.isFinite(costCents) || costCents < 0)) {
+      message.error('請輸入有效成本（元）')
+      return
+    }
+
+    const base = {
+      sku: form.sku.trim(),
+      name: form.name.trim(),
+      price_cents: priceCents,
+      cost_cents: costCents,
+      category_id: form.category_id ?? null,
+      image_url: form.image_url?.trim() ? form.image_url.trim() : null,
+      tax_rate: form.tax_rate,
+      is_weighted: form.is_weighted,
+      unit: (form.unit || '個').trim(),
+      is_active: form.is_active,
+      description: form.description?.trim() ? form.description.trim() : null,
+      hide_from_public_ordering: form.hide_from_public_ordering,
+      hide_from_pos_browse: form.hide_from_pos_browse,
+      barcodes: barcodes.value.map((b) => b.trim()).filter(Boolean),
+    }
+
     if (isEdit.value) {
+      const payload: ProductUpdate = { ...base }
       await updateProduct(route.params.id as string, payload)
       message.success('已更新')
     } else {
+      const payload: ProductCreate = { ...base }
       await createProduct(payload)
       message.success('已建立')
     }
     router.push({ name: 'products' })
-  } catch (e: any) {
-    message.error(e.response?.data?.detail || '操作失敗')
+  } catch (e: unknown) {
+    message.error(formatApiError(e))
   } finally {
     submitting.value = false
   }
@@ -168,6 +210,8 @@ onMounted(async () => {
       form.is_weighted = data.is_weighted
       form.unit = data.unit
       form.is_active = data.is_active
+      form.hide_from_public_ordering = data.hide_from_public_ordering ?? false
+      form.hide_from_pos_browse = data.hide_from_pos_browse ?? false
       form.image_url = data.image_url
       form.description = data.description
       priceDisplay.value = data.price_cents

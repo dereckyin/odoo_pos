@@ -23,7 +23,11 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!accessToken.value)
   const isPlatformSuper = computed(() => role.value === 'platform_super')
   const isTenantAdmin = computed(
-    () => role.value === 'tenant_owner' || role.value === 'tenant_admin' || isPlatformSuper.value,
+    () =>
+      role.value === 'tenant_owner' ||
+      role.value === 'tenant_admin' ||
+      role.value === 'admin' ||
+      isPlatformSuper.value,
   )
 
   function setSession(s: SessionRead) {

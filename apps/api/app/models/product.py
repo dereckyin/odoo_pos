@@ -1,4 +1,4 @@
-from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..core.db import Base
@@ -15,6 +15,8 @@ class Category(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     color: Mapped[str | None] = mapped_column(String(16), nullable=True)
     icon: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    hide_from_public_ordering: Mapped[bool] = mapped_column(Boolean, default=False)
+    hide_from_pos_browse: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class Product(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
@@ -33,6 +35,8 @@ class Product(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     unit: Mapped[str] = mapped_column(String(16), default="個")
     is_active: Mapped[bool] = mapped_column(default=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    hide_from_public_ordering: Mapped[bool] = mapped_column(Boolean, default=False)
+    hide_from_pos_browse: Mapped[bool] = mapped_column(Boolean, default=False)
 
     barcodes: Mapped[list["ProductBarcode"]] = relationship(
         back_populates="product", cascade="all, delete-orphan"

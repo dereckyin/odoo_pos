@@ -85,6 +85,8 @@ export interface CategoryRead {
   sort_order: number
   color: string | null
   icon: string | null
+  hide_from_public_ordering: boolean
+  hide_from_pos_browse: boolean
   updated_at: string
   deleted_at: string | null
 }
@@ -95,6 +97,8 @@ export interface CategoryCreate {
   sort_order?: number
   color?: string | null
   icon?: string | null
+  hide_from_public_ordering?: boolean
+  hide_from_pos_browse?: boolean
 }
 
 export type CategoryUpdate = Partial<CategoryCreate>
@@ -112,6 +116,8 @@ export interface ProductRead {
   unit: string
   is_active: boolean
   description: string | null
+  hide_from_public_ordering: boolean
+  hide_from_pos_browse: boolean
   barcodes: string[]
   updated_at: string
   deleted_at: string | null
@@ -129,6 +135,8 @@ export interface ProductCreate {
   unit?: string
   is_active?: boolean
   description?: string | null
+  hide_from_public_ordering?: boolean
+  hide_from_pos_browse?: boolean
   barcodes?: string[]
 }
 
@@ -445,4 +453,70 @@ export interface GuestOrderRead {
   created_at: string
   updated_at: string
   lines: GuestOrderLineRead[]
+}
+
+export interface SupplierRead {
+  id: string
+  tenant_id: string
+  code: string
+  name: string
+  contact_name: string | null
+  phone: string | null
+  note: string | null
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+export interface SupplierCreate {
+  code: string
+  name: string
+  contact_name?: string | null
+  phone?: string | null
+  note?: string | null
+}
+
+export type SupplierUpdate = Partial<Omit<SupplierCreate, 'code'>>
+
+export interface PurchaseOrderLineIn {
+  id: string
+  product_id: string
+  qty_ordered: number
+}
+
+export interface PurchaseOrderCreate {
+  id: string
+  store_id: string
+  supplier_id: string
+  reference?: string | null
+  note?: string | null
+  lines: PurchaseOrderLineIn[]
+}
+
+export interface PurchaseOrderLineRead {
+  id: string
+  purchase_order_id: string
+  product_id: string
+  qty_ordered: number
+  qty_received: number
+  created_at: string
+  updated_at: string
+}
+
+export interface PurchaseOrderRead {
+  id: string
+  tenant_id: string
+  store_id: string
+  supplier_id: string
+  status: string
+  reference: string | null
+  ordered_at: string | null
+  note: string | null
+  created_at: string
+  updated_at: string
+  lines: PurchaseOrderLineRead[]
+}
+
+export interface PurchaseOrderReceive {
+  lines: { line_id: string; qty: number }[]
 }

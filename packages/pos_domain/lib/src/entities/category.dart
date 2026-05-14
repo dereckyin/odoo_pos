@@ -6,6 +6,8 @@ class Category {
     this.sortOrder = 0,
     this.color,
     this.icon,
+    this.hideFromPublicOrdering = false,
+    this.hideFromPosBrowse = false,
   });
 
   final String id;
@@ -14,4 +16,6 @@ class Category {
   final int sortOrder;
   final String? color;
   final String? icon;
+  final bool hideFromPublicOrdering;
+  final bool hideFromPosBrowse;
 }

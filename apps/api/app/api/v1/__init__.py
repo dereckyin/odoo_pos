@@ -26,6 +26,7 @@ from . import (
     tenant_settings,
     tenant_export,
     platform,
+    purchasing,
 )
 
 api_router = APIRouter()
@@ -37,6 +38,7 @@ api_router.include_router(members.router)
 api_router.include_router(coupons.router)
 api_router.include_router(promotions.router)
 api_router.include_router(inventories.router)
+api_router.include_router(purchasing.router)
 api_router.include_router(orders.router)
 api_router.include_router(refunds.router)
 api_router.include_router(payments.router)

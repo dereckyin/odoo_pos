@@ -33,6 +33,27 @@ from ...schemas.public import (
 router = APIRouter(prefix="/public", tags=["public-ordering"])
 
 
+def _product_visible_on_public_menu(p: Product, cat_by_id: dict[str, Category]) -> bool:
+    if p.hide_from_public_ordering:
+        return False
+    if p.category_id:
+        c = cat_by_id.get(p.category_id)
+        if c is not None and c.hide_from_public_ordering:
+            return False
+    return True
+
+
+async def _product_orderable_via_public_menu(db, p: Product) -> bool:
+    if p.hide_from_public_ordering:
+        return False
+    if not p.category_id:
+        return True
+    c = await db.get(Category, p.category_id)
+    if c is None or c.deleted_at is not None:
+        return True
+    return not c.hide_from_public_ordering
+
+
 async def _resolve_table(db, token: str) -> tuple[DiningTable, Store]:
     table = (
         await db.execute(
@@ -66,6 +87,7 @@ async def get_menu(request: Request, token: str, db: DbSession):
             .order_by(Category.sort_order, Category.name)
         )
     ).scalars().all()
+    cat_by_id = {c.id: c for c in cats}
     products = (
         await db.execute(
             select(Product)
@@ -77,6 +99,9 @@ async def get_menu(request: Request, token: str, db: DbSession):
             .order_by(Product.name)
         )
     ).scalars().all()
+    visible_products = [p for p in products if _product_visible_on_public_menu(p, cat_by_id)]
+    visible_cat_ids = {p.category_id for p in visible_products if p.category_id}
+    visible_cats = [c for c in cats if c.id in visible_cat_ids]
 
     return PublicMenu(
         meta=PublicMeta(
@@ -90,7 +115,7 @@ async def get_menu(request: Request, token: str, db: DbSession):
             PublicCategory(
                 id=c.id, name=c.name, sort_order=c.sort_order, color=c.color, icon=c.icon
             )
-            for c in cats
+            for c in visible_cats
         ],
         products=[
             PublicProduct(
@@ -103,7 +128,7 @@ async def get_menu(request: Request, token: str, db: DbSession):
                 unit=p.unit,
                 description=p.description,
             )
-            for p in products
+            for p in visible_products
         ],
     )
 
@@ -139,6 +164,11 @@ async def submit_order(
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
                 f"product not available: {ln.product_id}",
+            )
+        if not await _product_orderable_via_public_menu(db, p):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"product not available for table ordering: {ln.product_id}",
             )
         if ln.qty <= 0:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "qty must be > 0")

@@ -86,6 +86,8 @@ class CategoryDto {
     this.color,
     this.icon,
     this.deletedAt,
+    this.hideFromPublicOrdering = false,
+    this.hideFromPosBrowse = false,
   });
   factory CategoryDto.fromJson(Map<String, dynamic> j) => CategoryDto(
         id: j['id'] as String,
@@ -96,12 +98,16 @@ class CategoryDto {
         icon: j['icon'] as String?,
         updatedAt: DateTime.parse(j['updated_at'] as String),
         deletedAt: j['deleted_at'] == null ? null : DateTime.parse(j['deleted_at'] as String),
+        hideFromPublicOrdering: j['hide_from_public_ordering'] as bool? ?? false,
+        hideFromPosBrowse: j['hide_from_pos_browse'] as bool? ?? false,
       );
   final String id, name;
   final String? parentId, color, icon;
   final int sortOrder;
   final DateTime updatedAt;
   final DateTime? deletedAt;
+  final bool hideFromPublicOrdering;
+  final bool hideFromPosBrowse;
 }
 
 class ProductDto {
@@ -121,6 +127,8 @@ class ProductDto {
     this.imageUrl,
     this.description,
     this.deletedAt,
+    this.hideFromPublicOrdering = false,
+    this.hideFromPosBrowse = false,
   });
 
   factory ProductDto.fromJson(Map<String, dynamic> j) => ProductDto(
@@ -139,6 +147,8 @@ class ProductDto {
         barcodes: (j['barcodes'] as List?)?.cast<String>() ?? const [],
         updatedAt: DateTime.parse(j['updated_at'] as String),
         deletedAt: j['deleted_at'] == null ? null : DateTime.parse(j['deleted_at'] as String),
+        hideFromPublicOrdering: j['hide_from_public_ordering'] as bool? ?? false,
+        hideFromPosBrowse: j['hide_from_pos_browse'] as bool? ?? false,
       );
 
   final String id, sku, name, unit;
@@ -150,6 +160,8 @@ class ProductDto {
   final List<String> barcodes;
   final DateTime updatedAt;
   final DateTime? deletedAt;
+  final bool hideFromPublicOrdering;
+  final bool hideFromPosBrowse;
 }
 
 class MemberDto {

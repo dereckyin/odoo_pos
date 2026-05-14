@@ -21,7 +21,7 @@ ALL_ROLES = (
     "cashier",
     "kitchen",
 )
-TENANT_ADMIN_ROLES = {"tenant_owner", "tenant_admin", "platform_super"}
+TENANT_ADMIN_ROLES = {"tenant_owner", "tenant_admin", "platform_super", "admin"}
 STORE_ADMIN_ROLES = TENANT_ADMIN_ROLES | {"store_manager"}
 
 

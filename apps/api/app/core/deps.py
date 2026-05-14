@@ -15,7 +15,7 @@ from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models import RefreshToken
+from ..models import RefreshToken, TENANT_ADMIN_ROLES, STORE_ADMIN_ROLES
 from .db import get_db
 from .security import decode_token
 
@@ -52,11 +52,11 @@ class CurrentUser:
 
     @property
     def is_tenant_admin(self) -> bool:
-        return self.role in ("tenant_owner", "tenant_admin") or self.is_platform_super
+        return self.role in TENANT_ADMIN_ROLES
 
     @property
     def is_store_admin(self) -> bool:
-        return self.is_tenant_admin or self.role == "store_manager"
+        return self.role in STORE_ADMIN_ROLES
 
     def require_tenant(self) -> str:
         """Resolve the tenant for the current request, refusing the

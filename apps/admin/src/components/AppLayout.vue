@@ -34,6 +34,8 @@
           <template #title>庫存管理</template>
           <a-menu-item key="inventory" @click="$router.push({ name: 'inventory' })">庫存水位</a-menu-item>
           <a-menu-item key="transfers" @click="$router.push({ name: 'transfers' })">調撥管理</a-menu-item>
+          <a-menu-item key="supplier-list" @click="$router.push({ name: 'supplier-list' })">供應商</a-menu-item>
+          <a-menu-item key="purchase-orders" @click="$router.push({ name: 'purchase-orders' })">採購單</a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="store-group">
           <template #icon><ShopOutlined /></template>
@@ -118,6 +120,7 @@ const nameMap: Record<string, string> = {
   coupons: '優惠券', 'coupon-create': '新增優惠券',
   members: '會員列表', 'member-detail': '會員詳情', 'member-levels': '等級管理',
   inventory: '庫存水位', transfers: '調撥管理',
+  'supplier-list': '供應商', 'purchase-orders': '採購單', 'purchase-order-detail': '採購單詳情',
   stores: '門店管理', users: '使用者管理',
   tables: '桌位管理', 'tables-print': 'QR 列印',
   'guest-orders': '桌邊訂單',
@@ -136,6 +139,12 @@ const breadcrumbs = computed(() => {
 
 watch(() => route.name, (name) => {
   if (name) selectedKeys.value = [name as string]
+  const n = name as string
+  if (['inventory', 'transfers', 'supplier-list', 'purchase-orders', 'purchase-order-detail'].includes(n)) {
+    if (!openKeys.value.includes('inventory-group')) {
+      openKeys.value = [...openKeys.value, 'inventory-group']
+    }
+  }
 }, { immediate: true })
 
 function handleLogout() {

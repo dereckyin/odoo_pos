@@ -35,6 +35,9 @@ class Categories extends Table {
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   TextColumn get color => text().nullable()();
   TextColumn get icon => text().nullable()();
+  BoolColumn get hideFromPublicOrdering =>
+      boolean().withDefault(const Constant(false))();
+  BoolColumn get hideFromPosBrowse => boolean().withDefault(const Constant(false))();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
 
@@ -56,6 +59,9 @@ class Products extends Table {
   TextColumn get unit => text().withDefault(const Constant('個'))();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   TextColumn get description => text().nullable()();
+  BoolColumn get hideFromPublicOrdering =>
+      boolean().withDefault(const Constant(false))();
+  BoolColumn get hideFromPosBrowse => boolean().withDefault(const Constant(false))();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
 

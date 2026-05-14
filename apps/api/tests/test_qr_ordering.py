@@ -254,3 +254,82 @@ async def test_public_menu_is_tenant_scoped_to_table(app, client):
     skus = {p["sku"] for p in r.json()["products"]}
     assert "ONLY-B" not in skus
     assert "SKU-1" in skus
+
+
+async def test_public_menu_and_submit_respect_hide_from_public_ordering(app, client):
+    from app.models import Category
+
+    factory = db_mod.get_session_factory()
+    bundle = await build_tenant(factory)
+    async with factory() as db:
+        cat = Category(tenant_id=bundle.tenant.id, name="桌遊")
+        db.add(cat)
+        await db.flush()
+        p_vis = Product(
+            tenant_id=bundle.tenant.id,
+            sku="VIS-BOOK",
+            name="可見書",
+            price_cents=100,
+            category_id=cat.id,
+            is_active=True,
+            hide_from_public_ordering=False,
+        )
+        p_hide = Product(
+            tenant_id=bundle.tenant.id,
+            sku="HID-BOOK",
+            name="隱藏書",
+            price_cents=200,
+            category_id=cat.id,
+            is_active=True,
+            hide_from_public_ordering=True,
+        )
+        cat2 = Category(
+            tenant_id=bundle.tenant.id,
+            name="整類QR隱藏",
+            hide_from_public_ordering=True,
+        )
+        db.add(cat2)
+        await db.flush()
+        p_in_hidden_cat = Product(
+            tenant_id=bundle.tenant.id,
+            sku="IN-HID-CAT",
+            name="分類隱藏內",
+            price_cents=50,
+            category_id=cat2.id,
+            is_active=True,
+            hide_from_public_ordering=False,
+        )
+        db.add_all([p_vis, p_hide, p_in_hidden_cat])
+        await db.commit()
+        await db.refresh(p_vis)
+        await db.refresh(p_hide)
+        vis_id, hide_id = p_vis.id, p_hide.id
+
+    token = await login_pos(client, bundle)
+    h = {"Authorization": f"Bearer {token}"}
+    r = await client.post(
+        "/admin/tables",
+        json={"store_id": bundle.store.id, "label": "M1"},
+        headers=h,
+    )
+    assert r.status_code == 201
+    pt = r.json()["public_token"]
+
+    r = await client.get(f"/public/menu/{pt}")
+    assert r.status_code == 200
+    skus = {p["sku"] for p in r.json()["products"]}
+    assert "VIS-BOOK" in skus
+    assert "HID-BOOK" not in skus
+    assert "IN-HID-CAT" not in skus
+
+    r = await client.post(
+        f"/public/orders/{pt}",
+        json={"lines": [{"product_id": hide_id, "qty": 1}]},
+    )
+    assert r.status_code == 400
+
+    r = await client.post(
+        f"/public/orders/{pt}",
+        json={"lines": [{"product_id": vis_id, "qty": 1}]},
+    )
+    assert r.status_code == 201

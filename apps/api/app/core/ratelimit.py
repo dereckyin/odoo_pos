@@ -6,6 +6,7 @@ are shared across worker processes; in tests a memory backend is used.
 """
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Callable
 
 from fastapi import HTTPException, Request, status
@@ -26,10 +27,18 @@ def _key_func(request: Request) -> str:
 _settings = get_settings()
 _storage_uri = _settings.rate_limit_storage_uri if _settings.RATE_LIMIT_ENABLED else "memory://"
 
+# slowapi defaults to reading ``.env`` via Starlette ``Config``, which uses the
+# process locale encoding on Windows (e.g. cp950). Our ``.env`` / ``.env.example``
+# are UTF-8 with Chinese comments, which then raises UnicodeDecodeError. App
+# settings are already loaded via ``get_settings()`` (pydantic-settings); point
+# slowapi at a non-existent path so it skips parsing ``.env``.
+_SLOWAPI_SKIP_DOTENV = str(Path(__file__).resolve().parent / "_slowapi_skip_dotenv")
+
 limiter = Limiter(
     key_func=_key_func,
     storage_uri=_storage_uri,
     enabled=_settings.RATE_LIMIT_ENABLED,
+    config_filename=_SLOWAPI_SKIP_DOTENV,
     # FastAPI routes return plain models / JSON; slowapi header injection requires a
     # Starlette ``Response`` on the handler. Disable headers to avoid 500s on limit paths.
     headers_enabled=False,

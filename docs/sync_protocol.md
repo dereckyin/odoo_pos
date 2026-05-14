@@ -68,6 +68,13 @@ Server returns rows where `updated_at > since` (including soft deletes via `dele
 1. Upserts each row into local tables.
 2. Updates `kv_meta('last_sync_<entity>')`.
 
+### Product / category visibility (POS + public menu)
+
+`products` and `categories` include optional booleans:
+
+- `hide_from_public_ordering` — excluded from `GET /public/menu/{token}` and blocked on `POST /public/orders/{token}`.
+- `hide_from_pos_browse` — excluded from the POS **「全部」** grid when joined with category; products still appear when a **specific category** is selected, and barcode / text search still finds them.
+
 ## Conflict Resolution
 
 - **Last-Write-Wins by `updated_at`** for product / category / member master data. Server stamps `updated_at` on every accepted upsert.
@@ -85,3 +92,9 @@ POS terminals do not trust their local wall clock for ordering. They:
 ## Idempotency
 
 Every queue entry sends `Idempotency-Key: <queue_uuid>`. The server's middleware caches the response for 24h so retries return the same result.
+
+## Procurement (Admin-only)
+
+Purchase orders and supplier master data are **not** replicated through the POS `sync_queue`. Receiving goods is performed in the **Vue admin** (`POST /purchasing/orders/{id}/receive`), which writes canonical `inventory_movements` with `ref_type=purchase_order`. The POS continues to **pull inventory levels** via the existing delta sync; it does not need a new sync entity for PO headers.
+
+If warehouse staff must receive on a Flutter tablet offline, a future iteration would add a dedicated `SyncOpKind` plus idempotent receive payloads; that is out of scope for the current MVP (see [procurement_scope.md](procurement_scope.md)).

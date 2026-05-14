@@ -1,0 +1,20 @@
+# 範例：將 shelf.taaze.tw 指到本機 docker-compose.prod.yml 的 Nginx（9088）。
+# 請把下列區塊合併進主機的 /etc/caddy/Caddyfile（或 import 的檔案），再執行：
+#   sudo caddy validate --config /etc/caddy/Caddyfile
+#   sudo systemctl reload caddy
+#
+# 若同一主機名也要掛「顧客掃碼點餐」靜態站（/customer），請先依 安裝手冊 建置
+# apps/customer_order_web（base=/customer/），並確保 compose 的 customer_web 在跑，
+# 然後取消註解 handle_path 區塊（順序：先 /customer，再預設 9088）。
+
+shelf.taaze.tw {
+	# handle_path /customer* {
+	# 	reverse_proxy http://127.0.0.1:9089
+	# 	encode gzip
+	# }
+
+	handle {
+		reverse_proxy http://127.0.0.1:9088
+		encode gzip
+	}
+}

@@ -12,6 +12,12 @@
           <div v-if="record.color" :style="{ width: '24px', height: '24px', borderRadius: '4px', background: record.color }" />
           <span v-else>-</span>
         </template>
+        <template v-if="column.key === 'hp'">
+          <span>{{ record.hide_from_public_ordering ? '是' : '' }}</span>
+        </template>
+        <template v-if="column.key === 'hb'">
+          <span>{{ record.hide_from_pos_browse ? '是' : '' }}</span>
+        </template>
         <template v-if="column.key === 'actions'">
           <a-space>
             <a-button size="small" @click="openModal(record)">編輯</a-button>
@@ -44,6 +50,13 @@
         <a-form-item label="圖示">
           <a-input v-model:value="form.icon" placeholder="選填" />
         </a-form-item>
+        <a-form-item label="QR／桌邊菜單隱藏整個分類">
+          <a-switch v-model:checked="form.hide_from_public_ordering" />
+        </a-form-item>
+        <a-form-item label="POS「全部」隱藏此分類內商品">
+          <a-switch v-model:checked="form.hide_from_pos_browse" />
+          <div style="color: #888; font-size: 12px">店員仍可點進此分類或掃碼結帳。</div>
+        </a-form-item>
       </a-form>
     </a-modal>
   </div>
@@ -67,12 +80,16 @@ const form = reactive({
   sort_order: 0,
   color: null as string | null,
   icon: null as string | null,
+  hide_from_public_ordering: false,
+  hide_from_pos_browse: false,
 })
 
 const columns = [
   { title: '名稱', dataIndex: 'name', key: 'name' },
   { title: '排序', dataIndex: 'sort_order', key: 'sort_order', width: 80 },
   { title: '顏色', key: 'color', width: 80 },
+  { title: 'QR隱藏', key: 'hp', width: 72 },
+  { title: 'POS全部隱藏', key: 'hb', width: 100 },
   { title: '操作', key: 'actions', width: 160 },
 ]
 
@@ -94,6 +111,8 @@ function openModal(record?: CategoryRead) {
     form.sort_order = record.sort_order
     form.color = record.color
     form.icon = record.icon
+    form.hide_from_public_ordering = record.hide_from_public_ordering ?? false
+    form.hide_from_pos_browse = record.hide_from_pos_browse ?? false
   } else {
     editingId.value = null
     form.name = ''
@@ -101,6 +120,8 @@ function openModal(record?: CategoryRead) {
     form.sort_order = 0
     form.color = null
     form.icon = null
+    form.hide_from_public_ordering = false
+    form.hide_from_pos_browse = false
   }
   modalOpen.value = true
 }

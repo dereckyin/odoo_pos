@@ -776,6 +776,26 @@ class $CategoriesTable extends Categories
   late final GeneratedColumn<String> icon = GeneratedColumn<String>(
       'icon', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _hideFromPublicOrderingMeta =
+      const VerificationMeta('hideFromPublicOrdering');
+  @override
+  late final GeneratedColumn<bool> hideFromPublicOrdering =
+      GeneratedColumn<bool>('hide_from_public_ordering', aliasedName, false,
+          type: DriftSqlType.bool,
+          requiredDuringInsert: false,
+          defaultConstraints: GeneratedColumn.constraintIsAlways(
+              'CHECK ("hide_from_public_ordering" IN (0, 1))'),
+          defaultValue: const Constant(false));
+  static const VerificationMeta _hideFromPosBrowseMeta =
+      const VerificationMeta('hideFromPosBrowse');
+  @override
+  late final GeneratedColumn<bool> hideFromPosBrowse = GeneratedColumn<bool>(
+      'hide_from_pos_browse', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("hide_from_pos_browse" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _updatedAtMeta =
       const VerificationMeta('updatedAt');
   @override
@@ -789,8 +809,18 @@ class $CategoriesTable extends Categories
       'deleted_at', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, name, parentId, sortOrder, color, icon, updatedAt, deletedAt];
+  List<GeneratedColumn> get $columns => [
+        id,
+        name,
+        parentId,
+        sortOrder,
+        color,
+        icon,
+        hideFromPublicOrdering,
+        hideFromPosBrowse,
+        updatedAt,
+        deletedAt
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -828,6 +858,18 @@ class $CategoriesTable extends Categories
       context.handle(
           _iconMeta, icon.isAcceptableOrUnknown(data['icon']!, _iconMeta));
     }
+    if (data.containsKey('hide_from_public_ordering')) {
+      context.handle(
+          _hideFromPublicOrderingMeta,
+          hideFromPublicOrdering.isAcceptableOrUnknown(
+              data['hide_from_public_ordering']!, _hideFromPublicOrderingMeta));
+    }
+    if (data.containsKey('hide_from_pos_browse')) {
+      context.handle(
+          _hideFromPosBrowseMeta,
+          hideFromPosBrowse.isAcceptableOrUnknown(
+              data['hide_from_pos_browse']!, _hideFromPosBrowseMeta));
+    }
     if (data.containsKey('updated_at')) {
       context.handle(_updatedAtMeta,
           updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
@@ -859,6 +901,11 @@ class $CategoriesTable extends Categories
           .read(DriftSqlType.string, data['${effectivePrefix}color']),
       icon: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}icon']),
+      hideFromPublicOrdering: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool,
+          data['${effectivePrefix}hide_from_public_ordering'])!,
+      hideFromPosBrowse: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}hide_from_pos_browse'])!,
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
       deletedAt: attachedDatabase.typeMapping
@@ -879,6 +926,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
   final int sortOrder;
   final String? color;
   final String? icon;
+  final bool hideFromPublicOrdering;
+  final bool hideFromPosBrowse;
   final DateTime updatedAt;
   final DateTime? deletedAt;
   const CategoryRow(
@@ -888,6 +937,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       required this.sortOrder,
       this.color,
       this.icon,
+      required this.hideFromPublicOrdering,
+      required this.hideFromPosBrowse,
       required this.updatedAt,
       this.deletedAt});
   @override
@@ -905,6 +956,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
     if (!nullToAbsent || icon != null) {
       map['icon'] = Variable<String>(icon);
     }
+    map['hide_from_public_ordering'] = Variable<bool>(hideFromPublicOrdering);
+    map['hide_from_pos_browse'] = Variable<bool>(hideFromPosBrowse);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
@@ -923,6 +976,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       color:
           color == null && nullToAbsent ? const Value.absent() : Value(color),
       icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
+      hideFromPublicOrdering: Value(hideFromPublicOrdering),
+      hideFromPosBrowse: Value(hideFromPosBrowse),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
@@ -940,6 +995,9 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       color: serializer.fromJson<String?>(json['color']),
       icon: serializer.fromJson<String?>(json['icon']),
+      hideFromPublicOrdering:
+          serializer.fromJson<bool>(json['hideFromPublicOrdering']),
+      hideFromPosBrowse: serializer.fromJson<bool>(json['hideFromPosBrowse']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
@@ -954,6 +1012,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       'sortOrder': serializer.toJson<int>(sortOrder),
       'color': serializer.toJson<String?>(color),
       'icon': serializer.toJson<String?>(icon),
+      'hideFromPublicOrdering': serializer.toJson<bool>(hideFromPublicOrdering),
+      'hideFromPosBrowse': serializer.toJson<bool>(hideFromPosBrowse),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
@@ -966,6 +1026,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           int? sortOrder,
           Value<String?> color = const Value.absent(),
           Value<String?> icon = const Value.absent(),
+          bool? hideFromPublicOrdering,
+          bool? hideFromPosBrowse,
           DateTime? updatedAt,
           Value<DateTime?> deletedAt = const Value.absent()}) =>
       CategoryRow(
@@ -975,6 +1037,9 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
         sortOrder: sortOrder ?? this.sortOrder,
         color: color.present ? color.value : this.color,
         icon: icon.present ? icon.value : this.icon,
+        hideFromPublicOrdering:
+            hideFromPublicOrdering ?? this.hideFromPublicOrdering,
+        hideFromPosBrowse: hideFromPosBrowse ?? this.hideFromPosBrowse,
         updatedAt: updatedAt ?? this.updatedAt,
         deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
       );
@@ -986,6 +1051,12 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       color: data.color.present ? data.color.value : this.color,
       icon: data.icon.present ? data.icon.value : this.icon,
+      hideFromPublicOrdering: data.hideFromPublicOrdering.present
+          ? data.hideFromPublicOrdering.value
+          : this.hideFromPublicOrdering,
+      hideFromPosBrowse: data.hideFromPosBrowse.present
+          ? data.hideFromPosBrowse.value
+          : this.hideFromPosBrowse,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
@@ -1000,6 +1071,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           ..write('sortOrder: $sortOrder, ')
           ..write('color: $color, ')
           ..write('icon: $icon, ')
+          ..write('hideFromPublicOrdering: $hideFromPublicOrdering, ')
+          ..write('hideFromPosBrowse: $hideFromPosBrowse, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt')
           ..write(')'))
@@ -1007,8 +1080,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      id, name, parentId, sortOrder, color, icon, updatedAt, deletedAt);
+  int get hashCode => Object.hash(id, name, parentId, sortOrder, color, icon,
+      hideFromPublicOrdering, hideFromPosBrowse, updatedAt, deletedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1019,6 +1092,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           other.sortOrder == this.sortOrder &&
           other.color == this.color &&
           other.icon == this.icon &&
+          other.hideFromPublicOrdering == this.hideFromPublicOrdering &&
+          other.hideFromPosBrowse == this.hideFromPosBrowse &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt);
 }
@@ -1030,6 +1105,8 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
   final Value<int> sortOrder;
   final Value<String?> color;
   final Value<String?> icon;
+  final Value<bool> hideFromPublicOrdering;
+  final Value<bool> hideFromPosBrowse;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<int> rowid;
@@ -1040,6 +1117,8 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     this.sortOrder = const Value.absent(),
     this.color = const Value.absent(),
     this.icon = const Value.absent(),
+    this.hideFromPublicOrdering = const Value.absent(),
+    this.hideFromPosBrowse = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1051,6 +1130,8 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     this.sortOrder = const Value.absent(),
     this.color = const Value.absent(),
     this.icon = const Value.absent(),
+    this.hideFromPublicOrdering = const Value.absent(),
+    this.hideFromPosBrowse = const Value.absent(),
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1064,6 +1145,8 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     Expression<int>? sortOrder,
     Expression<String>? color,
     Expression<String>? icon,
+    Expression<bool>? hideFromPublicOrdering,
+    Expression<bool>? hideFromPosBrowse,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<int>? rowid,
@@ -1075,6 +1158,9 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       if (sortOrder != null) 'sort_order': sortOrder,
       if (color != null) 'color': color,
       if (icon != null) 'icon': icon,
+      if (hideFromPublicOrdering != null)
+        'hide_from_public_ordering': hideFromPublicOrdering,
+      if (hideFromPosBrowse != null) 'hide_from_pos_browse': hideFromPosBrowse,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (rowid != null) 'rowid': rowid,
@@ -1088,6 +1174,8 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       Value<int>? sortOrder,
       Value<String?>? color,
       Value<String?>? icon,
+      Value<bool>? hideFromPublicOrdering,
+      Value<bool>? hideFromPosBrowse,
       Value<DateTime>? updatedAt,
       Value<DateTime?>? deletedAt,
       Value<int>? rowid}) {
@@ -1098,6 +1186,9 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       sortOrder: sortOrder ?? this.sortOrder,
       color: color ?? this.color,
       icon: icon ?? this.icon,
+      hideFromPublicOrdering:
+          hideFromPublicOrdering ?? this.hideFromPublicOrdering,
+      hideFromPosBrowse: hideFromPosBrowse ?? this.hideFromPosBrowse,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       rowid: rowid ?? this.rowid,
@@ -1125,6 +1216,13 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     if (icon.present) {
       map['icon'] = Variable<String>(icon.value);
     }
+    if (hideFromPublicOrdering.present) {
+      map['hide_from_public_ordering'] =
+          Variable<bool>(hideFromPublicOrdering.value);
+    }
+    if (hideFromPosBrowse.present) {
+      map['hide_from_pos_browse'] = Variable<bool>(hideFromPosBrowse.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -1146,6 +1244,8 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
           ..write('sortOrder: $sortOrder, ')
           ..write('color: $color, ')
           ..write('icon: $icon, ')
+          ..write('hideFromPublicOrdering: $hideFromPublicOrdering, ')
+          ..write('hideFromPosBrowse: $hideFromPosBrowse, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('rowid: $rowid')
@@ -1242,6 +1342,26 @@ class $ProductsTable extends Products
   late final GeneratedColumn<String> description = GeneratedColumn<String>(
       'description', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _hideFromPublicOrderingMeta =
+      const VerificationMeta('hideFromPublicOrdering');
+  @override
+  late final GeneratedColumn<bool> hideFromPublicOrdering =
+      GeneratedColumn<bool>('hide_from_public_ordering', aliasedName, false,
+          type: DriftSqlType.bool,
+          requiredDuringInsert: false,
+          defaultConstraints: GeneratedColumn.constraintIsAlways(
+              'CHECK ("hide_from_public_ordering" IN (0, 1))'),
+          defaultValue: const Constant(false));
+  static const VerificationMeta _hideFromPosBrowseMeta =
+      const VerificationMeta('hideFromPosBrowse');
+  @override
+  late final GeneratedColumn<bool> hideFromPosBrowse = GeneratedColumn<bool>(
+      'hide_from_pos_browse', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("hide_from_pos_browse" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _updatedAtMeta =
       const VerificationMeta('updatedAt');
   @override
@@ -1268,6 +1388,8 @@ class $ProductsTable extends Products
         unit,
         isActive,
         description,
+        hideFromPublicOrdering,
+        hideFromPosBrowse,
         updatedAt,
         deletedAt
       ];
@@ -1342,6 +1464,18 @@ class $ProductsTable extends Products
           description.isAcceptableOrUnknown(
               data['description']!, _descriptionMeta));
     }
+    if (data.containsKey('hide_from_public_ordering')) {
+      context.handle(
+          _hideFromPublicOrderingMeta,
+          hideFromPublicOrdering.isAcceptableOrUnknown(
+              data['hide_from_public_ordering']!, _hideFromPublicOrderingMeta));
+    }
+    if (data.containsKey('hide_from_pos_browse')) {
+      context.handle(
+          _hideFromPosBrowseMeta,
+          hideFromPosBrowse.isAcceptableOrUnknown(
+              data['hide_from_pos_browse']!, _hideFromPosBrowseMeta));
+    }
     if (data.containsKey('updated_at')) {
       context.handle(_updatedAtMeta,
           updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
@@ -1385,6 +1519,11 @@ class $ProductsTable extends Products
           .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
       description: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}description']),
+      hideFromPublicOrdering: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool,
+          data['${effectivePrefix}hide_from_public_ordering'])!,
+      hideFromPosBrowse: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}hide_from_pos_browse'])!,
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
       deletedAt: attachedDatabase.typeMapping
@@ -1411,6 +1550,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   final String unit;
   final bool isActive;
   final String? description;
+  final bool hideFromPublicOrdering;
+  final bool hideFromPosBrowse;
   final DateTime updatedAt;
   final DateTime? deletedAt;
   const ProductRow(
@@ -1426,6 +1567,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       required this.unit,
       required this.isActive,
       this.description,
+      required this.hideFromPublicOrdering,
+      required this.hideFromPosBrowse,
       required this.updatedAt,
       this.deletedAt});
   @override
@@ -1451,6 +1594,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     if (!nullToAbsent || description != null) {
       map['description'] = Variable<String>(description);
     }
+    map['hide_from_public_ordering'] = Variable<bool>(hideFromPublicOrdering);
+    map['hide_from_pos_browse'] = Variable<bool>(hideFromPosBrowse);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
@@ -1480,6 +1625,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       description: description == null && nullToAbsent
           ? const Value.absent()
           : Value(description),
+      hideFromPublicOrdering: Value(hideFromPublicOrdering),
+      hideFromPosBrowse: Value(hideFromPosBrowse),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
@@ -1503,6 +1650,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       unit: serializer.fromJson<String>(json['unit']),
       isActive: serializer.fromJson<bool>(json['isActive']),
       description: serializer.fromJson<String?>(json['description']),
+      hideFromPublicOrdering:
+          serializer.fromJson<bool>(json['hideFromPublicOrdering']),
+      hideFromPosBrowse: serializer.fromJson<bool>(json['hideFromPosBrowse']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
@@ -1523,6 +1673,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       'unit': serializer.toJson<String>(unit),
       'isActive': serializer.toJson<bool>(isActive),
       'description': serializer.toJson<String?>(description),
+      'hideFromPublicOrdering': serializer.toJson<bool>(hideFromPublicOrdering),
+      'hideFromPosBrowse': serializer.toJson<bool>(hideFromPosBrowse),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
@@ -1541,6 +1693,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           String? unit,
           bool? isActive,
           Value<String?> description = const Value.absent(),
+          bool? hideFromPublicOrdering,
+          bool? hideFromPosBrowse,
           DateTime? updatedAt,
           Value<DateTime?> deletedAt = const Value.absent()}) =>
       ProductRow(
@@ -1556,6 +1710,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
         unit: unit ?? this.unit,
         isActive: isActive ?? this.isActive,
         description: description.present ? description.value : this.description,
+        hideFromPublicOrdering:
+            hideFromPublicOrdering ?? this.hideFromPublicOrdering,
+        hideFromPosBrowse: hideFromPosBrowse ?? this.hideFromPosBrowse,
         updatedAt: updatedAt ?? this.updatedAt,
         deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
       );
@@ -1577,6 +1734,12 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       description:
           data.description.present ? data.description.value : this.description,
+      hideFromPublicOrdering: data.hideFromPublicOrdering.present
+          ? data.hideFromPublicOrdering.value
+          : this.hideFromPublicOrdering,
+      hideFromPosBrowse: data.hideFromPosBrowse.present
+          ? data.hideFromPosBrowse.value
+          : this.hideFromPosBrowse,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
@@ -1597,6 +1760,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ..write('unit: $unit, ')
           ..write('isActive: $isActive, ')
           ..write('description: $description, ')
+          ..write('hideFromPublicOrdering: $hideFromPublicOrdering, ')
+          ..write('hideFromPosBrowse: $hideFromPosBrowse, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt')
           ..write(')'))
@@ -1617,6 +1782,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       unit,
       isActive,
       description,
+      hideFromPublicOrdering,
+      hideFromPosBrowse,
       updatedAt,
       deletedAt);
   @override
@@ -1635,6 +1802,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           other.unit == this.unit &&
           other.isActive == this.isActive &&
           other.description == this.description &&
+          other.hideFromPublicOrdering == this.hideFromPublicOrdering &&
+          other.hideFromPosBrowse == this.hideFromPosBrowse &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt);
 }
@@ -1652,6 +1821,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
   final Value<String> unit;
   final Value<bool> isActive;
   final Value<String?> description;
+  final Value<bool> hideFromPublicOrdering;
+  final Value<bool> hideFromPosBrowse;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<int> rowid;
@@ -1668,6 +1839,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.unit = const Value.absent(),
     this.isActive = const Value.absent(),
     this.description = const Value.absent(),
+    this.hideFromPublicOrdering = const Value.absent(),
+    this.hideFromPosBrowse = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1685,6 +1858,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.unit = const Value.absent(),
     this.isActive = const Value.absent(),
     this.description = const Value.absent(),
+    this.hideFromPublicOrdering = const Value.absent(),
+    this.hideFromPosBrowse = const Value.absent(),
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1705,6 +1880,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Expression<String>? unit,
     Expression<bool>? isActive,
     Expression<String>? description,
+    Expression<bool>? hideFromPublicOrdering,
+    Expression<bool>? hideFromPosBrowse,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<int>? rowid,
@@ -1722,6 +1899,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       if (unit != null) 'unit': unit,
       if (isActive != null) 'is_active': isActive,
       if (description != null) 'description': description,
+      if (hideFromPublicOrdering != null)
+        'hide_from_public_ordering': hideFromPublicOrdering,
+      if (hideFromPosBrowse != null) 'hide_from_pos_browse': hideFromPosBrowse,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (rowid != null) 'rowid': rowid,
@@ -1741,6 +1921,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       Value<String>? unit,
       Value<bool>? isActive,
       Value<String?>? description,
+      Value<bool>? hideFromPublicOrdering,
+      Value<bool>? hideFromPosBrowse,
       Value<DateTime>? updatedAt,
       Value<DateTime?>? deletedAt,
       Value<int>? rowid}) {
@@ -1757,6 +1939,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       unit: unit ?? this.unit,
       isActive: isActive ?? this.isActive,
       description: description ?? this.description,
+      hideFromPublicOrdering:
+          hideFromPublicOrdering ?? this.hideFromPublicOrdering,
+      hideFromPosBrowse: hideFromPosBrowse ?? this.hideFromPosBrowse,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       rowid: rowid ?? this.rowid,
@@ -1802,6 +1987,13 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     if (description.present) {
       map['description'] = Variable<String>(description.value);
     }
+    if (hideFromPublicOrdering.present) {
+      map['hide_from_public_ordering'] =
+          Variable<bool>(hideFromPublicOrdering.value);
+    }
+    if (hideFromPosBrowse.present) {
+      map['hide_from_pos_browse'] = Variable<bool>(hideFromPosBrowse.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -1829,6 +2021,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
           ..write('unit: $unit, ')
           ..write('isActive: $isActive, ')
           ..write('description: $description, ')
+          ..write('hideFromPublicOrdering: $hideFromPublicOrdering, ')
+          ..write('hideFromPosBrowse: $hideFromPosBrowse, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('rowid: $rowid')
@@ -11731,6 +11925,8 @@ typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
   Value<int> sortOrder,
   Value<String?> color,
   Value<String?> icon,
+  Value<bool> hideFromPublicOrdering,
+  Value<bool> hideFromPosBrowse,
   required DateTime updatedAt,
   Value<DateTime?> deletedAt,
   Value<int> rowid,
@@ -11742,6 +11938,8 @@ typedef $$CategoriesTableUpdateCompanionBuilder = CategoriesCompanion Function({
   Value<int> sortOrder,
   Value<String?> color,
   Value<String?> icon,
+  Value<bool> hideFromPublicOrdering,
+  Value<bool> hideFromPosBrowse,
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
   Value<int> rowid,
@@ -11773,6 +11971,14 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<String> get icon => $composableBuilder(
       column: $table.icon, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get hideFromPublicOrdering => $composableBuilder(
+      column: $table.hideFromPublicOrdering,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get hideFromPosBrowse => $composableBuilder(
+      column: $table.hideFromPosBrowse,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
@@ -11808,6 +12014,14 @@ class $$CategoriesTableOrderingComposer
   ColumnOrderings<String> get icon => $composableBuilder(
       column: $table.icon, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get hideFromPublicOrdering => $composableBuilder(
+      column: $table.hideFromPublicOrdering,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get hideFromPosBrowse => $composableBuilder(
+      column: $table.hideFromPosBrowse,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
@@ -11841,6 +12055,12 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<String> get icon =>
       $composableBuilder(column: $table.icon, builder: (column) => column);
+
+  GeneratedColumn<bool> get hideFromPublicOrdering => $composableBuilder(
+      column: $table.hideFromPublicOrdering, builder: (column) => column);
+
+  GeneratedColumn<bool> get hideFromPosBrowse => $composableBuilder(
+      column: $table.hideFromPosBrowse, builder: (column) => column);
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -11878,6 +12098,8 @@ class $$CategoriesTableTableManager extends RootTableManager<
             Value<int> sortOrder = const Value.absent(),
             Value<String?> color = const Value.absent(),
             Value<String?> icon = const Value.absent(),
+            Value<bool> hideFromPublicOrdering = const Value.absent(),
+            Value<bool> hideFromPosBrowse = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<DateTime?> deletedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -11889,6 +12111,8 @@ class $$CategoriesTableTableManager extends RootTableManager<
             sortOrder: sortOrder,
             color: color,
             icon: icon,
+            hideFromPublicOrdering: hideFromPublicOrdering,
+            hideFromPosBrowse: hideFromPosBrowse,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
             rowid: rowid,
@@ -11900,6 +12124,8 @@ class $$CategoriesTableTableManager extends RootTableManager<
             Value<int> sortOrder = const Value.absent(),
             Value<String?> color = const Value.absent(),
             Value<String?> icon = const Value.absent(),
+            Value<bool> hideFromPublicOrdering = const Value.absent(),
+            Value<bool> hideFromPosBrowse = const Value.absent(),
             required DateTime updatedAt,
             Value<DateTime?> deletedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -11911,6 +12137,8 @@ class $$CategoriesTableTableManager extends RootTableManager<
             sortOrder: sortOrder,
             color: color,
             icon: icon,
+            hideFromPublicOrdering: hideFromPublicOrdering,
+            hideFromPosBrowse: hideFromPosBrowse,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
             rowid: rowid,
@@ -11947,6 +12175,8 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   Value<String> unit,
   Value<bool> isActive,
   Value<String?> description,
+  Value<bool> hideFromPublicOrdering,
+  Value<bool> hideFromPosBrowse,
   required DateTime updatedAt,
   Value<DateTime?> deletedAt,
   Value<int> rowid,
@@ -11964,6 +12194,8 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<String> unit,
   Value<bool> isActive,
   Value<String?> description,
+  Value<bool> hideFromPublicOrdering,
+  Value<bool> hideFromPosBrowse,
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
   Value<int> rowid,
@@ -12035,6 +12267,14 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get hideFromPublicOrdering => $composableBuilder(
+      column: $table.hideFromPublicOrdering,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get hideFromPosBrowse => $composableBuilder(
+      column: $table.hideFromPosBrowse,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
@@ -12109,6 +12349,14 @@ class $$ProductsTableOrderingComposer
   ColumnOrderings<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get hideFromPublicOrdering => $composableBuilder(
+      column: $table.hideFromPublicOrdering,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get hideFromPosBrowse => $composableBuilder(
+      column: $table.hideFromPosBrowse,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
@@ -12160,6 +12408,12 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => column);
+
+  GeneratedColumn<bool> get hideFromPublicOrdering => $composableBuilder(
+      column: $table.hideFromPublicOrdering, builder: (column) => column);
+
+  GeneratedColumn<bool> get hideFromPosBrowse => $composableBuilder(
+      column: $table.hideFromPosBrowse, builder: (column) => column);
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -12224,6 +12478,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String> unit = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
             Value<String?> description = const Value.absent(),
+            Value<bool> hideFromPublicOrdering = const Value.absent(),
+            Value<bool> hideFromPosBrowse = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<DateTime?> deletedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -12241,6 +12497,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             unit: unit,
             isActive: isActive,
             description: description,
+            hideFromPublicOrdering: hideFromPublicOrdering,
+            hideFromPosBrowse: hideFromPosBrowse,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
             rowid: rowid,
@@ -12258,6 +12516,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String> unit = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
             Value<String?> description = const Value.absent(),
+            Value<bool> hideFromPublicOrdering = const Value.absent(),
+            Value<bool> hideFromPosBrowse = const Value.absent(),
             required DateTime updatedAt,
             Value<DateTime?> deletedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -12275,6 +12535,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             unit: unit,
             isActive: isActive,
             description: description,
+            hideFromPublicOrdering: hideFromPublicOrdering,
+            hideFromPosBrowse: hideFromPosBrowse,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
             rowid: rowid,

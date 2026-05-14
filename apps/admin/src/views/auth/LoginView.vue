@@ -2,13 +2,19 @@
   <div class="login-wrapper">
     <a-card class="login-card" title="點餐趣｜後台管理系統">
       <a-form :model="form" @finish="handleLogin" layout="vertical">
-        <a-form-item label="租戶代號" name="tenant_code" extra="平台超管登入時可留白">
+        <a-form-item label="租戶代號" name="tenant_code">
           <a-input
             v-model:value="form.tenant_code"
             size="large"
-            placeholder="例：demo"
+            placeholder="例：demo（店家後台必填）"
             allow-clear
           />
+          <template #extra>
+            <span class="field-hint">
+              一般店家／門市管理員請填租戶代號；僅「平台超管」可留白。
+              若曾做多租戶遷移但尚未 seed，資料庫可能只有 <code>__legacy__</code> 租戶，請填該代號。
+            </span>
+          </template>
         </a-form-item>
         <a-form-item label="帳號" name="username" :rules="[{ required: true, message: '請輸入帳號' }]">
           <a-input v-model:value="form.username" size="large" placeholder="請輸入帳號" />
@@ -22,6 +28,15 @@
           </a-button>
         </a-form-item>
         <a-alert v-if="errorMsg" :message="errorMsg" type="error" show-icon closable @close="errorMsg = ''" />
+        <a-collapse ghost class="dev-hint">
+          <a-collapse-panel key="1" header="本機登入參考">
+            <ul class="hint-list">
+              <li>有跑過 seed：租戶 <code>demo</code>，帳號 <code>admin</code>，密碼 <code>admin123</code></li>
+              <li>僅有舊版遷移資料：租戶填 <code>__legacy__</code>，帳號 <code>admin</code>，密碼 <code>admin123</code></li>
+              <li>若錯誤變成 <code>tenant not found</code>，代表該租戶代號不存在，請改填上列正確代號或執行 seed。</li>
+            </ul>
+          </a-collapse-panel>
+        </a-collapse>
         <div class="signup-link">
           還沒有帳號？
           <a @click.prevent="$router.push({ name: 'signup' })">申請開通新店家</a>
@@ -65,6 +80,7 @@
 import { reactive, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { formatApiError } from '@/api/formatApiError'
 import { useAuthStore } from '@/stores/auth'
 import * as authApi from '@/api/auth'
 
@@ -73,7 +89,11 @@ const route = useRoute()
 const auth = useAuthStore()
 const loading = ref(false)
 const errorMsg = ref('')
-const form = reactive({ tenant_code: '', username: '', password: '' })
+const form = reactive({
+  tenant_code: '',
+  username: '',
+  password: '',
+})
 
 const changeVisible = ref(false)
 const changing = ref(false)
@@ -82,16 +102,19 @@ const changeForm = reactive({ old_password: '', new_password: '', confirm: '' })
 async function handleLogin() {
   loading.value = true
   errorMsg.value = ''
+  const tenant = form.tenant_code.trim() || undefined
+  const user = form.username.trim()
+  const pass = form.password
   try {
-    await auth.login(form.username, form.password, form.tenant_code || undefined)
+    await auth.login(user, pass, tenant)
     if (auth.mustChangePassword) {
-      changeForm.old_password = form.password
+      changeForm.old_password = pass
       changeVisible.value = true
       return
     }
     finishLogin()
-  } catch (e: any) {
-    errorMsg.value = e.response?.data?.detail || '登入失敗，請檢查帳號密碼'
+  } catch (e: unknown) {
+    errorMsg.value = formatApiError(e)
   } finally {
     loading.value = false
   }
@@ -156,5 +179,25 @@ async function submitChangePassword() {
 }
 .signup-link a {
   cursor: pointer;
+}
+.field-hint {
+  color: rgba(0, 0, 0, 0.55);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.dev-hint {
+  margin-top: 8px;
+  text-align: left;
+}
+.hint-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.65);
+}
+.hint-list code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0 4px;
+  border-radius: 2px;
 }
 </style>

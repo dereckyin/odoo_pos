@@ -155,6 +155,8 @@ class DeltaPuller {
             description: Value(p.description),
             updatedAt: Value(p.updatedAt),
             deletedAt: Value(p.deletedAt),
+            hideFromPublicOrdering: Value(p.hideFromPublicOrdering),
+            hideFromPosBrowse: Value(p.hideFromPosBrowse),
           ),
           mode: InsertMode.insertOrReplace,
         );
@@ -187,11 +189,13 @@ class DeltaPuller {
               name: Value(c.name),
               parentId: Value(c.parentId),
               sortOrder: Value(c.sortOrder),
-              color: Value(c.color),
-              icon: Value(c.icon),
-              updatedAt: Value(c.updatedAt),
-              deletedAt: Value(c.deletedAt),
-            ),
+            color: Value(c.color),
+            icon: Value(c.icon),
+            updatedAt: Value(c.updatedAt),
+            deletedAt: Value(c.deletedAt),
+            hideFromPublicOrdering: Value(c.hideFromPublicOrdering),
+            hideFromPosBrowse: Value(c.hideFromPosBrowse),
+          ),
             mode: InsertMode.insertOrReplace,
           );
         }

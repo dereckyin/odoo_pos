@@ -39,6 +39,9 @@ const routes: RouteRecordRaw[] = [
       // Inventory
       { path: 'inventory', name: 'inventory', component: () => import('@/views/inventory/InventoryLevelView.vue') },
       { path: 'transfers', name: 'transfers', component: () => import('@/views/inventory/TransferListView.vue') },
+      { path: 'purchasing/suppliers', name: 'supplier-list', component: () => import('@/views/purchasing/SupplierListView.vue') },
+      { path: 'purchasing/orders', name: 'purchase-orders', component: () => import('@/views/purchasing/PurchaseOrderListView.vue') },
+      { path: 'purchasing/orders/:id', name: 'purchase-order-detail', component: () => import('@/views/purchasing/PurchaseOrderDetailView.vue') },
       // Stores
       { path: 'stores', name: 'stores', component: () => import('@/views/stores/StoreListView.vue') },
       // Dining tables (QR ordering)

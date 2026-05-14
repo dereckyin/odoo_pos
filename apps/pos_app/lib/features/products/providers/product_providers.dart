@@ -11,21 +11,43 @@ class ProductRepositoryImpl {
   ProductRepositoryImpl(this._db);
   final AppDatabase _db;
 
-  Future<List<Product>> search(String query, {String? categoryId, int limit = 50}) async {
-    if (query.isEmpty) {
-      final selectStmt = _db.select(_db.products)..where((p) => p.deletedAt.isNull() & p.isActive.equals(true));
-      if (categoryId != null) {
-        selectStmt.where((p) => p.categoryId.equals(categoryId));
-      }
-      selectStmt
-        ..orderBy([(p) => OrderingTerm(expression: p.name)])
-        ..limit(limit);
-      final rows = await selectStmt.get();
-      return await _hydrate(rows);
+  /// Rows for the POS product grid: "全部" excludes [Product.hideFromPosBrowse] and
+  /// products in categories with [Category.hideFromPosBrowse]. A specific [categoryId]
+  /// lists every active product in that category (e.g. 書籍／桌遊).
+  Future<List<ProductRow>> _browseProductRows({String? categoryId, int limit = 50}) async {
+    if (categoryId != null) {
+      return (_db.select(_db.products)
+            ..where((p) =>
+                p.deletedAt.isNull() & p.isActive.equals(true) & p.categoryId.equals(categoryId))
+            ..orderBy([(p) => OrderingTerm(expression: p.name)])
+            ..limit(limit))
+          .get();
     }
-    final like = '%$query%';
+    final q = _db.select(_db.products).join([
+      leftOuterJoin(_db.categories, _db.categories.id.equalsExp(_db.products.categoryId)),
+    ])
+      ..where(_db.products.deletedAt.isNull() &
+          _db.products.isActive.equals(true) &
+          _db.products.hideFromPosBrowse.equals(false) &
+          (_db.products.categoryId.isNull() |
+              _db.categories.id.isNull() |
+              _db.categories.deletedAt.isNotNull() |
+              _db.categories.hideFromPosBrowse.equals(false)))
+      ..orderBy([OrderingTerm(expression: _db.products.name)])
+      ..limit(limit);
+    final joined = await q.get();
+    return joined.map((r) => r.readTable(_db.products)).toList();
+  }
+
+  Future<List<Product>> search(String query, {String? categoryId, int limit = 50}) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      final rows = await _browseProductRows(categoryId: categoryId, limit: limit);
+      return _hydrate(rows);
+    }
+    final like = '%$trimmed%';
     // Find barcode first (exact)
-    final byBarcode = await (_db.select(_db.productBarcodes)..where((b) => b.barcode.equals(query))).get();
+    final byBarcode = await (_db.select(_db.productBarcodes)..where((b) => b.barcode.equals(trimmed))).get();
     final productIds = byBarcode.map((e) => e.productId).toSet();
 
     final stmt = _db.select(_db.products)
@@ -57,41 +79,18 @@ class ProductRepositoryImpl {
     return (await _hydrate([p])).first;
   }
 
-  Stream<List<Product>> watchAll({String? categoryId}) {
-    final stmt = _db.select(_db.products)..where((p) => p.deletedAt.isNull() & p.isActive.equals(true));
-    if (categoryId != null) stmt.where((p) => p.categoryId.equals(categoryId));
-    stmt.orderBy([(p) => OrderingTerm(expression: p.name)]);
-    return stmt.watch().asyncMap(_hydrate);
-  }
-
   Stream<List<Product>> watchFiltered({
     String query = '',
     String? categoryId,
     int limit = 50,
   }) {
-    return watchAll(categoryId: categoryId).asyncMap((products) async {
-      final trimmed = query.trim();
+    final trimmed = query.trim();
+    return _db.select(_db.products).watch().asyncMap((_) async {
       if (trimmed.isEmpty) {
-        return products.take(limit).toList(growable: false);
+        final rows = await _browseProductRows(categoryId: categoryId, limit: limit);
+        return _hydrate(rows);
       }
-
-      final exact = await findByBarcode(trimmed);
-      if (exact != null) {
-        if (categoryId != null && exact.categoryId != categoryId) {
-          return const <Product>[];
-        }
-        return [exact];
-      }
-
-      final needle = trimmed.toLowerCase();
-      return products
-          .where((product) {
-            if (product.name.toLowerCase().contains(needle)) return true;
-            if (product.sku.toLowerCase().contains(needle)) return true;
-            return product.barcodes.any((barcode) => barcode.toLowerCase().contains(needle));
-          })
-          .take(limit)
-          .toList(growable: false);
+      return search(trimmed, categoryId: categoryId, limit: limit);
     });
   }
 
@@ -119,6 +118,8 @@ class ProductRepositoryImpl {
               cost: r.costCents == null ? null : Money(r.costCents!),
               isActive: r.isActive,
               updatedAt: r.updatedAt,
+              hideFromPublicOrdering: r.hideFromPublicOrdering,
+              hideFromPosBrowse: r.hideFromPosBrowse,
             ))
         .toList(growable: false);
   }
@@ -163,6 +164,8 @@ class CategoryRepositoryImpl {
               sortOrder: r.sortOrder,
               color: r.color,
               icon: r.icon,
+              hideFromPublicOrdering: r.hideFromPublicOrdering,
+              hideFromPosBrowse: r.hideFromPosBrowse,
             ))
         .toList(growable: false);
   }
@@ -180,6 +183,8 @@ class CategoryRepositoryImpl {
                   sortOrder: r.sortOrder,
                   color: r.color,
                   icon: r.icon,
+                  hideFromPublicOrdering: r.hideFromPublicOrdering,
+                  hideFromPosBrowse: r.hideFromPosBrowse,
                 ))
             .toList(growable: false));
   }

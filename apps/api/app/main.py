@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from slowapi.errors import RateLimitExceeded
@@ -36,6 +36,15 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(api_router)
+
+    # Cursor's embedded Simple Browser (and similar dev UIs) probe ``HEAD /queue``
+    # on localhost; without this route uvicorn logs a 404 on every keystroke/focus.
+    # Registered only outside strict production.
+    if not settings.is_production:
+
+        @app.head("/queue")
+        async def _dev_queue_probe() -> Response:
+            return Response(status_code=204)
 
     upload_dir = Path(os.getenv("UPLOAD_DIR", "uploads"))
     upload_dir.mkdir(parents=True, exist_ok=True)

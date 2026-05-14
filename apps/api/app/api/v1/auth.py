@@ -21,7 +21,7 @@ from ...core.security import (
     verify_password,
     verify_secret,
 )
-from ...models import RefreshToken, Store, Tenant, Terminal, User
+from ...models import RefreshToken, Store, Tenant, Terminal, User, STORE_ADMIN_ROLES
 from ...schemas.auth import (
     AdminLoginRequest,
     ChangePasswordRequest,
@@ -214,7 +214,17 @@ async def login(request: Request, req: LoginRequest, db: DbSession) -> SessionRe
 async def admin_login(
     request: Request, req: AdminLoginRequest, db: DbSession
 ) -> SessionRead:
-    tenant = await _resolve_tenant(db, req.tenant_code)
+    # Distinguish "no tenant header" (platform super) from "unknown tenant code".
+    # If the browser sends e.g. ``demo`` but that tenant does not exist, we must
+    # not fall through to the platform-only lookup — that yields a confusing 401.
+    raw_tenant = (req.tenant_code or "").strip() or None
+    if raw_tenant is None:
+        tenant = None
+    else:
+        tenant = await _resolve_tenant(db, raw_tenant)
+        if tenant is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "tenant not found")
+
     user = await _get_user(db, tenant=tenant, username=req.username)
     if not user or not verify_password(req.password, user.password_hash):
         if user:
@@ -223,9 +233,7 @@ async def admin_login(
     _check_account_lock(user)
     if not user.is_active:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "user disabled")
-    if user.role not in (
-        "platform_super", "tenant_owner", "tenant_admin", "store_manager"
-    ):
+    if user.role not in STORE_ADMIN_ROLES:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "insufficient permissions for admin console")
 
     if tenant is None and user.tenant_id:

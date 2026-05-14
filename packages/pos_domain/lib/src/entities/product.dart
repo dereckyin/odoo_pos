@@ -15,6 +15,8 @@ class Product {
     this.cost,
     this.isActive = true,
     this.updatedAt,
+    this.hideFromPublicOrdering = false,
+    this.hideFromPosBrowse = false,
   });
 
   final String id;
@@ -34,6 +36,8 @@ class Product {
   final Money? cost;
   final bool isActive;
   final DateTime? updatedAt;
+  final bool hideFromPublicOrdering;
+  final bool hideFromPosBrowse;
 
   Product copyWith({
     String? id,
@@ -49,6 +53,8 @@ class Product {
     Money? cost,
     bool? isActive,
     DateTime? updatedAt,
+    bool? hideFromPublicOrdering,
+    bool? hideFromPosBrowse,
   }) =>
       Product(
         id: id ?? this.id,
@@ -64,5 +70,7 @@ class Product {
         cost: cost ?? this.cost,
         isActive: isActive ?? this.isActive,
         updatedAt: updatedAt ?? this.updatedAt,
+        hideFromPublicOrdering: hideFromPublicOrdering ?? this.hideFromPublicOrdering,
+        hideFromPosBrowse: hideFromPosBrowse ?? this.hideFromPosBrowse,
       );
 }
