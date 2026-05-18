@@ -134,6 +134,7 @@ import {
   rotateTableToken,
 } from '@/api/tables'
 import { listStores } from '@/api/stores'
+import { customerOrderUrl } from '@/lib/customerOrderBase'
 import type { DiningTableRead, StoreRead } from '@/types'
 
 const router = useRouter()
@@ -174,13 +175,8 @@ const columns = [
   { title: '操作', key: 'actions', width: 360 },
 ]
 
-const customerBase = (import.meta.env.VITE_CUSTOMER_BASE_URL || 'http://localhost:5174').replace(
-  /\/+$/,
-  '',
-)
-
 function urlFor(t: DiningTableRead) {
-  return `${customerBase}/order?t=${t.public_token}`
+  return customerOrderUrl(t.public_token)
 }
 
 function storeNameOf(storeId: string) {

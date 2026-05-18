@@ -37,6 +37,7 @@ import QrcodeVue from 'qrcode.vue'
 import { PrinterOutlined } from '@ant-design/icons-vue'
 import { listTables } from '@/api/tables'
 import { listStores } from '@/api/stores'
+import { customerOrderUrl } from '@/lib/customerOrderBase'
 import type { DiningTableRead, StoreRead } from '@/types'
 
 const route = useRoute()
@@ -47,15 +48,10 @@ const stores = ref<StoreRead[]>([])
 const loading = ref(false)
 const layout = ref<'6' | '8'>('6')
 
-const customerBase = (import.meta.env.VITE_CUSTOMER_BASE_URL || 'http://localhost:5174').replace(
-  /\/+$/,
-  '',
-)
-
 const qrSize = computed(() => (layout.value === '6' ? 220 : 180))
 
 function urlFor(t: DiningTableRead) {
-  return `${customerBase}/order?t=${t.public_token}`
+  return customerOrderUrl(t.public_token)
 }
 function storeNameOf(storeId: string) {
   return stores.value.find((s) => s.id === storeId)?.name || ''

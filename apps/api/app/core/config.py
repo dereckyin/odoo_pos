@@ -17,8 +17,8 @@ class Settings(BaseSettings):
 
     JWT_SECRET: str = "change-me"
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TTL_MIN: int = 30
-    JWT_REFRESH_TTL_DAYS: int = 30
+    JWT_ACCESS_TTL_MIN: int = 480
+    JWT_REFRESH_TTL_DAYS: int = 90
 
     # Symmetric encryption key for per-tenant secrets (Fernet-compatible URL-safe
     # base64-encoded 32-byte key). Generate with:

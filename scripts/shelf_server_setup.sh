@@ -11,7 +11,7 @@ FERNET="$(
 umask 077
 cat > deploy/.env.api <<EOF
 ENV=production
-CORS_ORIGINS=https://shelf.taaze.tw,http://shelf.taaze.tw
+CORS_ORIGINS=https://pos.myvnc.com,http://pos.myvnc.com
 JWT_SECRET=${JWT_SECRET}
 SECRETS_ENCRYPTION_KEY=${FERNET}
 RESEND_API_KEY=

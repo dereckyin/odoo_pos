@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
 import '../../../core/providers.dart';
+import '../../../core/user_facing_error.dart';
 import '../../../data/sync/sync_providers.dart';
 
 /// Two-step registration flow:
@@ -58,7 +59,20 @@ class _TerminalRegisterPageState extends ConsumerState<TerminalRegisterPage> {
                   TextField(controller: _terminal, decoration: const InputDecoration(labelText: '終端機代號')),
                   const SizedBox(height: 16),
                   if (_info != null) Text(_info!, style: const TextStyle(color: Colors.green)),
-                  if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                  if (_error != null)
+                    Card(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          _error!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onErrorContainer,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 16),
                   BigButton(
                     icon: Icons.app_registration,
@@ -119,7 +133,7 @@ class _TerminalRegisterPageState extends ConsumerState<TerminalRegisterPage> {
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = formatUserFacingError(e, scene: UserErrorScene.terminalRegister));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

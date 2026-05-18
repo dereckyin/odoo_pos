@@ -16,4 +16,15 @@ class Env {
 
   /// Local DB filename inside app documents directory.
   static const localDbFile = 'pos.sqlite';
+
+  /// Temporary book-retail demo (scan ISBN → checkout). Remove when integrated.
+  static const bookSaleDemo = bool.fromEnvironment(
+    'BOOK_SALE_DEMO',
+    defaultValue: true,
+  );
+
+  static const bookSaleDemoApiUrl = String.fromEnvironment(
+    'BOOK_SALE_DEMO_API_URL',
+    defaultValue: 'https://api.taaze.tw/api/v1/book/latest',
+  );
 }

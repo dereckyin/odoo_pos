@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   不透過 Android Studio，直接啟動 Android 模擬器並確保 adb 在跑。

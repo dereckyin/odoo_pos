@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../demo/book_sale_demo.dart';
+import '../demo/book_sale_demo_providers.dart';
 import '../providers/cart_controller.dart';
 
 bool get _isSimulatorOrDesktop {
@@ -69,32 +71,45 @@ class _ScanPageState extends ConsumerState<ScanPage> {
               ],
       ),
       body: _error != null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.no_photography_outlined,
-                        size: 72, color: Theme.of(context).colorScheme.outline),
-                    const SizedBox(height: 16),
-                    Text(_error!, textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyLarge),
-                    const SizedBox(height: 24),
-                    FilledButton.icon(
-                      icon: const Icon(Icons.arrow_back),
-                      label: const Text('返回'),
-                      onPressed: () => context.pop(),
+          ? Column(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.no_photography_outlined,
+                              size: 72, color: Theme.of(context).colorScheme.outline),
+                          const SizedBox(height: 16),
+                          Text(_error!, textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodyLarge),
+                          const SizedBox(height: 24),
+                          FilledButton.icon(
+                            icon: const Icon(Icons.arrow_back),
+                            label: const Text('返回'),
+                            onPressed: () => context.pop(),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+                if (BookSaleDemo.enabled) const _BookDemoScanPanel(),
+              ],
             )
           : _ctl == null
               ? const Center(child: CircularProgressIndicator())
-              : MobileScanner(
-                  controller: _ctl!,
-                  onDetect: _onDetect,
+              : Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    MobileScanner(
+                      controller: _ctl!,
+                      onDetect: _onDetect,
+                    ),
+                    if (BookSaleDemo.enabled) const _BookDemoScanPanel(),
+                  ],
                 ),
     );
   }
@@ -112,5 +127,74 @@ class _ScanPageState extends ConsumerState<ScanPage> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('找不到: $code')));
       Future.delayed(const Duration(seconds: 1), () => _processing = false);
     }
+  }
+}
+
+class _BookDemoScanPanel extends ConsumerWidget {
+  const _BookDemoScanPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final booksAsync = ref.watch(bookSaleDemoBooksProvider);
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Material(
+        elevation: 8,
+        color: theme.colorScheme.surface.withValues(alpha: 0.95),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            child: booksAsync.when(
+              loading: () => Row(
+                children: [
+                  const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                  const SizedBox(width: 12),
+                  Text('載入 TAAZE 書目…', style: theme.textTheme.labelLarge),
+                ],
+              ),
+              error: (_, __) => Text('書目載入失敗', style: theme.textTheme.labelLarge),
+              data: (books) => Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('TAAZE 最新書 · 點擊模擬掃碼', style: theme.textTheme.labelLarge),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 44,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: books.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (_, i) {
+                        final book = books[i];
+                        return ActionChip(
+                          avatar: const Icon(Icons.menu_book, size: 18),
+                          label: Text(book.title, overflow: TextOverflow.ellipsis),
+                          onPressed: () async {
+                            final ok = await ref
+                                .read(cartControllerProvider.notifier)
+                                .scanBarcode(book.barcode);
+                            if (!context.mounted) return;
+                            if (ok) {
+                              context.pop();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('無法加入: ${book.title}')),
+                              );
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

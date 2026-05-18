@@ -7,6 +7,7 @@ import 'package:pos_domain/pos_domain.dart';
 
 import '../../../core/providers.dart';
 import '../../../data/scanner/barcode_listener.dart';
+import '../demo/book_sale_demo.dart';
 import '../../../data/sync/sync_providers.dart';
 import '../../sync/widgets/master_data_sync_button.dart';
 import '../providers/cart_controller.dart';
@@ -84,6 +85,12 @@ class _CashierPageState extends ConsumerState<CashierPage> {
                     ),
                   ),
                 ),
+              ),
+            if (BookSaleDemo.enabled)
+              IconButton(
+                tooltip: '書籍售賣 Demo',
+                icon: const Icon(Icons.menu_book_outlined),
+                onPressed: () => context.push('/book-demo'),
               ),
             IconButton(
               tooltip: '商品管理',

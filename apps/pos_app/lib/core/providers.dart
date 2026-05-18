@@ -31,7 +31,10 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 class AuthState {
   AuthState({this.session});
   final Session? session;
-  bool get isLoggedIn => session != null && !session!.isExpired;
+
+  /// POS keeps refresh token in secure storage; access token may expire and
+  /// is renewed silently via [AuthController.tryRefresh].
+  bool get isLoggedIn => session != null;
 }
 
 final authStateProvider = StateNotifierProvider<AuthController, AuthState>((ref) {
@@ -79,7 +82,11 @@ class AuthController extends StateNotifier<AuthState> {
 
   Future<void> _restore() async {
     final s = await _ref.read(sessionStorageProvider).load();
-    if (s != null) state = AuthState(session: s);
+    if (s == null) return;
+    state = AuthState(session: s);
+    if (s.isExpired) {
+      await tryRefresh();
+    }
   }
 
   Future<void> setSession(Session s) async {

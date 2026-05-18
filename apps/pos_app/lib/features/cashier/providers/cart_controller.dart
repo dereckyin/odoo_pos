@@ -4,6 +4,7 @@ import 'package:pos_domain/pos_domain.dart';
 
 import '../../../core/providers.dart';
 import '../../../data/api/dto.dart';
+import '../demo/book_sale_demo.dart';
 import '../../products/providers/product_providers.dart';
 import '../../promotions/providers/promotion_providers.dart';
 
@@ -113,7 +114,18 @@ class CartController extends StateNotifier<Cart> {
 
   Future<bool> scanBarcode(String code) async {
     final repo = _ref.read(productRepositoryProvider);
-    final p = await repo.findByBarcode(code);
+    var p = await repo.findByBarcode(code);
+    if (p == null && BookSaleDemo.enabled) {
+      await BookSaleDemo.loadBooks();
+      final demo = BookSaleDemo.findByBarcode(code);
+      if (demo != null) {
+        await BookSaleDemo.ensureLocalCatalog(
+          _ref.read(databaseProvider),
+          books: BookSaleDemo.books,
+        );
+        p = BookSaleDemo.toProduct(demo);
+      }
+    }
     if (p == null) return false;
     await addProduct(p);
     return true;

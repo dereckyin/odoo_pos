@@ -4,6 +4,7 @@ import 'package:pos_domain/pos_domain.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
 import '../../../core/providers.dart';
+import '../../../core/user_facing_error.dart';
 import 'terminal_register_page.dart';
 
 /// Tenant-aware POS login.
@@ -100,7 +101,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     decoration: const InputDecoration(labelText: '密碼'),
                   ),
                   const SizedBox(height: 16),
-                  if (_error != null) Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                  if (_error != null)
+                    Card(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          _error!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onErrorContainer,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 16),
                   BigButton(
                     icon: Icons.login,
@@ -167,7 +181,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             expiresAt: dto.expiresAt,
           ));
     } catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = formatUserFacingError(e, scene: UserErrorScene.login));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
