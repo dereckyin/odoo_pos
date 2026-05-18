@@ -55,6 +55,9 @@ deploy/.env.api
 # Node (admin frontend)
 node_modules/
 dist/
+
+# Readme APK — build locally and scp to server; do not commit
+apps/admin/public/readme/*.apk
 *.tsbuildinfo
 
 # Uploads

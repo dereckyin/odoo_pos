@@ -22,6 +22,7 @@ dreamwalker.myvnc.com {
 }
 
 pos.myvnc.com {
+	# /readme/ 由 docker nginx（9088）內 apps/admin/dist/readme 提供
 	handle_path /customer* {
 		reverse_proxy http://127.0.0.1:9089
 		encode gzip

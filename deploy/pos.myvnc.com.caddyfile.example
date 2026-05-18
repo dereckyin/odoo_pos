@@ -8,6 +8,8 @@
 # 然後取消註解 handle_path 區塊（順序：先 /customer，再預設 9088）。
 
 pos.myvnc.com {
+	# /readme/ 與管理後台同源，見 deploy/nginx.conf（admin dist/readme）
+
 	# handle_path /customer* {
 	# 	reverse_proxy http://127.0.0.1:9089
 	# 	encode gzip
