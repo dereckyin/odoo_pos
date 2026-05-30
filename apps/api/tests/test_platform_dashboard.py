@@ -1,7 +1,7 @@
 """Platform super-admin dashboard stats."""
 from app.core import db as db_mod
 from app.core.security import hash_password
-from app.models import User
+from app.models import Tenant, User
 
 from .helpers import build_tenant, login_admin
 
@@ -51,3 +51,26 @@ async def test_platform_dashboard_forbidden_for_tenant(app, client):
 
     r = await client.get("/platform/dashboard", headers=headers)
     assert r.status_code == 403
+
+
+async def test_list_tenants_tolerates_legacy_email(app, client):
+    """Rows like legacy@local must not 500 the platform tenant list."""
+    factory = db_mod.get_session_factory()
+    await _seed_platform_super(factory)
+    async with factory() as db:
+        db.add(
+            Tenant(
+                code="legacy-test",
+                name="Legacy Shop",
+                contact_email="legacy@local",
+                status="active",
+            )
+        )
+        await db.commit()
+    token = await _login_platform(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    r = await client.get("/platform/tenants", headers=headers)
+    assert r.status_code == 200, r.text
+    emails = {t["contact_email"] for t in r.json()}
+    assert "legacy@local" in emails

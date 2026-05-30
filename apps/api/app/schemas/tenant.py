@@ -9,7 +9,8 @@ class TenantRead(ORMModel):
     id: str
     code: str
     name: str
-    contact_email: EmailStr
+    # Plain str: legacy rows (e.g. legacy@local) must not 500 the list endpoint.
+    contact_email: str
     contact_phone: str | None
     tax_id: str | None
     status: str
