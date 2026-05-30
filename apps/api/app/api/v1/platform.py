@@ -5,9 +5,10 @@ manage subscription plans. None of these endpoints should be exposed to
 tenant users — guarded by ``PlatformSuperDep``.
 """
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from ...core.audit import audit
 from ...core.deps import (
@@ -18,6 +19,8 @@ from ...core.deps import (
 from ...core.notify import send_email
 from ...core.security import generate_secret, hash_password
 from ...models import (
+    GuestOrder,
+    MarketplaceListing,
     Store,
     SubscriptionPlan,
     Tenant,
@@ -31,6 +34,7 @@ from ...schemas.auth import (
     TenantApplicationReject,
 )
 from ...schemas.tenant import (
+    PlatformDashboardStats,
     SubscriptionPlanRead,
     TenantRead,
     TenantUpdate,
@@ -42,6 +46,69 @@ router = APIRouter(prefix="/platform", tags=["platform"])
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _taipei_today_bounds() -> tuple[datetime, datetime]:
+    tz = ZoneInfo("Asia/Taipei")
+    now = datetime.now(tz)
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    end = start.replace(hour=23, minute=59, second=59, microsecond=999999)
+    return start.astimezone(timezone.utc), end.astimezone(timezone.utc)
+
+
+@router.get("/dashboard", response_model=PlatformDashboardStats)
+async def platform_dashboard(db: DbSession, _: PlatformSuperDep):
+    pending_apps = (
+        await db.execute(
+            select(func.count()).select_from(TenantApplication).where(
+                TenantApplication.status == "pending"
+            )
+        )
+    ).scalar_one() or 0
+    pending_listings = (
+        await db.execute(
+            select(func.count()).select_from(MarketplaceListing).where(
+                MarketplaceListing.status == "pending"
+            )
+        )
+    ).scalar_one() or 0
+    active_tenants = (
+        await db.execute(
+            select(func.count()).select_from(Tenant).where(
+                Tenant.deleted_at.is_(None),
+                Tenant.status == "active",
+            )
+        )
+    ).scalar_one() or 0
+    suspended_tenants = (
+        await db.execute(
+            select(func.count()).select_from(Tenant).where(
+                Tenant.deleted_at.is_(None),
+                Tenant.status == "suspended",
+            )
+        )
+    ).scalar_one() or 0
+    day_start, day_end = _taipei_today_bounds()
+    mp_stats = (
+        await db.execute(
+            select(
+                func.count(GuestOrder.id),
+                func.coalesce(func.sum(GuestOrder.estimated_subtotal_cents), 0),
+            ).where(
+                GuestOrder.channel == "marketplace",
+                GuestOrder.created_at >= day_start,
+                GuestOrder.created_at <= day_end,
+            )
+        )
+    ).one()
+    return PlatformDashboardStats(
+        pending_applications=pending_apps,
+        pending_marketplace_listings=pending_listings,
+        active_tenants=active_tenants,
+        suspended_tenants=suspended_tenants,
+        marketplace_orders_today=int(mp_stats[0] or 0),
+        marketplace_revenue_today_cents=int(mp_stats[1] or 0),
+    )
 
 
 # ---------------------------------------------------------------------------

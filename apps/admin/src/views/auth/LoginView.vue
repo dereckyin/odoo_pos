@@ -6,15 +6,10 @@
           <a-input
             v-model:value="form.tenant_code"
             size="large"
-            placeholder="例：demo（店家後台必填）"
+            placeholder="開店通知信中的代號"
             allow-clear
           />
-          <template #extra>
-            <span class="field-hint">
-              一般店家／門市管理員請填租戶代號；僅「平台超管」可留白。
-              若曾做多租戶遷移但尚未 seed，資料庫可能只有 <code>__legacy__</code> 租戶，請填該代號。
-            </span>
-          </template>
+          <div class="field-hint">平台營運帳號請留空租戶代號</div>
         </a-form-item>
         <a-form-item label="帳號" name="username" :rules="[{ required: true, message: '請輸入帳號' }]">
           <a-input v-model:value="form.username" size="large" placeholder="請輸入帳號" />
@@ -28,15 +23,6 @@
           </a-button>
         </a-form-item>
         <a-alert v-if="errorMsg" :message="errorMsg" type="error" show-icon closable @close="errorMsg = ''" />
-        <a-collapse ghost class="dev-hint">
-          <a-collapse-panel key="1" header="本機登入參考">
-            <ul class="hint-list">
-              <li>有跑過 seed：租戶 <code>demo</code>，帳號 <code>admin</code>，密碼 <code>admin123</code></li>
-              <li>僅有舊版遷移資料：租戶填 <code>__legacy__</code>，帳號 <code>admin</code>，密碼 <code>admin123</code></li>
-              <li>若錯誤變成 <code>tenant not found</code>，代表該租戶代號不存在，請改填上列正確代號或執行 seed。</li>
-            </ul>
-          </a-collapse-panel>
-        </a-collapse>
         <div class="signup-link">
           還沒有帳號？
           <a @click.prevent="$router.push({ name: 'signup' })">申請開通新店家</a>
@@ -84,6 +70,7 @@ import { message } from 'ant-design-vue'
 import { formatApiError } from '@/api/formatApiError'
 import { useAuthStore } from '@/stores/auth'
 import { APP_VERSION } from '@/version'
+import { postLoginRoute } from '@/router'
 import * as authApi from '@/api/auth'
 
 const router = useRouter()
@@ -123,8 +110,8 @@ async function handleLogin() {
 }
 
 function finishLogin() {
-  const redirect = (route.query.redirect as string) || '/'
-  router.push(redirect)
+  const redirect = route.query.redirect as string | undefined
+  router.push(postLoginRoute(auth, redirect))
 }
 
 async function submitChangePassword() {
@@ -183,24 +170,9 @@ async function submitChangePassword() {
   cursor: pointer;
 }
 .field-hint {
-  color: rgba(0, 0, 0, 0.55);
+  margin-top: 4px;
   font-size: 12px;
-  line-height: 1.5;
-}
-.dev-hint {
-  margin-top: 8px;
-  text-align: left;
-}
-.hint-list {
-  margin: 0;
-  padding-left: 18px;
-  font-size: 13px;
-  color: rgba(0, 0, 0, 0.65);
-}
-.hint-list code {
-  background: rgba(0, 0, 0, 0.06);
-  padding: 0 4px;
-  border-radius: 2px;
+  color: rgba(0, 0, 0, 0.45);
 }
 .login-version {
   text-align: center;

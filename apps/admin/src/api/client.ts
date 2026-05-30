@@ -34,9 +34,12 @@ client.interceptors.request.use((config) => {
   } else {
     delete config.headers.Authorization
   }
-  const overrideTenant = (config as any).tenantOverride as string | undefined
-  if (auth.isPlatformSuper && overrideTenant) {
-    config.headers['X-Tenant-Id'] = overrideTenant
+  const overrideTenant = (config as { tenantOverride?: string }).tenantOverride
+  const tenantHeader = auth.isPlatformSuper
+    ? overrideTenant || auth.actingTenantId || undefined
+    : undefined
+  if (tenantHeader) {
+    config.headers['X-Tenant-Id'] = tenantHeader
   }
   return config
 })

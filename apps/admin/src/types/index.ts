@@ -249,6 +249,7 @@ export interface ProductRead {
   description: string | null
   hide_from_public_ordering: boolean
   hide_from_pos_browse: boolean
+  marketplace_category_id: string | null
   barcodes: string[]
   updated_at: string
   deleted_at: string | null
@@ -268,6 +269,7 @@ export interface ProductCreate {
   description?: string | null
   hide_from_public_ordering?: boolean
   hide_from_pos_browse?: boolean
+  marketplace_category_id?: string | null
   barcodes?: string[]
 }
 

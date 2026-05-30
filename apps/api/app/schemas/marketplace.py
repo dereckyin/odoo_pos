@@ -55,14 +55,51 @@ class MarketplaceMenu(BaseModel):
     products: list[PublicProduct]
 
 
-class MarketplaceProductSearchHit(BaseModel):
+class MarketplaceProductCard(BaseModel):
     product_id: str
     product_name: str
     price_cents: int
     image_url: str | None = None
+    description: str | None = None
+    has_options: bool = False
+    feed_category_id: str
+    feed_category_name: str
     store_slug: str
     store_name: str
     logo_url: str | None = None
+    store_is_open: bool = True
+
+
+class MarketplaceProductSearchHit(MarketplaceProductCard):
+    """Backward-compatible alias for product search hits."""
+
+
+class MarketplaceFeedCategory(BaseModel):
+    id: str
+    slug: str
+    name: str
+    icon: str | None = None
+    product_count: int = 0
+
+
+class MarketplaceProductFeedSection(BaseModel):
+    category_id: str
+    category_slug: str
+    category_name: str
+    icon: str | None = None
+    products: list[MarketplaceProductCard] = Field(default_factory=list)
+
+
+class MarketplaceProductFeed(BaseModel):
+    sections: list[MarketplaceProductFeedSection] = Field(default_factory=list)
+
+
+class MarketplaceFeedCategoryOption(BaseModel):
+    """For admin product form dropdown."""
+    id: str
+    slug: str
+    name: str
+    icon: str | None = None
 
 
 class MarketplaceOrderSubmit(BaseModel):

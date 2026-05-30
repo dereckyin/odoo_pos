@@ -163,10 +163,10 @@ async function submit() {
 .body { padding: 16px; padding-bottom: 100px; }
 .block { margin-bottom: 20px; }
 .block h3 { margin: 0 0 8px; font-size: 15px; }
-.block input, .block textarea { width: 100%; margin-bottom: 8px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+.block input, .block textarea { width: 100%; margin-bottom: 8px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; }
 .opts label { display: block; padding: 8px 0; }
-.summary { background: #fffcf8; padding: 12px; border-radius: 10px; margin: 16px 0; }
-.submit { width: 100%; border: 0; background: #c45c3e; color: #fff; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 600; }
-.link { background: none; border: none; color: #c45c3e; }
+.summary { background: var(--surface); padding: 12px; border-radius: 10px; margin: 16px 0; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
+.submit { width: 100%; border: 0; background: var(--accent); color: #fff; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 600; }
+.link { background: none; border: none; color: var(--accent); }
 .member-row { margin-bottom: 12px; }
 </style>

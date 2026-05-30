@@ -89,3 +89,81 @@ async def test_marketplace_admin_create_and_submit(app, client):
     r = await client.post(f"/marketplace/listing/{listing_id}/submit", headers=headers)
     assert r.status_code == 200
     assert r.json()["status"] == "pending"
+
+
+async def test_public_marketplace_products_feed(app, client):
+    factory = db_mod.get_session_factory()
+    bundle, product, listing = await _seed_listing(factory)
+
+    r = await client.get("/public/marketplace/products")
+    assert r.status_code == 200
+    products = r.json()
+    assert any(p["product_id"] == product.id for p in products)
+    assert products[0]["store_is_open"] is True
+
+    r = await client.get("/public/marketplace/products", params={"q": "招牌"})
+    assert r.status_code == 200
+    assert len(r.json()) >= 1
+
+    r = await client.get("/public/marketplace/products", params={"fulfillment": "pickup"})
+    assert r.status_code == 200
+    assert all(p["store_slug"] == listing.slug for p in r.json())
+
+
+async def test_public_marketplace_products_excludes_closed_store(app, client):
+    factory = db_mod.get_session_factory()
+    bundle, product, listing = await _seed_listing(factory)
+
+    async with factory() as db:
+        row = await db.get(MarketplaceListing, listing.id)
+        row.business_hours = {"mon": [], "tue": [], "wed": [], "thu": [], "fri": [], "sat": [], "sun": []}
+        await db.commit()
+
+    r = await client.get("/public/marketplace/products")
+    assert r.status_code == 200
+    assert not any(p["product_id"] == product.id for p in r.json())
+
+
+async def test_marketplace_feed_category_auto_and_override(app, client):
+    factory = db_mod.get_session_factory()
+    bundle, product, listing = await _seed_listing(factory)
+
+    r = await client.get("/public/marketplace/products")
+    assert r.status_code == 200
+    hit = next(p for p in r.json() if p["product_id"] == product.id)
+    assert hit["feed_category_name"] == "其他"
+
+    from app.models import Category
+    from app.services.marketplace_category_seed import CAT_BENTO
+
+    async with factory() as db:
+        drink_cat = Category(tenant_id=bundle.tenant.id, name="飲料")
+        db.add(drink_cat)
+        await db.flush()
+        product_row = await db.get(Product, product.id)
+        product_row.category_id = drink_cat.id
+        await db.commit()
+
+    r = await client.get("/public/marketplace/products")
+    hit = next(p for p in r.json() if p["product_id"] == product.id)
+    assert hit["feed_category_name"] == "飲料"
+
+    async with factory() as db:
+        p = await db.get(Product, product.id)
+        p.marketplace_category_id = CAT_BENTO
+        await db.commit()
+
+    r = await client.get("/public/marketplace/products")
+    hit = next(p for p in r.json() if p["product_id"] == product.id)
+    assert hit["feed_category_name"] == "便當"
+
+    r = await client.get("/public/marketplace/products/feed")
+    assert r.status_code == 200
+    feed = r.json()
+    assert feed["sections"]
+    assert any(s["category_name"] == "便當" for s in feed["sections"])
+
+    r = await client.get("/public/marketplace/feed-categories")
+    assert r.status_code == 200
+    cats = r.json()
+    assert any(c["name"] == "便當" and c["product_count"] >= 1 for c in cats)

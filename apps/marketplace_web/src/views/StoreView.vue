@@ -166,21 +166,21 @@ watch(slug, () => void loadMenu(), { immediate: true })
 
 <style scoped>
 .menu-page { display: flex; flex-direction: column; height: 100vh; }
-.store-header { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #fffcf8; border-bottom: 1px solid #eee; }
+.store-header { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
 .back { border: 0; background: transparent; font-size: 24px; }
 .store-name { font-weight: 600; }
 .closed { color: #b33; font-size: 12px; }
-.cat-bar { display: flex; overflow-x: auto; padding: 8px; background: #fff; border-bottom: 1px solid #eee; }
+.cat-bar { display: flex; overflow-x: auto; padding: 8px; background: var(--surface); border-bottom: 1px solid var(--border); }
 .cat-bar button { flex-shrink: 0; border: 0; background: transparent; padding: 8px 14px; border-radius: 16px; }
-.cat-bar button.active { background: #ffeee6; color: #c45c3e; font-weight: 600; }
+.cat-bar button.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .menu-list { flex: 1; overflow-y: auto; padding: 12px 12px 96px; }
 .cat-section h2 { font-size: 16px; margin: 16px 4px 8px; }
-.sub-heading { font-size: 14px; margin: 8px 4px; color: #666; }
-.product { background: #fff; border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; gap: 12px; }
+.sub-heading { font-size: 14px; margin: 8px 4px; color: var(--muted); }
+.product { background: var(--surface); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; gap: 12px; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
 .product .info { flex: 1; }
 .product .name { font-weight: 600; }
-.product .desc { font-size: 12px; color: #888; }
-.product .price { color: #c45c3e; font-weight: 600; }
+.product .desc { font-size: 12px; color: var(--muted); }
+.product .price { color: var(--accent); font-weight: 600; }
 .product img, .product .img-placeholder { width: 72px; height: 72px; border-radius: 8px; object-fit: cover; }
-.product .img-placeholder { background: #ffeee6; display: flex; align-items: center; justify-content: center; color: #c45c3e; font-weight: 700; }
+.product .img-placeholder { background: var(--accent-soft); display: flex; align-items: center; justify-content: center; color: var(--accent); font-weight: 700; }
 </style>

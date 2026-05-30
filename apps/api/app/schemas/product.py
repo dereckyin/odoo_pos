@@ -66,6 +66,7 @@ class ProductRead(ORMModel):
     description: str | None
     hide_from_public_ordering: bool = False
     hide_from_pos_browse: bool = False
+    marketplace_category_id: str | None = None
     barcodes: list[str]
     updated_at: datetime
     deleted_at: datetime | None
@@ -88,6 +89,7 @@ class ProductRead(ORMModel):
             description=p.description,
             hide_from_public_ordering=getattr(p, "hide_from_public_ordering", False),
             hide_from_pos_browse=getattr(p, "hide_from_pos_browse", False),
+            marketplace_category_id=getattr(p, "marketplace_category_id", None),
             barcodes=[b.barcode for b in p.barcodes],
             updated_at=p.updated_at,
             deleted_at=p.deleted_at,
@@ -108,6 +110,7 @@ class ProductCreate(BaseModel):
     description: str | None = None
     hide_from_public_ordering: bool = False
     hide_from_pos_browse: bool = False
+    marketplace_category_id: str | None = None
     barcodes: list[str] = []
 
 
@@ -125,4 +128,5 @@ class ProductUpdate(BaseModel):
     description: str | None = None
     hide_from_public_ordering: bool | None = None
     hide_from_pos_browse: bool | None = None
+    marketplace_category_id: str | None = None
     barcodes: list[str] | None = None

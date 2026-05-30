@@ -6,7 +6,13 @@ import type { SessionRead } from '@/types'
 const KEYS = [
   'access_token', 'refresh_token', 'user_id', 'username', 'display_name',
   'role', 'tenant_id', 'tenant_code', 'store_id',
+  'acting_tenant_id', 'acting_tenant_name',
 ] as const
+
+export interface ActingTenant {
+  id: string
+  name: string
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref(localStorage.getItem('access_token') || '')
@@ -18,16 +24,27 @@ export const useAuthStore = defineStore('auth', () => {
   const tenantId = ref(localStorage.getItem('tenant_id') || '')
   const tenantCode = ref(localStorage.getItem('tenant_code') || '')
   const storeId = ref(localStorage.getItem('store_id') || '')
+  const actingTenantId = ref(localStorage.getItem('acting_tenant_id') || '')
+  const actingTenantName = ref(localStorage.getItem('acting_tenant_name') || '')
   const mustChangePassword = ref(false)
 
   const isAuthenticated = computed(() => !!accessToken.value)
   const isPlatformSuper = computed(() => role.value === 'platform_super')
+  const isPlatformMode = computed(() => isPlatformSuper.value && !actingTenantId.value)
+  const isMerchantMode = computed(() => !isPlatformSuper.value || !!actingTenantId.value)
+  const isPureTenantUser = computed(
+    () =>
+      !isPlatformSuper.value &&
+      (role.value === 'tenant_owner' ||
+        role.value === 'tenant_admin' ||
+        role.value === 'admin'),
+  )
   const isTenantAdmin = computed(
     () =>
       role.value === 'tenant_owner' ||
       role.value === 'tenant_admin' ||
       role.value === 'admin' ||
-      isPlatformSuper.value,
+      (isPlatformSuper.value && !!actingTenantId.value),
   )
 
   function setSession(s: SessionRead) {
@@ -52,8 +69,23 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('store_id', s.store_id || '')
   }
 
+  function enterTenantMode(tenant: ActingTenant) {
+    actingTenantId.value = tenant.id
+    actingTenantName.value = tenant.name
+    localStorage.setItem('acting_tenant_id', tenant.id)
+    localStorage.setItem('acting_tenant_name', tenant.name)
+  }
+
+  function exitTenantMode() {
+    actingTenantId.value = ''
+    actingTenantName.value = ''
+    localStorage.removeItem('acting_tenant_id')
+    localStorage.removeItem('acting_tenant_name')
+  }
+
   async function login(user: string, password: string, tenant_code?: string) {
     const { data } = await authApi.login(user, password, tenant_code)
+    exitTenantMode()
     setSession(data)
   }
 
@@ -79,6 +111,8 @@ export const useAuthStore = defineStore('auth', () => {
     tenantId.value = ''
     tenantCode.value = ''
     storeId.value = ''
+    actingTenantId.value = ''
+    actingTenantName.value = ''
     mustChangePassword.value = false
     KEYS.forEach((k) => localStorage.removeItem(k))
     if (rt) {
@@ -96,12 +130,19 @@ export const useAuthStore = defineStore('auth', () => {
     tenantId,
     tenantCode,
     storeId,
+    actingTenantId,
+    actingTenantName,
     mustChangePassword,
     isAuthenticated,
     isPlatformSuper,
+    isPlatformMode,
+    isMerchantMode,
+    isPureTenantUser,
     isTenantAdmin,
     login,
     refreshSession,
     logout,
+    enterTenantMode,
+    exitTenantMode,
   }
 })

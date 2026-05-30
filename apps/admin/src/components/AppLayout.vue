@@ -67,18 +67,10 @@
           <a-menu-item key="analytics-context" @click="$router.push({ name: 'analytics-context' })">環境洞察</a-menu-item>
           <a-menu-item key="analytics-members" @click="$router.push({ name: 'analytics-members' })">會員分析</a-menu-item>
         </a-sub-menu>
-        <a-menu-item v-if="auth.isTenantAdmin" key="tenant-settings" @click="$router.push({ name: 'tenant-settings' })">
+        <a-menu-item v-if="auth.isPureTenantUser || auth.actingTenantId" key="tenant-settings" @click="$router.push({ name: 'tenant-settings' })">
           <template #icon><SafetyOutlined /></template>
           <span>租戶設定</span>
         </a-menu-item>
-        <a-sub-menu v-if="auth.isPlatformSuper" key="platform-group">
-          <template #icon><CrownOutlined /></template>
-          <template #title>平台管理</template>
-          <a-menu-item key="platform-applications" @click="$router.push({ name: 'platform-applications' })">店家申請審核</a-menu-item>
-          <a-menu-item key="platform-marketplace" @click="$router.push({ name: 'platform-marketplace' })">市集上架審核</a-menu-item>
-          <a-menu-item key="platform-tenants" @click="$router.push({ name: 'platform-tenants' })">租戶管理</a-menu-item>
-          <a-menu-item key="platform-alliances" @click="$router.push({ name: 'platform-alliances' })">聯盟管理</a-menu-item>
-        </a-sub-menu>
       </a-menu>
       <div class="sider-footer">
         <span v-if="!collapsed" class="sider-version">{{ APP_VERSION }}</span>
@@ -86,6 +78,17 @@
       </div>
     </a-layout-sider>
     <a-layout>
+      <a-alert
+        v-if="auth.isPlatformSuper && auth.actingTenantId"
+        type="info"
+        show-icon
+        banner
+        :message="`您正在代管：${auth.actingTenantName}`"
+      >
+        <template #action>
+          <a-button size="small" type="primary" ghost @click="exitTenantMode">返回平台營運</a-button>
+        </template>
+      </a-alert>
       <a-layout-header class="app-header">
         <a-button type="text" @click="collapsed = !collapsed">
           <template #icon>
@@ -106,6 +109,8 @@
             </a-menu>
           </template>
         </a-dropdown>
+        <a-tag v-if="auth.isPlatformSuper && auth.actingTenantId" color="blue" style="margin-left: 12px">代管模式</a-tag>
+        <a-tag v-else-if="!auth.isPlatformSuper" color="green" style="margin-left: 12px">商家後台</a-tag>
         <span class="header-version">{{ APP_VERSION }}</span>
       </a-layout-header>
       <a-layout-content class="app-content">
@@ -123,7 +128,7 @@ import { APP_VERSION } from '@/version'
 import {
   DashboardOutlined, ShoppingOutlined, GiftOutlined, TeamOutlined,
   InboxOutlined, ShopOutlined, FileTextOutlined, BarChartOutlined, UserOutlined,
-  MenuFoldOutlined, MenuUnfoldOutlined, QrcodeOutlined, CrownOutlined,
+  MenuFoldOutlined, MenuUnfoldOutlined, QrcodeOutlined,
   SafetyOutlined,
 } from '@ant-design/icons-vue'
 
@@ -148,6 +153,9 @@ const nameMap: Record<string, string> = {
   'analytics-sales': '銷售分析', 'analytics-stores': '門店績效', 'analytics-context': '環境洞察',
   'tenant-settings': '租戶設定',
   'platform-applications': '店家申請審核', 'platform-tenants': '租戶管理',
+  'platform-marketplace': '市集上架審核', 'platform-alliances': '聯盟管理',
+  'platform-plans': '訂閱方案', 'platform-dashboard': '營運總覽',
+  'marketplace-settings': '市集上架', 'analytics-members': '會員分析',
 }
 
 const selectedKeys = ref<string[]>([])
@@ -181,6 +189,11 @@ watch(() => route.name, (name) => {
 function handleLogout() {
   auth.logout()
   router.push({ name: 'login' })
+}
+
+function exitTenantMode() {
+  auth.exitTenantMode()
+  router.push({ name: 'platform-dashboard' })
 }
 </script>
 

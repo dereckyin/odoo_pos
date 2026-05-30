@@ -98,14 +98,41 @@ export interface MarketplaceMenu {
   products: PublicProduct[]
 }
 
-export interface MarketplaceProductSearchHit {
+export interface MarketplaceProductCard {
   product_id: string
   product_name: string
   price_cents: number
   image_url: string | null
+  description: string | null
+  has_options: boolean
+  feed_category_id: string
+  feed_category_name: string
   store_slug: string
   store_name: string
   logo_url: string | null
+  store_is_open: boolean
+}
+
+export interface MarketplaceProductSearchHit extends MarketplaceProductCard {}
+
+export interface MarketplaceFeedCategory {
+  id: string
+  slug: string
+  name: string
+  icon: string | null
+  product_count: number
+}
+
+export interface MarketplaceProductFeedSection {
+  category_id: string
+  category_slug: string
+  category_name: string
+  icon: string | null
+  products: MarketplaceProductCard[]
+}
+
+export interface MarketplaceProductFeed {
+  sections: MarketplaceProductFeedSection[]
 }
 
 export interface MarketplaceOrderLineRead {

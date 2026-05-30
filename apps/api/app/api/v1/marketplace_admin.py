@@ -7,11 +7,13 @@ from sqlalchemy import select
 from ...core.deps import DbSession, TenantScope, apply_tenant, ensure_same_tenant
 from ...models import MarketplaceListing, Store
 from ...schemas.marketplace import (
+    MarketplaceFeedCategoryOption,
     MarketplaceListingCreate,
     MarketplaceListingRead,
     MarketplaceListingUpdate,
 )
 from ...services.marketplace import ensure_unique_slug, slugify
+from ...services.marketplace_category import load_marketplace_taxonomy
 
 router = APIRouter(prefix="/marketplace", tags=["marketplace-admin"])
 
@@ -149,3 +151,12 @@ async def submit_listing(listing_id: str, db: DbSession, scope: TenantScope):
     await db.commit()
     await db.refresh(row)
     return _to_read(row)
+
+
+@router.get("/feed-categories", response_model=list[MarketplaceFeedCategoryOption])
+async def list_feed_category_options(db: DbSession, scope: TenantScope):
+    taxonomy = await load_marketplace_taxonomy(db)
+    return [
+        MarketplaceFeedCategoryOption(id=c.id, slug=c.slug, name=c.name, icon=c.icon)
+        for c in taxonomy.categories
+    ]

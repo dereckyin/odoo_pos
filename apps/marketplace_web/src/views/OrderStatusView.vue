@@ -87,9 +87,9 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .body { padding: 16px; }
-.status-card { background: #c45c3e; color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 16px; }
+.status-card { background: var(--accent); color: #fff; padding: 20px; border-radius: 12px; margin-bottom: 16px; }
 .big { font-size: 1.4rem; font-weight: 700; }
-.card { background: #fffcf8; padding: 16px; border-radius: 12px; margin-bottom: 12px; }
+.card { background: var(--surface); padding: 16px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
 .card h3 { margin: 0 0 8px; }
 .card ul { padding-left: 18px; margin: 0 0 8px; }
 </style>

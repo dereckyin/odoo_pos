@@ -65,3 +65,14 @@ export function updateListing(id: string, payload: MarketplaceListingUpdate) {
 export function submitListing(id: string) {
   return client.post<MarketplaceListing>(`/marketplace/listing/${id}/submit`)
 }
+
+export interface MarketplaceFeedCategoryOption {
+  id: string
+  slug: string
+  name: string
+  icon: string | null
+}
+
+export function listFeedCategories() {
+  return client.get<MarketplaceFeedCategoryOption[]>('/marketplace/feed-categories')
+}

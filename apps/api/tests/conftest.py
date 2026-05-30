@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.core import db as db_mod
 from app.core.db import Base
 from app.main import create_app
+from app.services.marketplace_category_seed import ensure_marketplace_feed_categories
 
 
 @pytest.fixture(scope="session")
@@ -36,6 +37,8 @@ async def app():
         await conn.run_sync(Base.metadata.create_all)
 
     factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with factory() as db:
+        await ensure_marketplace_feed_categories(db)
     db_mod._engine = engine
     db_mod._session_factory = factory
 

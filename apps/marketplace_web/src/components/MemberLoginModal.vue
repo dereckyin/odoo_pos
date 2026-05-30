@@ -59,7 +59,7 @@ async function verify() {
 .hint { font-size: 13px; color: #666; margin: 0; }
 input { padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
 .btn { padding: 10px; border-radius: 8px; border: 1px solid #ccc; background: #f5f5f5; }
-.btn.primary { background: #c45c3e; color: #fff; border-color: #c45c3e; }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 .link { background: none; border: none; color: #888; }
-.dev { color: #c45c3e; font-weight: 600; }
+.dev { color: var(--accent); font-weight: 600; }
 </style>

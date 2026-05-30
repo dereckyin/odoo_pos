@@ -7,14 +7,26 @@ from sqlalchemy.orm import selectinload
 
 from ...core.deps import DbSession
 from ...core.ratelimit import per_ip
-from ...models import GuestOrder, GuestOrderLine, MarketplaceListing, Member, Product, Store
+from ...models import (
+    GuestOrder,
+    GuestOrderLine,
+    MarketplaceListing,
+    Member,
+    Product,
+    ProductOptionGroup,
+    Store,
+)
 from ...schemas.guest_order import GuestOrderLineRead
 from ...schemas.marketplace import (
+    MarketplaceFeedCategory,
     MarketplaceMenu,
     MarketplaceMenuMeta,
     MarketplaceOrderCreated,
     MarketplaceOrderRead,
     MarketplaceOrderSubmit,
+    MarketplaceProductCard,
+    MarketplaceProductFeed,
+    MarketplaceProductFeedSection,
     MarketplaceProductSearchHit,
     MarketplaceStoreDetail,
     MarketplaceStoreSummary,
@@ -26,6 +38,7 @@ from ...services.marketplace import (
     is_store_open,
     listing_to_summary,
 )
+from ...services.marketplace_category import load_marketplace_taxonomy, load_tenant_categories_map
 from ...services.option_validation import (
     OptionValidationError,
     load_product_option_context,
@@ -197,6 +210,246 @@ async def get_store_menu(request: Request, slug: str, db: DbSession):
     )
 
 
+def _truncate_description(text: str | None, max_len: int = 80) -> str | None:
+    if not text:
+        return None
+    s = text.strip()
+    if len(s) <= max_len:
+        return s
+    return s[: max_len - 1].rstrip() + "…"
+
+
+async def _product_ids_with_options(db, product_ids: list[str]) -> set[str]:
+    if not product_ids:
+        return set()
+    rows = (
+        await db.execute(
+            select(ProductOptionGroup.product_id).where(ProductOptionGroup.product_id.in_(product_ids))
+        )
+    ).scalars().all()
+    return set(rows)
+
+
+async def _list_marketplace_products(
+    db,
+    *,
+    q: str | None = None,
+    fulfillment: str | None = None,
+    cuisine: str | None = None,
+    feed_category_id: str | None = None,
+    limit: int = 48,
+    offset: int = 0,
+    open_only: bool = True,
+) -> list[MarketplaceProductCard]:
+    taxonomy = await load_marketplace_taxonomy(db)
+    stmt = (
+        select(Product, MarketplaceListing, Store)
+        .join(MarketplaceListing, MarketplaceListing.tenant_id == Product.tenant_id)
+        .join(Store, Store.id == MarketplaceListing.store_id)
+        .where(
+            MarketplaceListing.status == "approved",
+            Store.deleted_at.is_(None),
+            Product.deleted_at.is_(None),
+            Product.is_active.is_(True),
+            Product.hide_from_public_ordering.is_(False),
+        )
+    )
+    if q and q.strip():
+        like = f"%{q.strip()}%"
+        stmt = stmt.where(or_(Product.name.ilike(like), Product.sku.ilike(like)))
+    if fulfillment == "pickup":
+        stmt = stmt.where(MarketplaceListing.supports_pickup.is_(True))
+    elif fulfillment == "delivery":
+        stmt = stmt.where(MarketplaceListing.supports_delivery.is_(True))
+    elif fulfillment == "dine_in":
+        stmt = stmt.where(MarketplaceListing.supports_dine_in.is_(True))
+
+    stmt = stmt.order_by(Product.name).offset(offset).limit(limit)
+    rows = (await db.execute(stmt)).all()
+
+    pending_ids: list[str] = []
+    pending_rows: list[tuple[Product, MarketplaceListing, Store]] = []
+    seen: set[tuple[str, str]] = set()
+    tenant_ids: set[str] = set()
+
+    for product, listing, _store in rows:
+        if cuisine and cuisine not in (listing.cuisine_tags or []):
+            continue
+        store_open = is_store_open(listing.business_hours)
+        if open_only and not store_open:
+            continue
+        key = (product.id, listing.slug)
+        if key in seen:
+            continue
+        if not await product_orderable_via_public_menu(db, product):
+            continue
+        seen.add(key)
+        pending_rows.append((product, listing, _store))
+        pending_ids.append(product.id)
+        tenant_ids.add(product.tenant_id)
+
+    tenant_cats = await load_tenant_categories_map(db, tenant_ids)
+    option_ids = await _product_ids_with_options(db, pending_ids)
+    cards: list[MarketplaceProductCard] = []
+    for product, listing, _store in pending_rows:
+        feed_cat = taxonomy.resolve(product, tenant_cats.get(product.tenant_id, {}))
+        if not feed_cat:
+            continue
+        if feed_category_id and feed_cat.id != feed_category_id:
+            continue
+        cards.append(
+            MarketplaceProductCard(
+                product_id=product.id,
+                product_name=product.name,
+                price_cents=product.price_cents,
+                image_url=product.image_url,
+                description=_truncate_description(product.description),
+                has_options=product.id in option_ids,
+                feed_category_id=feed_cat.id,
+                feed_category_name=feed_cat.name,
+                store_slug=listing.slug,
+                store_name=listing.display_name,
+                logo_url=listing.logo_url,
+                store_is_open=is_store_open(listing.business_hours),
+            )
+        )
+    return cards
+
+
+def _group_cards_by_category(
+    cards: list[MarketplaceProductCard],
+    taxonomy,
+) -> MarketplaceProductFeed:
+    by_cat: dict[str, list[MarketplaceProductCard]] = {}
+    for card in cards:
+        by_cat.setdefault(card.feed_category_id, []).append(card)
+    sections: list[MarketplaceProductFeedSection] = []
+    for cat in taxonomy.categories:
+        products = by_cat.get(cat.id, [])
+        if not products:
+            continue
+        sections.append(
+            MarketplaceProductFeedSection(
+                category_id=cat.id,
+                category_slug=cat.slug,
+                category_name=cat.name,
+                icon=cat.icon,
+                products=products,
+            )
+        )
+    return MarketplaceProductFeed(sections=sections)
+
+
+@router.get("/feed-categories", response_model=list[MarketplaceFeedCategory])
+@per_ip("60/minute")
+async def list_feed_categories(
+    request: Request,
+    db: DbSession,
+    fulfillment: str | None = Query(default=None, description="pickup|delivery|dine_in"),
+    cuisine: str | None = Query(default=None),
+):
+    taxonomy = await load_marketplace_taxonomy(db)
+    cards = await _list_marketplace_products(
+        db,
+        fulfillment=fulfillment,
+        cuisine=cuisine,
+        limit=500,
+        open_only=True,
+    )
+    counts: dict[str, int] = {}
+    for card in cards:
+        counts[card.feed_category_id] = counts.get(card.feed_category_id, 0) + 1
+    return [
+        MarketplaceFeedCategory(
+            id=cat.id,
+            slug=cat.slug,
+            name=cat.name,
+            icon=cat.icon,
+            product_count=counts.get(cat.id, 0),
+        )
+        for cat in taxonomy.categories
+        if counts.get(cat.id, 0) > 0
+    ]
+
+
+@router.get("/products/feed", response_model=MarketplaceProductFeed)
+@per_ip("60/minute")
+async def list_products_feed(
+    request: Request,
+    db: DbSession,
+    q: str | None = Query(default=None),
+    fulfillment: str | None = Query(default=None, description="pickup|delivery|dine_in"),
+    cuisine: str | None = Query(default=None),
+    category: str | None = Query(default=None, description="feed category id or slug"),
+    limit: int = Query(default=48, le=200),
+):
+    taxonomy = await load_marketplace_taxonomy(db)
+    feed_category_id = None
+    if category:
+        if category in taxonomy.by_id:
+            feed_category_id = category
+        elif category in taxonomy.by_slug:
+            feed_category_id = taxonomy.by_slug[category].id
+    cards = await _list_marketplace_products(
+        db,
+        q=q,
+        fulfillment=fulfillment,
+        cuisine=cuisine,
+        feed_category_id=feed_category_id,
+        limit=limit,
+        open_only=True,
+    )
+    if feed_category_id:
+        cat = taxonomy.by_id.get(feed_category_id)
+        if not cat:
+            return MarketplaceProductFeed(sections=[])
+        return MarketplaceProductFeed(
+            sections=[
+                MarketplaceProductFeedSection(
+                    category_id=cat.id,
+                    category_slug=cat.slug,
+                    category_name=cat.name,
+                    icon=cat.icon,
+                    products=cards,
+                )
+            ]
+            if cards
+            else []
+        )
+    return _group_cards_by_category(cards, taxonomy)
+
+
+@router.get("/products", response_model=list[MarketplaceProductCard])
+@per_ip("60/minute")
+async def list_products(
+    request: Request,
+    db: DbSession,
+    q: str | None = Query(default=None),
+    fulfillment: str | None = Query(default=None, description="pickup|delivery|dine_in"),
+    cuisine: str | None = Query(default=None),
+    category: str | None = Query(default=None, description="feed category id or slug"),
+    limit: int = Query(default=48, le=100),
+    offset: int = Query(default=0, ge=0),
+):
+    taxonomy = await load_marketplace_taxonomy(db)
+    feed_category_id = None
+    if category:
+        if category in taxonomy.by_id:
+            feed_category_id = category
+        elif category in taxonomy.by_slug:
+            feed_category_id = taxonomy.by_slug[category].id
+    return await _list_marketplace_products(
+        db,
+        q=q,
+        fulfillment=fulfillment,
+        cuisine=cuisine,
+        feed_category_id=feed_category_id,
+        limit=limit,
+        offset=offset,
+        open_only=True,
+    )
+
+
 @router.get("/search/products", response_model=list[MarketplaceProductSearchHit])
 @per_ip("60/minute")
 async def search_products(
@@ -205,42 +458,7 @@ async def search_products(
     q: str = Query(min_length=1),
     limit: int = Query(default=30, le=100),
 ):
-    like = f"%{q.strip()}%"
-    stmt = (
-        select(Product, MarketplaceListing, Store)
-        .join(MarketplaceListing, MarketplaceListing.tenant_id == Product.tenant_id)
-        .join(Store, Store.id == MarketplaceListing.store_id)
-        .where(
-            MarketplaceListing.status == "approved",
-            Product.deleted_at.is_(None),
-            Product.is_active.is_(True),
-            Product.hide_from_public_ordering.is_(False),
-            or_(Product.name.ilike(like), Product.sku.ilike(like)),
-        )
-        .limit(limit)
-    )
-    rows = (await db.execute(stmt)).all()
-    hits: list[MarketplaceProductSearchHit] = []
-    seen: set[tuple[str, str]] = set()
-    for product, listing, _store in rows:
-        key = (product.id, listing.slug)
-        if key in seen:
-            continue
-        if not await product_orderable_via_public_menu(db, product):
-            continue
-        seen.add(key)
-        hits.append(
-            MarketplaceProductSearchHit(
-                product_id=product.id,
-                product_name=product.name,
-                price_cents=product.price_cents,
-                image_url=product.image_url,
-                store_slug=listing.slug,
-                store_name=listing.display_name,
-                logo_url=listing.logo_url,
-            )
-        )
-    return hits
+    return await _list_marketplace_products(db, q=q, limit=limit, open_only=False)
 
 
 @router.post("/stores/{slug}/orders", response_model=MarketplaceOrderCreated, status_code=201)

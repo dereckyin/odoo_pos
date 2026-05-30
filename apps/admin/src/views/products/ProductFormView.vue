@@ -36,6 +36,17 @@
           />
         </a-form-item>
 
+        <a-form-item label="市集分類">
+          <a-select
+            v-model:value="marketplaceCategoryId"
+            allow-clear
+            placeholder="自動（依商品分類對應）"
+            style="width: 100%"
+            :options="feedCategoryOptions"
+          />
+          <div style="color: #888; font-size: 12px">跨店市集首頁的分類區塊；留空則依上方「分類」名稱自動對應。</div>
+        </a-form-item>
+
         <a-form-item label="計重商品">
           <a-switch v-model:checked="form.is_weighted" />
         </a-form-item>
@@ -116,6 +127,7 @@ import { message } from 'ant-design-vue'
 import { formatApiError } from '@/api/formatApiError'
 import { getProduct, createProduct, updateProduct, listCategoriesTree, uploadImage } from '@/api/products'
 import { listOptionGroups, getProductOptionGroups, setProductOptionGroups } from '@/api/options'
+import { listFeedCategories } from '@/api/marketplace'
 import type { CategoryTreeNode, ProductCreate, ProductUpdate, OptionGroupRead } from '@/types'
 
 const route = useRoute()
@@ -136,6 +148,15 @@ function decorateTree(nodes: CategoryTreeNode[]): CategoryTreeNode[] {
 const barcodes = ref<string[]>([])
 const optionGroups = ref<OptionGroupRead[]>([])
 const selectedOptionGroupIds = ref<string[]>([])
+const feedCategories = ref<{ id: string; name: string; icon: string | null }[]>([])
+const marketplaceCategoryId = ref<string | undefined>(undefined)
+
+const feedCategoryOptions = computed(() =>
+  feedCategories.value.map((c) => ({
+    label: `${c.icon ? c.icon + ' ' : ''}${c.name}`,
+    value: c.id,
+  })),
+)
 
 const optionGroupOptions = computed(() =>
   optionGroups.value.map((g) => ({ label: g.name, value: g.id })),
@@ -210,6 +231,7 @@ async function handleSubmit() {
       description: form.description?.trim() ? form.description.trim() : null,
       hide_from_public_ordering: form.hide_from_public_ordering,
       hide_from_pos_browse: form.hide_from_pos_browse,
+      marketplace_category_id: marketplaceCategoryId.value ?? null,
       barcodes: barcodes.value.map((b) => b.trim()).filter(Boolean),
     }
 
@@ -246,9 +268,14 @@ async function handleSubmit() {
 }
 
 onMounted(async () => {
-  const [{ data: tree }, { data: ogs }] = await Promise.all([listCategoriesTree(), listOptionGroups()])
+  const [{ data: tree }, { data: ogs }, { data: feedCats }] = await Promise.all([
+    listCategoriesTree(),
+    listOptionGroups(),
+    listFeedCategories(),
+  ])
   categoryTreeOptions.value = decorateTree(tree)
   optionGroups.value = ogs
+  feedCategories.value = feedCats
 
   if (isEdit.value) {
     loading.value = true
@@ -269,6 +296,7 @@ onMounted(async () => {
       form.hide_from_pos_browse = data.hide_from_pos_browse ?? false
       form.image_url = data.image_url
       form.description = data.description
+      marketplaceCategoryId.value = data.marketplace_category_id ?? undefined
       priceDisplay.value = data.price_cents
       costDisplay.value = data.cost_cents
       barcodes.value = [...data.barcodes]

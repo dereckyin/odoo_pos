@@ -176,7 +176,7 @@ header h2 {
   font-size: 18px;
 }
 .price {
-  color: #ff6b35;
+  color: var(--accent);
   font-weight: 600;
   margin: 4px 0 0;
 }
@@ -207,15 +207,15 @@ section h3 {
   gap: 8px;
 }
 .chips button {
-  border: 1px solid #ddd;
-  background: #fff;
+  border: 1px solid var(--border);
+  background: var(--surface);
   border-radius: 20px;
   padding: 8px 14px;
 }
 .chips button.active {
-  border-color: #ff6b35;
-  background: #ffeee6;
-  color: #ff6b35;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 .radios label {
   display: block;
@@ -227,7 +227,7 @@ footer {
 }
 .confirm {
   width: 100%;
-  background: #ff6b35;
+  background: var(--accent);
   color: #fff;
   border: 0;
   border-radius: 10px;

@@ -67,6 +67,19 @@ export function listPlans() {
   return client.get<SubscriptionPlanRead[]>('/platform/plans')
 }
 
+export interface PlatformDashboardStats {
+  pending_applications: number
+  pending_marketplace_listings: number
+  active_tenants: number
+  suspended_tenants: number
+  marketplace_orders_today: number
+  marketplace_revenue_today_cents: number
+}
+
+export function fetchPlatformDashboard() {
+  return client.get<PlatformDashboardStats>('/platform/dashboard')
+}
+
 // ----- Marketplace applications ---------------------------------------------
 
 export function listMarketplaceApplications(status = 'pending') {

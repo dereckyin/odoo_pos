@@ -27,6 +27,15 @@ class TenantUpdate(BaseModel):
     plan_code: str | None = Field(default=None, max_length=32)
 
 
+class PlatformDashboardStats(BaseModel):
+    pending_applications: int = 0
+    pending_marketplace_listings: int = 0
+    active_tenants: int = 0
+    suspended_tenants: int = 0
+    marketplace_orders_today: int = 0
+    marketplace_revenue_today_cents: int = 0
+
+
 class SubscriptionPlanRead(ORMModel):
     id: str
     code: str
