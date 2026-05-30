@@ -79,7 +79,7 @@ class _GuestOrderBar extends ConsumerWidget {
     final guest = ref.watch(importedGuestOrderProvider);
     if (guest == null) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context)!;
-    final table = guest.tableLabel ?? '?';
+    final table = guest.displayTitle;
     return Material(
       color: Theme.of(context).colorScheme.primaryContainer,
       child: Padding(

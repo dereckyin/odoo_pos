@@ -84,7 +84,7 @@ class GuestOrdersController extends StateNotifier<GuestOrdersSnapshot> {
     final printer = _ref.read(kitchenPrinterServiceProvider);
     final ticket = KitchenTicket(
       guestOrderId: order.id,
-      tableLabel: order.tableLabel ?? '?',
+      tableLabel: order.displayTitle,
       placedAt: order.createdAt,
       partySize: order.partySize,
       note: order.customerNote,

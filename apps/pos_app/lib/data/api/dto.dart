@@ -510,13 +510,18 @@ class GuestOrderDto {
   GuestOrderDto({
     required this.id,
     required this.storeId,
-    required this.tableId,
     required this.status,
     required this.estimatedSubtotalCents,
     required this.createdAt,
     required this.updatedAt,
     required this.lines,
+    this.tableId,
     this.tableLabel,
+    this.channel = 'table_qr',
+    this.fulfillmentType,
+    this.customerName,
+    this.customerPhone,
+    this.deliveryAddress,
     this.customerNote,
     this.partySize,
     this.acceptedAt,
@@ -531,8 +536,13 @@ class GuestOrderDto {
   factory GuestOrderDto.fromJson(Map<String, dynamic> j) => GuestOrderDto(
         id: j['id'] as String,
         storeId: j['store_id'] as String,
-        tableId: j['table_id'] as String,
+        tableId: j['table_id'] as String?,
         tableLabel: j['table_label'] as String?,
+        channel: j['channel'] as String? ?? 'table_qr',
+        fulfillmentType: j['fulfillment_type'] as String?,
+        customerName: j['customer_name'] as String?,
+        customerPhone: j['customer_phone'] as String?,
+        deliveryAddress: j['delivery_address'] as String?,
         status: j['status'] as String,
         customerNote: j['customer_note'] as String?,
         partySize: (j['party_size'] as num?)?.toInt(),
@@ -552,12 +562,33 @@ class GuestOrderDto {
             .toList(),
       );
 
-  final String id, storeId, tableId, status;
-  final String? tableLabel;
+  final String id, storeId, status;
+  final String? tableId, tableLabel;
+  final String channel;
+  final String? fulfillmentType;
+  final String? customerName, customerPhone, deliveryAddress;
   final String? customerNote, cancelReason, acceptedByUserId, mergedOrderId;
   final int? partySize;
   final int estimatedSubtotalCents;
   final DateTime? acceptedAt, readyAt, mergedAt, cancelledAt;
   final DateTime createdAt, updatedAt;
   final List<GuestOrderLineDto> lines;
+
+  bool get isMarketplace => channel == 'marketplace';
+
+  /// Short label for KDS cards, kitchen tickets, and cashier import snackbars.
+  String get displayTitle {
+    if (isMarketplace) {
+      final ft = switch (fulfillmentType) {
+        'pickup' => '外帶',
+        'delivery' => '外送',
+        'dine_in' => '內用',
+        _ => '市集',
+      };
+      final name = customerName?.trim();
+      if (name != null && name.isNotEmpty) return '$ft · $name';
+      return ft;
+    }
+    return '桌 ${tableLabel ?? '?'}';
+  }
 }

@@ -3,7 +3,7 @@ import '../../../data/printer/escpos_service.dart';
 
 KitchenTicket kitchenTicketFromGuestOrder(GuestOrderDto order) => KitchenTicket(
       guestOrderId: order.id,
-      tableLabel: order.tableLabel ?? '?',
+      tableLabel: order.displayTitle,
       placedAt: order.createdAt,
       partySize: order.partySize,
       note: order.customerNote,

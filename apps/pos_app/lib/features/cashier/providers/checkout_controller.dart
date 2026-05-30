@@ -52,7 +52,7 @@ class CheckoutController {
     final now = DateTime.now();
     final sourceGuestOrderId = _ref.read(pendingGuestOrderIdProvider);
     final guestOrder = _ref.read(importedGuestOrderProvider);
-    final tableLabel = guestOrder?.tableLabel;
+    final tableLabel = guestOrder?.displayTitle;
     final primaryPaymentMethod = payments.isNotEmpty ? payments.first.method.code : null;
     final order = Order.fromCart(
       cart: cart,

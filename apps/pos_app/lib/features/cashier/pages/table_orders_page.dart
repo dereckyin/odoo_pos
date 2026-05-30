@@ -42,7 +42,7 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('桌邊訂單'),
+        title: const Text('桌邊 / 網路訂單'),
         actions: [
           IconButton(
             tooltip: '重新整理',
@@ -130,7 +130,7 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
   void _goToCashierWithSnack(GuestOrderDto order) {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
-    final table = order.tableLabel ?? '?';
+    final table = order.displayTitle;
     if (context.canPop()) {
       context.pop();
     } else {
@@ -225,7 +225,7 @@ class _GuestOrderTile extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  '桌 ${order.tableLabel ?? '?'}',
+                  order.displayTitle,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(width: 8),

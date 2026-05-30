@@ -35,7 +35,7 @@ class GuestOrderCard extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  '桌 ${order.tableLabel ?? '?'}',
+                  order.displayTitle,
                   style: Theme.of(context)
                       .textTheme
                       .titleLarge
@@ -56,6 +56,21 @@ class GuestOrderCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (order.isMarketplace && (order.customerPhone ?? '').isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                order.customerPhone!,
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+              ),
+            ],
+            if (order.fulfillmentType == 'delivery' &&
+                (order.deliveryAddress ?? '').isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                order.deliveryAddress!,
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+              ),
+            ],
             const SizedBox(height: 8),
             ...order.lines.map(
               (l) => Padding(
