@@ -6014,6 +6014,30 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, OrderRow> {
   late final GeneratedColumn<String> note = GeneratedColumn<String>(
       'note', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _orderNoMeta =
+      const VerificationMeta('orderNo');
+  @override
+  late final GeneratedColumn<String> orderNo = GeneratedColumn<String>(
+      'order_no', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _tableLabelMeta =
+      const VerificationMeta('tableLabel');
+  @override
+  late final GeneratedColumn<String> tableLabel = GeneratedColumn<String>(
+      'table_label', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _primaryPaymentMethodMeta =
+      const VerificationMeta('primaryPaymentMethod');
+  @override
+  late final GeneratedColumn<String> primaryPaymentMethod =
+      GeneratedColumn<String>('primary_payment_method', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _sourceGuestOrderIdMeta =
+      const VerificationMeta('sourceGuestOrderId');
+  @override
+  late final GeneratedColumn<String> sourceGuestOrderId =
+      GeneratedColumn<String>('source_guest_order_id', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -6042,6 +6066,10 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, OrderRow> {
         invoiceNumber,
         invoiceCarrier,
         note,
+        orderNo,
+        tableLabel,
+        primaryPaymentMethod,
+        sourceGuestOrderId,
         createdAt,
         syncedAt
       ];
@@ -6132,6 +6160,28 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, OrderRow> {
       context.handle(
           _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
     }
+    if (data.containsKey('order_no')) {
+      context.handle(_orderNoMeta,
+          orderNo.isAcceptableOrUnknown(data['order_no']!, _orderNoMeta));
+    }
+    if (data.containsKey('table_label')) {
+      context.handle(
+          _tableLabelMeta,
+          tableLabel.isAcceptableOrUnknown(
+              data['table_label']!, _tableLabelMeta));
+    }
+    if (data.containsKey('primary_payment_method')) {
+      context.handle(
+          _primaryPaymentMethodMeta,
+          primaryPaymentMethod.isAcceptableOrUnknown(
+              data['primary_payment_method']!, _primaryPaymentMethodMeta));
+    }
+    if (data.containsKey('source_guest_order_id')) {
+      context.handle(
+          _sourceGuestOrderIdMeta,
+          sourceGuestOrderId.isAcceptableOrUnknown(
+              data['source_guest_order_id']!, _sourceGuestOrderIdMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -6179,6 +6229,15 @@ class $OrdersTable extends Orders with TableInfo<$OrdersTable, OrderRow> {
           .read(DriftSqlType.string, data['${effectivePrefix}invoice_carrier']),
       note: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}note']),
+      orderNo: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}order_no']),
+      tableLabel: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}table_label']),
+      primaryPaymentMethod: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}primary_payment_method']),
+      sourceGuestOrderId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}source_guest_order_id']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       syncedAt: attachedDatabase.typeMapping
@@ -6207,6 +6266,10 @@ class OrderRow extends DataClass implements Insertable<OrderRow> {
   final String? invoiceNumber;
   final String? invoiceCarrier;
   final String? note;
+  final String? orderNo;
+  final String? tableLabel;
+  final String? primaryPaymentMethod;
+  final String? sourceGuestOrderId;
   final DateTime createdAt;
   final DateTime? syncedAt;
   const OrderRow(
@@ -6224,6 +6287,10 @@ class OrderRow extends DataClass implements Insertable<OrderRow> {
       this.invoiceNumber,
       this.invoiceCarrier,
       this.note,
+      this.orderNo,
+      this.tableLabel,
+      this.primaryPaymentMethod,
+      this.sourceGuestOrderId,
       required this.createdAt,
       this.syncedAt});
   @override
@@ -6250,6 +6317,18 @@ class OrderRow extends DataClass implements Insertable<OrderRow> {
     }
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
+    }
+    if (!nullToAbsent || orderNo != null) {
+      map['order_no'] = Variable<String>(orderNo);
+    }
+    if (!nullToAbsent || tableLabel != null) {
+      map['table_label'] = Variable<String>(tableLabel);
+    }
+    if (!nullToAbsent || primaryPaymentMethod != null) {
+      map['primary_payment_method'] = Variable<String>(primaryPaymentMethod);
+    }
+    if (!nullToAbsent || sourceGuestOrderId != null) {
+      map['source_guest_order_id'] = Variable<String>(sourceGuestOrderId);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     if (!nullToAbsent || syncedAt != null) {
@@ -6280,6 +6359,18 @@ class OrderRow extends DataClass implements Insertable<OrderRow> {
           ? const Value.absent()
           : Value(invoiceCarrier),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      orderNo: orderNo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(orderNo),
+      tableLabel: tableLabel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tableLabel),
+      primaryPaymentMethod: primaryPaymentMethod == null && nullToAbsent
+          ? const Value.absent()
+          : Value(primaryPaymentMethod),
+      sourceGuestOrderId: sourceGuestOrderId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceGuestOrderId),
       createdAt: Value(createdAt),
       syncedAt: syncedAt == null && nullToAbsent
           ? const Value.absent()
@@ -6305,6 +6396,12 @@ class OrderRow extends DataClass implements Insertable<OrderRow> {
       invoiceNumber: serializer.fromJson<String?>(json['invoiceNumber']),
       invoiceCarrier: serializer.fromJson<String?>(json['invoiceCarrier']),
       note: serializer.fromJson<String?>(json['note']),
+      orderNo: serializer.fromJson<String?>(json['orderNo']),
+      tableLabel: serializer.fromJson<String?>(json['tableLabel']),
+      primaryPaymentMethod:
+          serializer.fromJson<String?>(json['primaryPaymentMethod']),
+      sourceGuestOrderId:
+          serializer.fromJson<String?>(json['sourceGuestOrderId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
     );
@@ -6327,6 +6424,10 @@ class OrderRow extends DataClass implements Insertable<OrderRow> {
       'invoiceNumber': serializer.toJson<String?>(invoiceNumber),
       'invoiceCarrier': serializer.toJson<String?>(invoiceCarrier),
       'note': serializer.toJson<String?>(note),
+      'orderNo': serializer.toJson<String?>(orderNo),
+      'tableLabel': serializer.toJson<String?>(tableLabel),
+      'primaryPaymentMethod': serializer.toJson<String?>(primaryPaymentMethod),
+      'sourceGuestOrderId': serializer.toJson<String?>(sourceGuestOrderId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'syncedAt': serializer.toJson<DateTime?>(syncedAt),
     };
@@ -6347,6 +6448,10 @@ class OrderRow extends DataClass implements Insertable<OrderRow> {
           Value<String?> invoiceNumber = const Value.absent(),
           Value<String?> invoiceCarrier = const Value.absent(),
           Value<String?> note = const Value.absent(),
+          Value<String?> orderNo = const Value.absent(),
+          Value<String?> tableLabel = const Value.absent(),
+          Value<String?> primaryPaymentMethod = const Value.absent(),
+          Value<String?> sourceGuestOrderId = const Value.absent(),
           DateTime? createdAt,
           Value<DateTime?> syncedAt = const Value.absent()}) =>
       OrderRow(
@@ -6366,6 +6471,14 @@ class OrderRow extends DataClass implements Insertable<OrderRow> {
         invoiceCarrier:
             invoiceCarrier.present ? invoiceCarrier.value : this.invoiceCarrier,
         note: note.present ? note.value : this.note,
+        orderNo: orderNo.present ? orderNo.value : this.orderNo,
+        tableLabel: tableLabel.present ? tableLabel.value : this.tableLabel,
+        primaryPaymentMethod: primaryPaymentMethod.present
+            ? primaryPaymentMethod.value
+            : this.primaryPaymentMethod,
+        sourceGuestOrderId: sourceGuestOrderId.present
+            ? sourceGuestOrderId.value
+            : this.sourceGuestOrderId,
         createdAt: createdAt ?? this.createdAt,
         syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
       );
@@ -6397,6 +6510,15 @@ class OrderRow extends DataClass implements Insertable<OrderRow> {
           ? data.invoiceCarrier.value
           : this.invoiceCarrier,
       note: data.note.present ? data.note.value : this.note,
+      orderNo: data.orderNo.present ? data.orderNo.value : this.orderNo,
+      tableLabel:
+          data.tableLabel.present ? data.tableLabel.value : this.tableLabel,
+      primaryPaymentMethod: data.primaryPaymentMethod.present
+          ? data.primaryPaymentMethod.value
+          : this.primaryPaymentMethod,
+      sourceGuestOrderId: data.sourceGuestOrderId.present
+          ? data.sourceGuestOrderId.value
+          : this.sourceGuestOrderId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
     );
@@ -6419,6 +6541,10 @@ class OrderRow extends DataClass implements Insertable<OrderRow> {
           ..write('invoiceNumber: $invoiceNumber, ')
           ..write('invoiceCarrier: $invoiceCarrier, ')
           ..write('note: $note, ')
+          ..write('orderNo: $orderNo, ')
+          ..write('tableLabel: $tableLabel, ')
+          ..write('primaryPaymentMethod: $primaryPaymentMethod, ')
+          ..write('sourceGuestOrderId: $sourceGuestOrderId, ')
           ..write('createdAt: $createdAt, ')
           ..write('syncedAt: $syncedAt')
           ..write(')'))
@@ -6441,6 +6567,10 @@ class OrderRow extends DataClass implements Insertable<OrderRow> {
       invoiceNumber,
       invoiceCarrier,
       note,
+      orderNo,
+      tableLabel,
+      primaryPaymentMethod,
+      sourceGuestOrderId,
       createdAt,
       syncedAt);
   @override
@@ -6461,6 +6591,10 @@ class OrderRow extends DataClass implements Insertable<OrderRow> {
           other.invoiceNumber == this.invoiceNumber &&
           other.invoiceCarrier == this.invoiceCarrier &&
           other.note == this.note &&
+          other.orderNo == this.orderNo &&
+          other.tableLabel == this.tableLabel &&
+          other.primaryPaymentMethod == this.primaryPaymentMethod &&
+          other.sourceGuestOrderId == this.sourceGuestOrderId &&
           other.createdAt == this.createdAt &&
           other.syncedAt == this.syncedAt);
 }
@@ -6480,6 +6614,10 @@ class OrdersCompanion extends UpdateCompanion<OrderRow> {
   final Value<String?> invoiceNumber;
   final Value<String?> invoiceCarrier;
   final Value<String?> note;
+  final Value<String?> orderNo;
+  final Value<String?> tableLabel;
+  final Value<String?> primaryPaymentMethod;
+  final Value<String?> sourceGuestOrderId;
   final Value<DateTime> createdAt;
   final Value<DateTime?> syncedAt;
   final Value<int> rowid;
@@ -6498,6 +6636,10 @@ class OrdersCompanion extends UpdateCompanion<OrderRow> {
     this.invoiceNumber = const Value.absent(),
     this.invoiceCarrier = const Value.absent(),
     this.note = const Value.absent(),
+    this.orderNo = const Value.absent(),
+    this.tableLabel = const Value.absent(),
+    this.primaryPaymentMethod = const Value.absent(),
+    this.sourceGuestOrderId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.syncedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -6517,6 +6659,10 @@ class OrdersCompanion extends UpdateCompanion<OrderRow> {
     this.invoiceNumber = const Value.absent(),
     this.invoiceCarrier = const Value.absent(),
     this.note = const Value.absent(),
+    this.orderNo = const Value.absent(),
+    this.tableLabel = const Value.absent(),
+    this.primaryPaymentMethod = const Value.absent(),
+    this.sourceGuestOrderId = const Value.absent(),
     required DateTime createdAt,
     this.syncedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -6540,6 +6686,10 @@ class OrdersCompanion extends UpdateCompanion<OrderRow> {
     Expression<String>? invoiceNumber,
     Expression<String>? invoiceCarrier,
     Expression<String>? note,
+    Expression<String>? orderNo,
+    Expression<String>? tableLabel,
+    Expression<String>? primaryPaymentMethod,
+    Expression<String>? sourceGuestOrderId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? syncedAt,
     Expression<int>? rowid,
@@ -6559,6 +6709,12 @@ class OrdersCompanion extends UpdateCompanion<OrderRow> {
       if (invoiceNumber != null) 'invoice_number': invoiceNumber,
       if (invoiceCarrier != null) 'invoice_carrier': invoiceCarrier,
       if (note != null) 'note': note,
+      if (orderNo != null) 'order_no': orderNo,
+      if (tableLabel != null) 'table_label': tableLabel,
+      if (primaryPaymentMethod != null)
+        'primary_payment_method': primaryPaymentMethod,
+      if (sourceGuestOrderId != null)
+        'source_guest_order_id': sourceGuestOrderId,
       if (createdAt != null) 'created_at': createdAt,
       if (syncedAt != null) 'synced_at': syncedAt,
       if (rowid != null) 'rowid': rowid,
@@ -6580,6 +6736,10 @@ class OrdersCompanion extends UpdateCompanion<OrderRow> {
       Value<String?>? invoiceNumber,
       Value<String?>? invoiceCarrier,
       Value<String?>? note,
+      Value<String?>? orderNo,
+      Value<String?>? tableLabel,
+      Value<String?>? primaryPaymentMethod,
+      Value<String?>? sourceGuestOrderId,
       Value<DateTime>? createdAt,
       Value<DateTime?>? syncedAt,
       Value<int>? rowid}) {
@@ -6598,6 +6758,10 @@ class OrdersCompanion extends UpdateCompanion<OrderRow> {
       invoiceNumber: invoiceNumber ?? this.invoiceNumber,
       invoiceCarrier: invoiceCarrier ?? this.invoiceCarrier,
       note: note ?? this.note,
+      orderNo: orderNo ?? this.orderNo,
+      tableLabel: tableLabel ?? this.tableLabel,
+      primaryPaymentMethod: primaryPaymentMethod ?? this.primaryPaymentMethod,
+      sourceGuestOrderId: sourceGuestOrderId ?? this.sourceGuestOrderId,
       createdAt: createdAt ?? this.createdAt,
       syncedAt: syncedAt ?? this.syncedAt,
       rowid: rowid ?? this.rowid,
@@ -6649,6 +6813,19 @@ class OrdersCompanion extends UpdateCompanion<OrderRow> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (orderNo.present) {
+      map['order_no'] = Variable<String>(orderNo.value);
+    }
+    if (tableLabel.present) {
+      map['table_label'] = Variable<String>(tableLabel.value);
+    }
+    if (primaryPaymentMethod.present) {
+      map['primary_payment_method'] =
+          Variable<String>(primaryPaymentMethod.value);
+    }
+    if (sourceGuestOrderId.present) {
+      map['source_guest_order_id'] = Variable<String>(sourceGuestOrderId.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -6678,6 +6855,10 @@ class OrdersCompanion extends UpdateCompanion<OrderRow> {
           ..write('invoiceNumber: $invoiceNumber, ')
           ..write('invoiceCarrier: $invoiceCarrier, ')
           ..write('note: $note, ')
+          ..write('orderNo: $orderNo, ')
+          ..write('tableLabel: $tableLabel, ')
+          ..write('primaryPaymentMethod: $primaryPaymentMethod, ')
+          ..write('sourceGuestOrderId: $sourceGuestOrderId, ')
           ..write('createdAt: $createdAt, ')
           ..write('syncedAt: $syncedAt, ')
           ..write('rowid: $rowid')
@@ -12847,6 +13028,326 @@ class SyncQueueCompanion extends UpdateCompanion<SyncQueueRow> {
   }
 }
 
+class $HeldCartsTable extends HeldCarts
+    with TableInfo<$HeldCartsTable, HeldCartRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HeldCartsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+      'label', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _payloadMeta =
+      const VerificationMeta('payload');
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+      'payload', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _pendingGuestOrderIdMeta =
+      const VerificationMeta('pendingGuestOrderId');
+  @override
+  late final GeneratedColumn<String> pendingGuestOrderId =
+      GeneratedColumn<String>('pending_guest_order_id', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, label, payload, pendingGuestOrderId, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'held_carts';
+  @override
+  VerificationContext validateIntegrity(Insertable<HeldCartRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+          _labelMeta, label.isAcceptableOrUnknown(data['label']!, _labelMeta));
+    } else if (isInserting) {
+      context.missing(_labelMeta);
+    }
+    if (data.containsKey('payload')) {
+      context.handle(_payloadMeta,
+          payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta));
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('pending_guest_order_id')) {
+      context.handle(
+          _pendingGuestOrderIdMeta,
+          pendingGuestOrderId.isAcceptableOrUnknown(
+              data['pending_guest_order_id']!, _pendingGuestOrderIdMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  HeldCartRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HeldCartRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      label: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}label'])!,
+      payload: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}payload'])!,
+      pendingGuestOrderId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}pending_guest_order_id']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $HeldCartsTable createAlias(String alias) {
+    return $HeldCartsTable(attachedDatabase, alias);
+  }
+}
+
+class HeldCartRow extends DataClass implements Insertable<HeldCartRow> {
+  final String id;
+  final String label;
+  final String payload;
+  final String? pendingGuestOrderId;
+  final DateTime createdAt;
+  const HeldCartRow(
+      {required this.id,
+      required this.label,
+      required this.payload,
+      this.pendingGuestOrderId,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['label'] = Variable<String>(label);
+    map['payload'] = Variable<String>(payload);
+    if (!nullToAbsent || pendingGuestOrderId != null) {
+      map['pending_guest_order_id'] = Variable<String>(pendingGuestOrderId);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  HeldCartsCompanion toCompanion(bool nullToAbsent) {
+    return HeldCartsCompanion(
+      id: Value(id),
+      label: Value(label),
+      payload: Value(payload),
+      pendingGuestOrderId: pendingGuestOrderId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pendingGuestOrderId),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory HeldCartRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HeldCartRow(
+      id: serializer.fromJson<String>(json['id']),
+      label: serializer.fromJson<String>(json['label']),
+      payload: serializer.fromJson<String>(json['payload']),
+      pendingGuestOrderId:
+          serializer.fromJson<String?>(json['pendingGuestOrderId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'label': serializer.toJson<String>(label),
+      'payload': serializer.toJson<String>(payload),
+      'pendingGuestOrderId': serializer.toJson<String?>(pendingGuestOrderId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  HeldCartRow copyWith(
+          {String? id,
+          String? label,
+          String? payload,
+          Value<String?> pendingGuestOrderId = const Value.absent(),
+          DateTime? createdAt}) =>
+      HeldCartRow(
+        id: id ?? this.id,
+        label: label ?? this.label,
+        payload: payload ?? this.payload,
+        pendingGuestOrderId: pendingGuestOrderId.present
+            ? pendingGuestOrderId.value
+            : this.pendingGuestOrderId,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  HeldCartRow copyWithCompanion(HeldCartsCompanion data) {
+    return HeldCartRow(
+      id: data.id.present ? data.id.value : this.id,
+      label: data.label.present ? data.label.value : this.label,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      pendingGuestOrderId: data.pendingGuestOrderId.present
+          ? data.pendingGuestOrderId.value
+          : this.pendingGuestOrderId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HeldCartRow(')
+          ..write('id: $id, ')
+          ..write('label: $label, ')
+          ..write('payload: $payload, ')
+          ..write('pendingGuestOrderId: $pendingGuestOrderId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, label, payload, pendingGuestOrderId, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HeldCartRow &&
+          other.id == this.id &&
+          other.label == this.label &&
+          other.payload == this.payload &&
+          other.pendingGuestOrderId == this.pendingGuestOrderId &&
+          other.createdAt == this.createdAt);
+}
+
+class HeldCartsCompanion extends UpdateCompanion<HeldCartRow> {
+  final Value<String> id;
+  final Value<String> label;
+  final Value<String> payload;
+  final Value<String?> pendingGuestOrderId;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const HeldCartsCompanion({
+    this.id = const Value.absent(),
+    this.label = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.pendingGuestOrderId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HeldCartsCompanion.insert({
+    required String id,
+    required String label,
+    required String payload,
+    this.pendingGuestOrderId = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        label = Value(label),
+        payload = Value(payload),
+        createdAt = Value(createdAt);
+  static Insertable<HeldCartRow> custom({
+    Expression<String>? id,
+    Expression<String>? label,
+    Expression<String>? payload,
+    Expression<String>? pendingGuestOrderId,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (label != null) 'label': label,
+      if (payload != null) 'payload': payload,
+      if (pendingGuestOrderId != null)
+        'pending_guest_order_id': pendingGuestOrderId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HeldCartsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? label,
+      Value<String>? payload,
+      Value<String?>? pendingGuestOrderId,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
+    return HeldCartsCompanion(
+      id: id ?? this.id,
+      label: label ?? this.label,
+      payload: payload ?? this.payload,
+      pendingGuestOrderId: pendingGuestOrderId ?? this.pendingGuestOrderId,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (pendingGuestOrderId.present) {
+      map['pending_guest_order_id'] =
+          Variable<String>(pendingGuestOrderId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HeldCartsCompanion(')
+          ..write('id: $id, ')
+          ..write('label: $label, ')
+          ..write('payload: $payload, ')
+          ..write('pendingGuestOrderId: $pendingGuestOrderId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $KvMetaTable extends KvMeta with TableInfo<$KvMetaTable, KvMetaRow> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -13074,6 +13575,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PromotionsTable promotions = $PromotionsTable(this);
   late final $InvoicesTable invoices = $InvoicesTable(this);
   late final $SyncQueueTable syncQueue = $SyncQueueTable(this);
+  late final $HeldCartsTable heldCarts = $HeldCartsTable(this);
   late final $KvMetaTable kvMeta = $KvMetaTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -13107,6 +13609,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         promotions,
         invoices,
         syncQueue,
+        heldCarts,
         kvMeta
       ];
   @override
@@ -17303,6 +17806,10 @@ typedef $$OrdersTableCreateCompanionBuilder = OrdersCompanion Function({
   Value<String?> invoiceNumber,
   Value<String?> invoiceCarrier,
   Value<String?> note,
+  Value<String?> orderNo,
+  Value<String?> tableLabel,
+  Value<String?> primaryPaymentMethod,
+  Value<String?> sourceGuestOrderId,
   required DateTime createdAt,
   Value<DateTime?> syncedAt,
   Value<int> rowid,
@@ -17322,6 +17829,10 @@ typedef $$OrdersTableUpdateCompanionBuilder = OrdersCompanion Function({
   Value<String?> invoiceNumber,
   Value<String?> invoiceCarrier,
   Value<String?> note,
+  Value<String?> orderNo,
+  Value<String?> tableLabel,
+  Value<String?> primaryPaymentMethod,
+  Value<String?> sourceGuestOrderId,
   Value<DateTime> createdAt,
   Value<DateTime?> syncedAt,
   Value<int> rowid,
@@ -17378,6 +17889,20 @@ class $$OrdersTableFilterComposer
 
   ColumnFilters<String> get note => $composableBuilder(
       column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get orderNo => $composableBuilder(
+      column: $table.orderNo, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get tableLabel => $composableBuilder(
+      column: $table.tableLabel, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get primaryPaymentMethod => $composableBuilder(
+      column: $table.primaryPaymentMethod,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceGuestOrderId => $composableBuilder(
+      column: $table.sourceGuestOrderId,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -17442,6 +17967,20 @@ class $$OrdersTableOrderingComposer
   ColumnOrderings<String> get note => $composableBuilder(
       column: $table.note, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get orderNo => $composableBuilder(
+      column: $table.orderNo, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get tableLabel => $composableBuilder(
+      column: $table.tableLabel, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get primaryPaymentMethod => $composableBuilder(
+      column: $table.primaryPaymentMethod,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourceGuestOrderId => $composableBuilder(
+      column: $table.sourceGuestOrderId,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -17500,6 +18039,18 @@ class $$OrdersTableAnnotationComposer
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
 
+  GeneratedColumn<String> get orderNo =>
+      $composableBuilder(column: $table.orderNo, builder: (column) => column);
+
+  GeneratedColumn<String> get tableLabel => $composableBuilder(
+      column: $table.tableLabel, builder: (column) => column);
+
+  GeneratedColumn<String> get primaryPaymentMethod => $composableBuilder(
+      column: $table.primaryPaymentMethod, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceGuestOrderId => $composableBuilder(
+      column: $table.sourceGuestOrderId, builder: (column) => column);
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -17544,6 +18095,10 @@ class $$OrdersTableTableManager extends RootTableManager<
             Value<String?> invoiceNumber = const Value.absent(),
             Value<String?> invoiceCarrier = const Value.absent(),
             Value<String?> note = const Value.absent(),
+            Value<String?> orderNo = const Value.absent(),
+            Value<String?> tableLabel = const Value.absent(),
+            Value<String?> primaryPaymentMethod = const Value.absent(),
+            Value<String?> sourceGuestOrderId = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -17563,6 +18118,10 @@ class $$OrdersTableTableManager extends RootTableManager<
             invoiceNumber: invoiceNumber,
             invoiceCarrier: invoiceCarrier,
             note: note,
+            orderNo: orderNo,
+            tableLabel: tableLabel,
+            primaryPaymentMethod: primaryPaymentMethod,
+            sourceGuestOrderId: sourceGuestOrderId,
             createdAt: createdAt,
             syncedAt: syncedAt,
             rowid: rowid,
@@ -17582,6 +18141,10 @@ class $$OrdersTableTableManager extends RootTableManager<
             Value<String?> invoiceNumber = const Value.absent(),
             Value<String?> invoiceCarrier = const Value.absent(),
             Value<String?> note = const Value.absent(),
+            Value<String?> orderNo = const Value.absent(),
+            Value<String?> tableLabel = const Value.absent(),
+            Value<String?> primaryPaymentMethod = const Value.absent(),
+            Value<String?> sourceGuestOrderId = const Value.absent(),
             required DateTime createdAt,
             Value<DateTime?> syncedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -17601,6 +18164,10 @@ class $$OrdersTableTableManager extends RootTableManager<
             invoiceNumber: invoiceNumber,
             invoiceCarrier: invoiceCarrier,
             note: note,
+            orderNo: orderNo,
+            tableLabel: tableLabel,
+            primaryPaymentMethod: primaryPaymentMethod,
+            sourceGuestOrderId: sourceGuestOrderId,
             createdAt: createdAt,
             syncedAt: syncedAt,
             rowid: rowid,
@@ -20620,6 +21187,173 @@ typedef $$SyncQueueTableProcessedTableManager = ProcessedTableManager<
     ),
     SyncQueueRow,
     PrefetchHooks Function()>;
+typedef $$HeldCartsTableCreateCompanionBuilder = HeldCartsCompanion Function({
+  required String id,
+  required String label,
+  required String payload,
+  Value<String?> pendingGuestOrderId,
+  required DateTime createdAt,
+  Value<int> rowid,
+});
+typedef $$HeldCartsTableUpdateCompanionBuilder = HeldCartsCompanion Function({
+  Value<String> id,
+  Value<String> label,
+  Value<String> payload,
+  Value<String?> pendingGuestOrderId,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+class $$HeldCartsTableFilterComposer
+    extends Composer<_$AppDatabase, $HeldCartsTable> {
+  $$HeldCartsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get label => $composableBuilder(
+      column: $table.label, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get payload => $composableBuilder(
+      column: $table.payload, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get pendingGuestOrderId => $composableBuilder(
+      column: $table.pendingGuestOrderId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$HeldCartsTableOrderingComposer
+    extends Composer<_$AppDatabase, $HeldCartsTable> {
+  $$HeldCartsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get label => $composableBuilder(
+      column: $table.label, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+      column: $table.payload, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get pendingGuestOrderId => $composableBuilder(
+      column: $table.pendingGuestOrderId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$HeldCartsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $HeldCartsTable> {
+  $$HeldCartsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get pendingGuestOrderId => $composableBuilder(
+      column: $table.pendingGuestOrderId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$HeldCartsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $HeldCartsTable,
+    HeldCartRow,
+    $$HeldCartsTableFilterComposer,
+    $$HeldCartsTableOrderingComposer,
+    $$HeldCartsTableAnnotationComposer,
+    $$HeldCartsTableCreateCompanionBuilder,
+    $$HeldCartsTableUpdateCompanionBuilder,
+    (HeldCartRow, BaseReferences<_$AppDatabase, $HeldCartsTable, HeldCartRow>),
+    HeldCartRow,
+    PrefetchHooks Function()> {
+  $$HeldCartsTableTableManager(_$AppDatabase db, $HeldCartsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HeldCartsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HeldCartsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HeldCartsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> label = const Value.absent(),
+            Value<String> payload = const Value.absent(),
+            Value<String?> pendingGuestOrderId = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              HeldCartsCompanion(
+            id: id,
+            label: label,
+            payload: payload,
+            pendingGuestOrderId: pendingGuestOrderId,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String label,
+            required String payload,
+            Value<String?> pendingGuestOrderId = const Value.absent(),
+            required DateTime createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              HeldCartsCompanion.insert(
+            id: id,
+            label: label,
+            payload: payload,
+            pendingGuestOrderId: pendingGuestOrderId,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$HeldCartsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $HeldCartsTable,
+    HeldCartRow,
+    $$HeldCartsTableFilterComposer,
+    $$HeldCartsTableOrderingComposer,
+    $$HeldCartsTableAnnotationComposer,
+    $$HeldCartsTableCreateCompanionBuilder,
+    $$HeldCartsTableUpdateCompanionBuilder,
+    (HeldCartRow, BaseReferences<_$AppDatabase, $HeldCartsTable, HeldCartRow>),
+    HeldCartRow,
+    PrefetchHooks Function()>;
 typedef $$KvMetaTableCreateCompanionBuilder = KvMetaCompanion Function({
   required String key,
   Value<String?> value,
@@ -20800,6 +21534,8 @@ class $AppDatabaseManager {
       $$InvoicesTableTableManager(_db, _db.invoices);
   $$SyncQueueTableTableManager get syncQueue =>
       $$SyncQueueTableTableManager(_db, _db.syncQueue);
+  $$HeldCartsTableTableManager get heldCarts =>
+      $$HeldCartsTableTableManager(_db, _db.heldCarts);
   $$KvMetaTableTableManager get kvMeta =>
       $$KvMetaTableTableManager(_db, _db.kvMeta);
 }

@@ -4,13 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../data/api/dto.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../kds/providers/guest_orders_controller.dart';
 import '../providers/cart_controller.dart';
+import '../widgets/order_detail_conflict_dialog.dart';
 
 /// Cashier-facing list of QR-scanned table orders (one-person workflow).
 ///
-/// Primary path: ``submitted`` → **接單出餐並結帳** (print + accept + ready +
-/// import cart + checkout). Fallback: ``accepted`` / ``ready`` → **帶入結帳**.
+/// Primary path: ``submitted`` → **接單出餐並帶入** (print + accept + ready +
+/// import to order detail). Fallback: ``accepted`` / ``ready`` → **帶入點單明細**.
 class TableOrdersPage extends ConsumerStatefulWidget {
   const TableOrdersPage({super.key});
 
@@ -29,6 +31,7 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final snapshot = ref.watch(guestOrdersControllerProvider);
 
     final pending = snapshot.ofStatus('submitted');
@@ -61,7 +64,8 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
             ...pending.map(
               (o) => _GuestOrderTile(
                 order: o,
-                onFulfillAndCheckout: _fulfillAndCheckout,
+                fulfillLabel: l10n.fulfillAndImport,
+                onFulfillAndImport: _fulfillAndImport,
               ),
             ),
           _SectionHeader(label: '待結帳', count: checkoutPending.length),
@@ -74,7 +78,8 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
             ...checkoutPending.map(
               (o) => _GuestOrderTile(
                 order: o,
-                onImportCheckout: _importCheckout,
+                fulfillLabel: l10n.importToOrderDetail,
+                onImport: _importToOrderDetail,
               ),
             ),
         ],
@@ -82,64 +87,91 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
     );
   }
 
-  Future<bool> _confirmClearCartIfNeeded() async {
+  Future<bool> _resolveCartConflict() async {
     final cart = ref.read(cartControllerProvider);
     if (cart.lines.isEmpty) return true;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('購物車已有商品'),
-        content: const Text('匯入此桌邊訂單將會清空目前購物車，是否繼續？'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('清空並匯入')),
-        ],
-      ),
+
+    final l10n = AppLocalizations.of(context)!;
+    final action = await showOrderDetailConflictDialog(
+      context,
+      title: l10n.orderDetailHasItems,
+      message: l10n.importGuestOrderReplaceMessage,
+      parkLabel: l10n.parkAndImport,
+      replaceLabel: l10n.replaceAndImport,
     );
-    if (ok != true) return false;
-    ref.read(cartControllerProvider.notifier).clear();
-    return true;
+    switch (action) {
+      case OrderDetailConflictAction.parkAndContinue:
+        try {
+          await ref.read(cartControllerProvider.notifier).park();
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('$e'), backgroundColor: Theme.of(context).colorScheme.error),
+            );
+          }
+          return false;
+        }
+        return true;
+      case OrderDetailConflictAction.replace:
+        ref.read(cartControllerProvider.notifier).clear();
+        return true;
+      case OrderDetailConflictAction.cancel:
+      case null:
+        return false;
+    }
   }
 
   Future<bool> _importToCart(GuestOrderDto order) async {
-    if (!await _confirmClearCartIfNeeded()) return false;
+    if (!await _resolveCartConflict()) return false;
     await ref.read(cartControllerProvider.notifier).importGuestOrder(order);
     return true;
   }
 
-  Future<void> _fulfillAndCheckout(GuestOrderDto order) async {
+  void _goToCashierWithSnack(GuestOrderDto order) {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final table = order.tableLabel ?? '?';
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/');
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.importedToOrderDetail(table))),
+    );
+  }
+
+  Future<void> _fulfillAndImport(GuestOrderDto order) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final ready = await ref.read(guestOrdersControllerProvider.notifier).acceptAndReady(order);
       if (!await _importToCart(ready)) return;
-      if (!mounted) return;
-      context.go('/');
-      context.push('/checkout');
+      _goToCashierWithSnack(ready);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('接單出餐失敗：$e'),
+          content: Text('${l10n.fulfillFailed}：$e'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
   }
 
-  Future<void> _importCheckout(GuestOrderDto order) async {
+  Future<void> _importToOrderDetail(GuestOrderDto order) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       var target = order;
       if (order.status == 'accepted') {
         target = await ref.read(guestOrdersControllerProvider.notifier).markReady(order);
       }
       if (!await _importToCart(target)) return;
-      if (!mounted) return;
-      context.go('/');
-      context.push('/checkout');
+      _goToCashierWithSnack(target);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('帶入結帳失敗：$e'),
+          content: Text('${l10n.importOrderDetailFailed}：$e'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -170,12 +202,14 @@ class _SectionHeader extends StatelessWidget {
 class _GuestOrderTile extends StatelessWidget {
   const _GuestOrderTile({
     required this.order,
-    this.onFulfillAndCheckout,
-    this.onImportCheckout,
+    required this.fulfillLabel,
+    this.onFulfillAndImport,
+    this.onImport,
   });
   final GuestOrderDto order;
-  final Future<void> Function(GuestOrderDto)? onFulfillAndCheckout;
-  final Future<void> Function(GuestOrderDto)? onImportCheckout;
+  final String fulfillLabel;
+  final Future<void> Function(GuestOrderDto)? onFulfillAndImport;
+  final Future<void> Function(GuestOrderDto)? onImport;
 
   @override
   Widget build(BuildContext context) {
@@ -220,17 +254,17 @@ class _GuestOrderTile extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (order.status == 'submitted' && onFulfillAndCheckout != null)
+                if (order.status == 'submitted' && onFulfillAndImport != null)
                   FilledButton.icon(
-                    onPressed: () => onFulfillAndCheckout!(order),
-                    icon: const Icon(Icons.point_of_sale),
-                    label: const Text('接單出餐並結帳'),
+                    onPressed: () => onFulfillAndImport!(order),
+                    icon: const Icon(Icons.playlist_add_check),
+                    label: Text(fulfillLabel),
                   )
-                else if (onImportCheckout != null)
+                else if (onImport != null)
                   FilledButton.icon(
-                    onPressed: () => onImportCheckout!(order),
-                    icon: const Icon(Icons.shopping_cart_checkout),
-                    label: const Text('帶入結帳'),
+                    onPressed: () => onImport!(order),
+                    icon: const Icon(Icons.playlist_add_check),
+                    label: Text(fulfillLabel),
                   ),
               ],
             ),

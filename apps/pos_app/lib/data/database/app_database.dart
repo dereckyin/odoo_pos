@@ -38,6 +38,7 @@ part 'app_database.g.dart';
   Promotions,
   Invoices,
   SyncQueue,
+  HeldCarts,
   KvMeta,
 ])
 class AppDatabase extends _$AppDatabase {
@@ -45,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -65,6 +66,15 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(productOptionGroups);
             await m.createTable(productOptionChoiceOverrides);
             await m.addColumn(orderLines, orderLines.optionsJson);
+          }
+          if (from < 4) {
+            await m.createTable(heldCarts);
+          }
+          if (from < 5) {
+            await m.addColumn(orders, orders.orderNo);
+            await m.addColumn(orders, orders.tableLabel);
+            await m.addColumn(orders, orders.primaryPaymentMethod);
+            await m.addColumn(orders, orders.sourceGuestOrderId);
           }
         },
         beforeOpen: (details) async {

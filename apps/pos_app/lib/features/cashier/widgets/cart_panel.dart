@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_domain/pos_domain.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
+import '../../../data/printer/printer_providers.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../kds/providers/guest_orders_controller.dart';
 import '../providers/cart_controller.dart';
+import '../utils/kitchen_ticket_builder.dart';
 import 'option_picker_sheet.dart';
 
 class CartPanel extends ConsumerWidget {
@@ -26,6 +29,7 @@ class CartPanel extends ConsumerWidget {
       ),
       child: Column(
         children: [
+          _GuestOrderBar(),
           _MemberBar(member: cart.member, onTap: onMember, onClear: () => controller.setMember(null)),
           const Divider(height: 1),
           Expanded(
@@ -69,22 +73,76 @@ class CartPanel extends ConsumerWidget {
   }
 }
 
+class _GuestOrderBar extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final guest = ref.watch(importedGuestOrderProvider);
+    if (guest == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
+    final table = guest.tableLabel ?? '?';
+    return Material(
+      color: Theme.of(context).colorScheme.primaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            const Icon(Icons.table_restaurant_outlined, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                l10n.guestOrderSource(table),
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () async {
+                try {
+                  await ref.read(kitchenPrinterServiceProvider).printTicket(
+                        kitchenTicketFromGuestOrder(guest),
+                      );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.reprintKitchenTicket)),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('列印失敗：$e'),
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                      ),
+                    );
+                  }
+                }
+              },
+              icon: const Icon(Icons.print_outlined, size: 18),
+              label: Text(l10n.reprintKitchenTicket),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _EmptyCartHint extends StatelessWidget {
   const _EmptyCartHint({required this.pendingTableOrders});
   final int pendingTableOrders;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const EmptyState(
-              icon: Icons.shopping_cart_outlined,
-              title: '購物車是空的',
-              subtitle: '點選左側商品加入購物車',
+            EmptyState(
+              icon: Icons.receipt_long_outlined,
+              title: l10n.cartEmptyTitle,
+              subtitle: l10n.cartEmptySubtitle,
             ),
             if (pendingTableOrders > 0) ...[
               const SizedBox(height: 16),

@@ -14,7 +14,38 @@
   "username": "Username",
   "password": "Password",
   "terminal": "Terminal",
-  "cart": "Cart",
+  "cart": "Order",
+  "cartEmptyTitle": "No items yet",
+  "cartEmptySubtitle": "Tap products on the left to add",
+  "addToOrder": "Add to order",
+  "orderDetailHasItems": "Order has items",
+  "importGuestOrderReplaceMessage": "Importing a table order will replace the current order. Continue?",
+  "parkAndImport": "Park & import",
+  "replaceAndImport": "Replace & import",
+  "parkOrder": "Park",
+  "recallHeldOrders": "Recall",
+  "heldOrdersTitle": "Parked orders",
+  "heldOrdersEmpty": "No parked orders",
+  "restoreHeld": "Restore",
+  "deleteHeld": "Delete",
+  "importedToOrderDetail": "Table {table} imported — review before checkout",
+  "@importedToOrderDetail": {
+    "placeholders": {
+      "table": {"type": "String"}
+    }
+  },
+  "reprintKitchenTicket": "Reprint kitchen ticket",
+  "guestOrderSource": "Table order · {table}",
+  "@guestOrderSource": {
+    "placeholders": {
+      "table": {"type": "String"}
+    }
+  },
+  "fulfillAndImport": "Accept & import",
+  "importToOrderDetail": "Import to order",
+  "importOrderDetailFailed": "Import failed",
+  "fulfillFailed": "Accept failed",
+  "parkSuccess": "Order parked",
   "subtotal": "Subtotal",
   "tax": "Tax",
   "total": "Total",

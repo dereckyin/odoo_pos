@@ -115,11 +115,22 @@ class PrinterService {
   EscPosReceiptBuilder _receiptBuilder(PrinterPreferences prefs) =>
       EscPosReceiptBuilder(paperWidth: paperSizeFromMm(prefs.paperWidth));
 
-  Future<void> printReceipt(dom.Order order, {dom.Invoice? invoice, String? hostOverride}) async {
+  Future<void> printReceipt(
+    dom.Order order, {
+    dom.Invoice? invoice,
+    String? hostOverride,
+    String? orderNo,
+    String? tableLabel,
+  }) async {
     final prefs = ref.read(printerPrefsProvider);
     if (!prefs.enabled && hostOverride == null) return;
     final bytes = Uint8List.fromList(
-      await _receiptBuilder(prefs).build(order, invoice: invoice),
+      await _receiptBuilder(prefs).build(
+        order,
+        invoice: invoice,
+        orderNo: orderNo,
+        tableLabel: tableLabel,
+      ),
     );
     try {
       await driver.printRaw(hostOverride ?? prefs.host, bytes, port: prefs.port);

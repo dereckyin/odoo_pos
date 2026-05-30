@@ -6,14 +6,21 @@ import 'package:intl/intl.dart';
 import 'package:pos_core/pos_core.dart';
 import 'package:pos_domain/pos_domain.dart' as dom;
 
+import '../../features/history/order_list_display.dart';
+
 /// Lightweight ESC/POS abstraction. Concrete connection (TCP / USB / BT) is
 /// resolved by [PrinterConnection].
 class EscPosReceiptBuilder {
   EscPosReceiptBuilder({this.paperWidth = PaperSize.mm80});
   final PaperSize paperWidth;
 
-  Future<List<int>> build(dom.Order order,
-      {dom.Invoice? invoice, String storeName = '點餐趣 Demo'}) async {
+  Future<List<int>> build(
+    dom.Order order, {
+    dom.Invoice? invoice,
+    String storeName = '點餐趣 Demo',
+    String? orderNo,
+    String? tableLabel,
+  }) async {
     final profile = await CapabilityProfile.load();
     final gen = Generator(paperWidth, profile);
     final bytes = <int>[];
@@ -24,13 +31,24 @@ class EscPosReceiptBuilder {
     bytes.addAll(gen.text('=' * 32, styles: const PosStyles(align: PosAlign.center)));
 
     final df = DateFormat('yyyy/MM/dd HH:mm:ss');
+    final orderRef = OrderListDisplay.receiptOrderRef(
+      createdAt: order.createdAt,
+      orderNo: orderNo,
+      tableLabel: tableLabel,
+    );
     bytes.addAll(gen.row([
-      PosColumn(text: '訂單', width: 4, styles: const PosStyles()),
-      PosColumn(text: order.id.substring(0, 8), width: 8, styles: const PosStyles(align: PosAlign.right)),
+      PosColumn(text: '單號', width: 4, styles: const PosStyles()),
+      PosColumn(text: orderRef, width: 8, styles: const PosStyles(align: PosAlign.right)),
     ]));
+    if (tableLabel != null && tableLabel.isNotEmpty) {
+      bytes.addAll(gen.row([
+        PosColumn(text: '桌號', width: 4),
+        PosColumn(text: tableLabel, width: 8, styles: const PosStyles(align: PosAlign.right)),
+      ]));
+    }
     bytes.addAll(gen.row([
       PosColumn(text: '時間', width: 4),
-      PosColumn(text: df.format(order.createdAt), width: 8, styles: const PosStyles(align: PosAlign.right)),
+      PosColumn(text: df.format(order.createdAt.toLocal()), width: 8, styles: const PosStyles(align: PosAlign.right)),
     ]));
     bytes.addAll(gen.row([
       PosColumn(text: '收銀', width: 4),

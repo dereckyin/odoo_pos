@@ -26,7 +26,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   final _carrierCtl = TextEditingController();
   final _taxIdCtl = TextEditingController();
 
-  int get _pointsToRedeem => _pointsBuffer.asInt.toInt();
+  int get _pointsToRedeem => _pointsBuffer.asNum.toInt();
   int get _pointsDiscountCents => _pointsToRedeem;
 
   Money _payable(Cart cart) => cart.total - Money(_pointsDiscountCents);
@@ -303,6 +303,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               code: _carrierCtl.text.trim().isEmpty ? null : _carrierCtl.text.trim(),
             );
 
+      final tableLabel = ref.read(importedGuestOrderProvider)?.tableLabel;
+
       final result = await ref.read(checkoutControllerProvider).finalize(
         payments: [payment],
         carrier: carrier,
@@ -313,7 +315,10 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       );
 
       try {
-        await ref.read(printerServiceProvider).printReceipt(result.order);
+        await ref.read(printerServiceProvider).printReceipt(
+          result.order,
+          tableLabel: tableLabel,
+        );
       } catch (_) {/* non-fatal */}
 
       if (!mounted) return;

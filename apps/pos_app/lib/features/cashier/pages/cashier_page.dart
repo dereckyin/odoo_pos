@@ -6,12 +6,15 @@ import 'package:go_router/go_router.dart';
 import 'package:pos_domain/pos_domain.dart';
 
 import '../../../core/providers.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../data/scanner/barcode_listener.dart';
 import '../demo/book_sale_demo.dart';
 import '../../../data/sync/sync_providers.dart';
 import '../../sync/widgets/master_data_sync_button.dart';
 import '../../kds/providers/guest_orders_controller.dart';
+import '../../products/providers/product_providers.dart';
 import '../providers/cart_controller.dart';
+import '../providers/held_cart_repository.dart';
 import '../widgets/cart_panel.dart';
 import '../widgets/category_bar.dart';
 import '../widgets/option_picker_sheet.dart';
@@ -69,6 +72,9 @@ class _CashierPageState extends ConsumerState<CashierPage> {
     final pendingCount = ref.watch(pendingSyncCountProvider).maybeWhen(data: (v) => v, orElse: () => 0);
     final guestOrders = ref.watch(guestOrdersControllerProvider);
     final pendingTableOrders = guestOrders.ofStatus('submitted').length;
+    final cart = ref.watch(cartControllerProvider);
+    final heldCount = ref.watch(heldCartSummariesProvider).maybeWhen(data: (v) => v.length, orElse: () => 0);
+    final l10n = AppLocalizations.of(context)!;
 
     return BarcodeKeyboardListener(
       onBarcode: _onBarcode,
@@ -126,6 +132,38 @@ class _CashierPageState extends ConsumerState<CashierPage> {
               onPressed: () => context.push('/promotions'),
             ),
             IconButton(
+              tooltip: l10n.parkOrder,
+              icon: const Icon(Icons.pause_circle_outline),
+              onPressed: cart.isEmpty
+                  ? null
+                  : () async {
+                      try {
+                        await ref.read(cartControllerProvider.notifier).park();
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.parkSuccess)),
+                        );
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('$e'),
+                            backgroundColor: Theme.of(context).colorScheme.error,
+                          ),
+                        );
+                      }
+                    },
+            ),
+            IconButton(
+              tooltip: l10n.recallHeldOrders,
+              onPressed: () => context.push('/held-orders'),
+              icon: Badge(
+                isLabelVisible: heldCount > 0,
+                label: Text('$heldCount'),
+                child: const Icon(Icons.playlist_play_outlined),
+              ),
+            ),
+            IconButton(
               tooltip: pendingTableOrders > 0
                   ? '桌邊訂單（$pendingTableOrders 筆待接單）'
                   : '桌邊訂單',
@@ -168,17 +206,21 @@ class _CashierPageState extends ConsumerState<CashierPage> {
                       query: _query,
                       categoryId: _categoryId,
                       onTap: (Product p) async {
+                        final repo = ref.read(productRepositoryProvider);
+                        final product = await repo.findById(p.id) ?? p;
+                        if (!context.mounted) return;
                         final ctl = ref.read(cartControllerProvider.notifier);
-                        if (p.isWeighted) {
-                          final qty = await _promptDecimal(context, '輸入重量 (${p.unit})');
-                          if (qty != null && qty > 0) await ctl.addProduct(p, qty: qty);
-                        } else if (p.hasOptions) {
-                          final options = await OptionPickerSheet.show(context, product: p);
+                        if (product.isWeighted) {
+                          final qty = await _promptDecimal(context, '輸入重量 (${product.unit})');
+                          if (qty != null && qty > 0) await ctl.addProduct(product, qty: qty);
+                        } else if (product.hasOptions) {
+                          final options = await OptionPickerSheet.show(context, product: product);
+                          if (!context.mounted) return;
                           if (options != null) {
-                            await ctl.addProductWithOptions(p, options);
+                            await ctl.addProductWithOptions(product, options);
                           }
                         } else {
-                          await ctl.addProduct(p);
+                          await ctl.addProduct(product);
                         }
                       },
                     ),

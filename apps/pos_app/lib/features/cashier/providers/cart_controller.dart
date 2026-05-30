@@ -5,18 +5,23 @@ import 'package:pos_domain/pos_domain.dart';
 import '../../../core/providers.dart';
 import '../../../data/api/dto.dart';
 import '../demo/book_sale_demo.dart';
+import '../../members/providers/member_providers.dart';
 import '../../products/providers/product_providers.dart';
 import '../../promotions/providers/promotion_providers.dart';
+import '../models/held_cart_snapshot.dart';
+import 'held_cart_repository.dart';
 
-/// Holds the guest_order id currently "imported" into the cashier's cart
+/// Holds the guest_order id currently "imported" into the cashier's order detail
 /// (when they pulled a QR-scanned table-side order in for checkout). Stamped
 /// onto the paid Order via ``source_guest_order_id`` so the backend can
 /// auto-merge it. Reset whenever the cart is cleared.
 final pendingGuestOrderIdProvider = StateProvider<String?>((ref) => null);
 
-/// In-memory cart state. Persists in memory only; if the app is killed mid
-/// transaction we lose the draft (intentional for POS — the operator should
-/// not be confused by a stale cart on next login).
+/// Full guest order snapshot for kitchen reprint and table label in UI.
+final importedGuestOrderProvider = StateProvider<GuestOrderDto?>((ref) => null);
+
+/// In-memory cart state. Active transaction is memory-only; explicit 掛單
+/// writes to [HeldCarts] in SQLite.
 class CartController extends StateNotifier<Cart> {
   CartController(this._ref) : super(Cart());
   final Ref _ref;
@@ -86,15 +91,90 @@ class CartController extends StateNotifier<Cart> {
   void clear() {
     state = Cart();
     _ref.read(pendingGuestOrderIdProvider.notifier).state = null;
+    _ref.read(importedGuestOrderProvider.notifier).state = null;
   }
 
-  /// Pull a guest (table-side) order into the active cart so the cashier
-  /// can finalise payment. Snapshots line prices to the values quoted to
-  /// the customer when they submitted via QR — the cart can still apply
-  /// discounts/promotions on top.
+  /// Park current order detail to local DB (掛單).
+  Future<String> park({String? label}) async {
+    if (state.isEmpty) {
+      throw const ValidationError('order detail is empty');
+    }
+    final guest = _ref.read(importedGuestOrderProvider);
+    final pendingId = _ref.read(pendingGuestOrderIdProvider);
+    final snap = HeldCartSnapshot.fromCart(
+      state,
+      pendingGuestOrderId: pendingId,
+      guestOrder: guest,
+    );
+    final defaultLabel = label ?? '掛單 ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}';
+    final id = await _ref.read(heldCartRepositoryProvider).insert(
+          label: defaultLabel,
+          snapshot: snap,
+          pendingGuestOrderId: pendingId,
+        );
+    clear();
+    return id;
+  }
+
+  /// Restore a parked order into the active order detail.
+  Future<List<String>> restoreHeld(String heldId) async {
+    final snap = await _ref.read(heldCartRepositoryProvider).loadSnapshot(heldId);
+    final skipped = await _applySnapshot(snap);
+    await _ref.read(heldCartRepositoryProvider).delete(heldId);
+    return skipped;
+  }
+
+  Future<void> deleteHeld(String heldId) async {
+    await _ref.read(heldCartRepositoryProvider).delete(heldId);
+  }
+
+  Future<List<String>> _applySnapshot(HeldCartSnapshot snap) async {
+    final productRepo = _ref.read(productRepositoryProvider);
+    final memberRepo = _ref.read(memberRepositoryProvider);
+    final lines = <CartLine>[];
+    final skipped = <String>[];
+
+    for (final l in snap.lines) {
+      final product = await productRepo.findById(l.productId);
+      if (product == null) {
+        skipped.add(l.productId);
+        continue;
+      }
+      lines.add(CartLine.custom(
+        id: newUuid(),
+        product: product,
+        qty: l.qty,
+        unitPrice: Money(l.unitPriceCents),
+        note: l.note,
+        lineDiscount: l.lineDiscount.toDiscount(),
+        selectedOptions: l.selectedOptions
+            .map((j) => SelectedOption.fromJson(j))
+            .toList(growable: false),
+      ));
+    }
+
+    Member? member;
+    if (snap.memberId != null) {
+      member = await memberRepo.findById(snap.memberId!);
+    }
+
+    state = Cart(
+      lines: lines,
+      member: member,
+      orderDiscount: snap.orderDiscount.toDiscount(),
+      note: snap.orderNote,
+    );
+    _ref.read(pendingGuestOrderIdProvider.notifier).state = snap.pendingGuestOrderId;
+    _ref.read(importedGuestOrderProvider.notifier).state = snap.toGuestOrderDto();
+    await _evaluatePromotions();
+    return skipped;
+  }
+
+  /// Pull a guest (table-side) order into the active order detail so the cashier
+  /// can review and finalise payment.
   Future<void> importGuestOrder(GuestOrderDto guestOrder) async {
     if (state.lines.isNotEmpty) {
-      throw const ValidationError('cart not empty; clear first');
+      throw const ValidationError('order detail not empty; clear first');
     }
     final repo = _ref.read(productRepositoryProvider);
     final lines = <CartLine>[];
@@ -116,6 +196,7 @@ class CartController extends StateNotifier<Cart> {
     }
     state = state.copyWith(lines: lines, note: guestOrder.customerNote);
     _ref.read(pendingGuestOrderIdProvider.notifier).state = guestOrder.id;
+    _ref.read(importedGuestOrderProvider.notifier).state = guestOrder;
     await _evaluatePromotions();
   }
 

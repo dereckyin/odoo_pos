@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_core/pos_core.dart';
@@ -113,13 +115,34 @@ class ProductRepositoryImpl {
     return (await _hydrate([p])).first;
   }
 
+  /// Emits when products or any option-link tables change (options sync does not
+  /// touch [Products], so watching products alone leaves [Product.hasOptions] stale).
+  Stream<void> _catalogChangeTicks() {
+    return Stream<void>.multi((controller) {
+      final subs = <StreamSubscription<dynamic>>[];
+      void tick(_) {
+        if (!controller.isClosed) controller.add(null);
+      }
+      subs.add(_db.select(_db.products).watch().listen(tick));
+      subs.add(_db.select(_db.productOptionGroups).watch().listen(tick));
+      subs.add(_db.select(_db.optionGroups).watch().listen(tick));
+      subs.add(_db.select(_db.optionChoices).watch().listen(tick));
+      subs.add(_db.select(_db.productOptionChoiceOverrides).watch().listen(tick));
+      controller.onCancel = () async {
+        for (final s in subs) {
+          await s.cancel();
+        }
+      };
+    });
+  }
+
   Stream<List<Product>> watchFiltered({
     String query = '',
     String? categoryId,
     int limit = 50,
   }) {
     final trimmed = query.trim();
-    return _db.select(_db.products).watch().asyncMap((_) async {
+    return _catalogChangeTicks().asyncMap((_) async {
       if (trimmed.isEmpty) {
         final rows = await _browseProductRows(categoryId: categoryId, limit: limit);
         return _hydrate(rows);

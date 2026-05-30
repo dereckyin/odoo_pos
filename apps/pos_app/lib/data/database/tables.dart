@@ -161,6 +161,10 @@ class Orders extends Table {
   TextColumn get invoiceNumber => text().nullable()();
   TextColumn get invoiceCarrier => text().nullable()();
   TextColumn get note => text().nullable()();
+  TextColumn get orderNo => text().nullable()();
+  TextColumn get tableLabel => text().nullable()();
+  TextColumn get primaryPaymentMethod => text().nullable()();
+  TextColumn get sourceGuestOrderId => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get syncedAt => dateTime().nullable()();
 
@@ -427,6 +431,19 @@ class SyncQueue extends Table {
   DateTimeColumn get nextRetryAt => dateTime()();
   DateTimeColumn get createdAt => dateTime()();
   TextColumn get lastError => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Cashier-parked order (掛單) — survives app restarts; not synced to server.
+@DataClassName('HeldCartRow')
+class HeldCarts extends Table {
+  TextColumn get id => text()();
+  TextColumn get label => text()();
+  TextColumn get payload => text()();
+  TextColumn get pendingGuestOrderId => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
 
   @override
   Set<Column> get primaryKey => {id};

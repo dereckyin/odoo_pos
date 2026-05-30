@@ -78,7 +78,7 @@ function statusClass(s: GuestOrderRead['status']) {
 }
 function statusBig(s: GuestOrderRead['status']) {
   return ({
-    submitted: '已送出，等待接單',
+    submitted: '已送出',
     accepted: '餐點準備中',
     ready: '餐點已備好',
     merged: '已結帳',

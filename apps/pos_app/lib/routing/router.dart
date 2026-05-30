@@ -8,6 +8,7 @@ import '../features/cashier/pages/book_scan_demo_page.dart';
 import '../features/cashier/pages/cashier_page.dart';
 import '../features/cashier/pages/checkout_page.dart';
 import '../features/cashier/pages/scan_page.dart';
+import '../features/cashier/pages/held_orders_page.dart';
 import '../features/cashier/pages/table_orders_page.dart';
 import '../features/history/pages/history_page.dart';
 import '../features/inventory/pages/inventory_page.dart';
@@ -49,6 +50,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/', builder: (_, __) => const CashierPage()),
       GoRoute(path: '/kds', builder: (_, __) => const KdsBoardPage()),
       GoRoute(path: '/table-orders', builder: (_, __) => const TableOrdersPage()),
+      GoRoute(path: '/held-orders', builder: (_, __) => const HeldOrdersPage()),
       GoRoute(path: '/checkout', builder: (_, __) => const CheckoutPage()),
       GoRoute(path: '/scan', builder: (_, __) => const ScanPage()),
       GoRoute(path: '/book-demo', builder: (_, __) => const BookScanDemoPage()),

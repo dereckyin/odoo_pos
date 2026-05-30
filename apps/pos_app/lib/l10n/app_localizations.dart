@@ -186,8 +186,134 @@ abstract class AppLocalizations {
   /// No description provided for @cart.
   ///
   /// In zh_TW, this message translates to:
-  /// **'購物車'**
+  /// **'點單明細'**
   String get cart;
+
+  /// No description provided for @cartEmptyTitle.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'尚無點單品項'**
+  String get cartEmptyTitle;
+
+  /// No description provided for @cartEmptySubtitle.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'點選左側商品加入點單'**
+  String get cartEmptySubtitle;
+
+  /// No description provided for @addToOrder.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'加入點單'**
+  String get addToOrder;
+
+  /// No description provided for @orderDetailHasItems.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'點單明細內尚有品項'**
+  String get orderDetailHasItems;
+
+  /// No description provided for @importGuestOrderReplaceMessage.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'匯入桌邊訂單將取代目前點單明細，是否繼續？'**
+  String get importGuestOrderReplaceMessage;
+
+  /// No description provided for @parkAndImport.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'掛單保留並匯入'**
+  String get parkAndImport;
+
+  /// No description provided for @replaceAndImport.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'覆蓋並匯入'**
+  String get replaceAndImport;
+
+  /// No description provided for @parkOrder.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'掛單'**
+  String get parkOrder;
+
+  /// No description provided for @recallHeldOrders.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'取單'**
+  String get recallHeldOrders;
+
+  /// No description provided for @heldOrdersTitle.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'掛單列表'**
+  String get heldOrdersTitle;
+
+  /// No description provided for @heldOrdersEmpty.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'目前沒有掛單'**
+  String get heldOrdersEmpty;
+
+  /// No description provided for @restoreHeld.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'還原'**
+  String get restoreHeld;
+
+  /// No description provided for @deleteHeld.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'刪除'**
+  String get deleteHeld;
+
+  /// No description provided for @importedToOrderDetail.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'已帶入桌 {table} 點單明細，請確認後結帳'**
+  String importedToOrderDetail(String table);
+
+  /// No description provided for @reprintKitchenTicket.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'補印廚房單'**
+  String get reprintKitchenTicket;
+
+  /// No description provided for @guestOrderSource.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'桌邊訂單 · 桌 {table}'**
+  String guestOrderSource(String table);
+
+  /// No description provided for @fulfillAndImport.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'接單出餐並帶入'**
+  String get fulfillAndImport;
+
+  /// No description provided for @importToOrderDetail.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'帶入點單明細'**
+  String get importToOrderDetail;
+
+  /// No description provided for @importOrderDetailFailed.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'帶入點單明細失敗'**
+  String get importOrderDetailFailed;
+
+  /// No description provided for @fulfillFailed.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'接單出餐失敗'**
+  String get fulfillFailed;
+
+  /// No description provided for @parkSuccess.
+  ///
+  /// In zh_TW, this message translates to:
+  /// **'已掛單保留'**
+  String get parkSuccess;
 
   /// No description provided for @subtotal.
   ///

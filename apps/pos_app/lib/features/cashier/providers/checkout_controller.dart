@@ -51,6 +51,9 @@ class CheckoutController {
     final dao = SyncQueueDao(db);
     final now = DateTime.now();
     final sourceGuestOrderId = _ref.read(pendingGuestOrderIdProvider);
+    final guestOrder = _ref.read(importedGuestOrderProvider);
+    final tableLabel = guestOrder?.tableLabel;
+    final primaryPaymentMethod = payments.isNotEmpty ? payments.first.method.code : null;
     final order = Order.fromCart(
       cart: cart,
       storeId: storeId,
@@ -75,6 +78,9 @@ class CheckoutController {
             taxCents: d.Value(order.tax.cents),
             totalCents: d.Value(order.total.cents),
             invoiceCarrier: d.Value(carrier?.code),
+            tableLabel: d.Value(tableLabel),
+            sourceGuestOrderId: d.Value(sourceGuestOrderId),
+            primaryPaymentMethod: d.Value(primaryPaymentMethod),
             createdAt: now,
           ));
       for (final l in order.lines) {

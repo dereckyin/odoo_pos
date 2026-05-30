@@ -84,12 +84,14 @@ class DeltaPuller {
     }
 
     final failures = <String, String>{};
+    // Options must land before the cashier hydrates products (parallel pull used to
+    // finish products first while links/groups were still empty).
+    await _pull('option_groups', failures, _pullOptionGroups);
+    await _pull('product_option_links', failures, _pullProductOptionLinks);
+    await _pull('product_option_overrides', failures, _pullProductOptionOverrides);
     await Future.wait([
       _pull('products', failures, _pullProducts),
       _pull('categories', failures, _pullCategories),
-      _pull('option_groups', failures, _pullOptionGroups),
-      _pull('product_option_links', failures, _pullProductOptionLinks),
-      _pull('product_option_overrides', failures, _pullProductOptionOverrides),
       _pull('members', failures, _pullMembers),
       _pull('member_levels', failures, _pullMemberLevels),
       _pull('coupons', failures, _pullCoupons),

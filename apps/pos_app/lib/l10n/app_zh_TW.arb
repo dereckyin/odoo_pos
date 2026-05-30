@@ -14,7 +14,38 @@
   "username": "帳號",
   "password": "密碼",
   "terminal": "終端機代號",
-  "cart": "購物車",
+  "cart": "點單明細",
+  "cartEmptyTitle": "尚無點單品項",
+  "cartEmptySubtitle": "點選左側商品加入點單",
+  "addToOrder": "加入點單",
+  "orderDetailHasItems": "點單明細內尚有品項",
+  "importGuestOrderReplaceMessage": "匯入桌邊訂單將取代目前點單明細，是否繼續？",
+  "parkAndImport": "掛單保留並匯入",
+  "replaceAndImport": "覆蓋並匯入",
+  "parkOrder": "掛單",
+  "recallHeldOrders": "取單",
+  "heldOrdersTitle": "掛單列表",
+  "heldOrdersEmpty": "目前沒有掛單",
+  "restoreHeld": "還原",
+  "deleteHeld": "刪除",
+  "importedToOrderDetail": "已帶入桌 {table} 點單明細，請確認後結帳",
+  "@importedToOrderDetail": {
+    "placeholders": {
+      "table": {"type": "String"}
+    }
+  },
+  "reprintKitchenTicket": "補印廚房單",
+  "guestOrderSource": "桌邊訂單 · 桌 {table}",
+  "@guestOrderSource": {
+    "placeholders": {
+      "table": {"type": "String"}
+    }
+  },
+  "fulfillAndImport": "接單出餐並帶入",
+  "importToOrderDetail": "帶入點單明細",
+  "importOrderDetailFailed": "帶入點單明細失敗",
+  "fulfillFailed": "接單出餐失敗",
+  "parkSuccess": "已掛單保留",
   "subtotal": "小計",
   "tax": "稅",
   "total": "合計",

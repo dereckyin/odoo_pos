@@ -112,8 +112,11 @@ class SyncWorker {
     try {
       switch (op) {
         case SyncOpKind.uploadOrder:
-          await api.uploadOrder(payload);
-          await _markOrderSynced(payload['id'] as String);
+          final res = await api.uploadOrder(payload);
+          await _markOrderSynced(
+            payload['id'] as String,
+            orderNo: res['order_no'] as String?,
+          );
         case SyncOpKind.uploadRefund:
           final orderId = payload['order_id'] as String;
           await api.refundOrder(orderId, payload);
@@ -151,9 +154,13 @@ class SyncWorker {
     }
   }
 
-  Future<void> _markOrderSynced(String orderId) async {
-    await (db.update(db.orders)..where((t) => t.id.equals(orderId)))
-        .write(OrdersCompanion(syncedAt: Value(DateTime.now())));
+  Future<void> _markOrderSynced(String orderId, {String? orderNo}) async {
+    await (db.update(db.orders)..where((t) => t.id.equals(orderId))).write(
+          OrdersCompanion(
+            syncedAt: Value(DateTime.now()),
+            orderNo: orderNo == null || orderNo.isEmpty ? const Value.absent() : Value(orderNo),
+          ),
+        );
   }
 
   Future<void> _stampInvoice(Map<String, dynamic> res) async {

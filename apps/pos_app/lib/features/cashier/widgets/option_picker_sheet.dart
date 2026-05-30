@@ -3,6 +3,8 @@ import 'package:pos_core/pos_core.dart';
 import 'package:pos_domain/pos_domain.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 /// Bottom sheet for selecting product options before adding to cart.
 class OptionPickerSheet extends StatefulWidget {
   const OptionPickerSheet({
@@ -203,7 +205,7 @@ class _OptionPickerSheetState extends State<OptionPickerSheet> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: BigButton(
-                label: '加入購物車 ${_unitPrice.format()}',
+                label: '${AppLocalizations.of(context)!.addToOrder} ${_unitPrice.format()}',
                 icon: Icons.add_shopping_cart,
                 onPressed: () {
                   final err = _validate();

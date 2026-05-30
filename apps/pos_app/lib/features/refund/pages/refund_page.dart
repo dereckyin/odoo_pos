@@ -10,6 +10,7 @@ import '../../../data/database/app_database.dart';
 import '../../../data/database/tables.dart';
 import '../../../data/sync/sync_models.dart';
 import '../../../data/sync/sync_providers.dart';
+import '../../history/order_list_display.dart';
 
 class RefundPage extends ConsumerStatefulWidget {
   const RefundPage({super.key, required this.orderId});
@@ -34,15 +35,39 @@ class _RefundPageState extends ConsumerState<RefundPage> {
       body: order.when(
         data: (o) {
           if (o == null) return const EmptyState(title: '找不到此訂單', icon: Icons.error_outline);
+          final display = OrderListDisplay.fromRow(o);
           return Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SectionHeader(title: '訂單 ${o.id.substring(0, 8)}', actions: [
-                  MoneyText(Money(o.totalCents),
-                      style: Theme.of(context).textTheme.titleLarge),
-                ]),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(display.title, style: Theme.of(context).textTheme.titleLarge),
+                          const SizedBox(height: 4),
+                          Text(display.subtitle, style: Theme.of(context).textTheme.bodyMedium),
+                          if (display.detail != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              display.detail!,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    MoneyText(Money(o.totalCents),
+                        style: Theme.of(context).textTheme.titleLarge),
+                  ],
+                ),
+                const SizedBox(height: 8),
                 Expanded(
                   child: lines.when(
                     data: (rows) => ListView.separated(
