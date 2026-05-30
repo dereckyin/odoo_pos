@@ -25,6 +25,9 @@ from . import (
     public_orders,
     public_plans,
     public_members,
+    public_marketplace,
+    marketplace_admin,
+    marketplace_payments,
     tenant_apply,
     tenant_settings,
     tenant_export,
@@ -61,11 +64,14 @@ api_router.include_router(dashboard.router)
 api_router.include_router(dining_tables.router)
 api_router.include_router(guest_orders.router)
 api_router.include_router(public_orders.router)
+api_router.include_router(public_marketplace.router)
+api_router.include_router(marketplace_payments.router)
 api_router.include_router(public_members.router)
 api_router.include_router(public_plans.router)
 api_router.include_router(tenant_apply.router)
 api_router.include_router(tenant_settings.router)
 api_router.include_router(tenant_export.router)
+api_router.include_router(marketplace_admin.router)
 api_router.include_router(platform.router)
 api_router.include_router(alliance.router)
 api_router.include_router(webhooks.router)

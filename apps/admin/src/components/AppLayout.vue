@@ -49,8 +49,9 @@
         </a-sub-menu>
         <a-sub-menu key="qr-group">
           <template #icon><QrcodeOutlined /></template>
-          <template #title>QR 點餐</template>
-          <a-menu-item key="guest-orders" @click="$router.push({ name: 'guest-orders' })">桌邊訂單</a-menu-item>
+          <template #title>線上點餐</template>
+          <a-menu-item key="marketplace-settings" @click="$router.push({ name: 'marketplace-settings' })">市集上架</a-menu-item>
+          <a-menu-item key="guest-orders" @click="$router.push({ name: 'guest-orders' })">桌邊/網路訂單</a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="order-group">
           <template #icon><FileTextOutlined /></template>
@@ -74,6 +75,7 @@
           <template #icon><CrownOutlined /></template>
           <template #title>平台管理</template>
           <a-menu-item key="platform-applications" @click="$router.push({ name: 'platform-applications' })">店家申請審核</a-menu-item>
+          <a-menu-item key="platform-marketplace" @click="$router.push({ name: 'platform-marketplace' })">市集上架審核</a-menu-item>
           <a-menu-item key="platform-tenants" @click="$router.push({ name: 'platform-tenants' })">租戶管理</a-menu-item>
           <a-menu-item key="platform-alliances" @click="$router.push({ name: 'platform-alliances' })">聯盟管理</a-menu-item>
         </a-sub-menu>

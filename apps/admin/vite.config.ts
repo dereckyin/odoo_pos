@@ -8,8 +8,7 @@ const version = JSON.parse(
 ) as { displayVersion: string; releaseDate: string; productName: string }
 
 export default defineConfig({
-  plugins: [vue()],
-  define: {
+  plugins: [vue()],  define: {
     __APP_VERSION__: JSON.stringify(version.displayVersion),
     __APP_RELEASE_DATE__: JSON.stringify(version.releaseDate),
     __PRODUCT_NAME__: JSON.stringify(version.productName),

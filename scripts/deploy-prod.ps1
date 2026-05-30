@@ -8,6 +8,7 @@ param(
   [string]$Key = "$env:USERPROFILE\Documents\gcserver\talktothebooks_test.pem",
   [switch]$SkipApk,
   [switch]$SkipCustomer,
+  [switch]$SkipMarketplace,
   [switch]$SkipBuild
 )
 
@@ -56,6 +57,16 @@ if (-not $SkipBuild) {
       Pop-Location
     }
   }
+
+  if (-not $SkipMarketplace) {
+    Invoke-Step "Build marketplace web (/) " {
+      Push-Location (Join-Path $root "apps/marketplace_web")
+      $env:VITE_API_BASE = "https://pos.myvnc.com/api"
+      npm ci
+      npm run build
+      Pop-Location
+    }
+  }
 }
 
 Invoke-Step "Pack deployment archive" {
@@ -64,10 +75,13 @@ Invoke-Step "Pack deployment archive" {
     "-czf", "deploy-pack.tar.gz",
     "--exclude=__pycache__", "--exclude=.pytest_cache", "--exclude=.venv", "--exclude=uploads",
     "apps/api", "apps/admin/dist", "deploy/nginx.conf", "deploy/nginx.customer.conf",
-    "docker-compose.prod.yml"
+    "deploy/nginx.marketplace.conf", "docker-compose.prod.yml"
   )
   if (-not $SkipCustomer) {
     $tarArgs += "apps/customer_order_web/dist"
+  }
+  if (-not $SkipMarketplace) {
+    $tarArgs += "apps/marketplace_web/dist"
   }
   & tar @tarArgs
   Pop-Location
@@ -99,7 +113,8 @@ rm -f /tmp/deploy-pack.tar.gz
 Remove-Item (Join-Path $root "deploy-pack.tar.gz") -ErrorAction SilentlyContinue
 
 Write-Host "`nDeploy complete." -ForegroundColor Green
-Write-Host "  Admin:    https://pos.myvnc.com/"
-Write-Host "  Readme:   https://pos.myvnc.com/readme/"
-Write-Host "  Customer: https://pos.myvnc.com/customer/"
+Write-Host "  Admin:       https://pos.myvnc.com/"
+Write-Host "  Marketplace: https://pos.myvnc.com/market/"
+Write-Host "  Readme:      https://pos.myvnc.com/readme/"
+Write-Host "  Customer:    https://pos.myvnc.com/customer/"
 Write-Host "  APK:      https://pos.myvnc.com/readme/pos-release.apk"

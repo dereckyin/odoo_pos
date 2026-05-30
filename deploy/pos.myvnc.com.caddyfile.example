@@ -1,20 +1,17 @@
-# 範例：將 pos.myvnc.com 指到本機 docker-compose.prod.yml 的 Nginx（9088）。
-# 請把下列區塊合併進主機的 /etc/caddy/Caddyfile（或 import 的檔案），再執行：
+# 範例：pos.myvnc.com 路由（後台 / + 市集 /market + QR /customer）
+# 合併進主機 /etc/caddy/Caddyfile 後：
 #   sudo caddy validate --config /etc/caddy/Caddyfile
 #   sudo systemctl reload caddy
-#
-# 若同一主機名也要掛「顧客掃碼點餐」靜態站（/customer），請先依 安裝手冊 建置
-# apps/customer_order_web（base=/customer/），並確保 compose 的 customer_web 在跑，
-# 然後取消註解 handle_path 區塊（順序：先 /customer，再預設 9088）。
 
 pos.myvnc.com {
-	# /readme/ 與管理後台同源，見 deploy/nginx.conf（admin dist/readme）
-
-	# handle_path /customer* {
-	# 	reverse_proxy http://127.0.0.1:9089
-	# 	encode gzip
-	# }
-
+	handle_path /customer* {
+		reverse_proxy http://127.0.0.1:9089
+		encode gzip
+	}
+	handle_path /market* {
+		reverse_proxy http://127.0.0.1:9090
+		encode gzip
+	}
 	handle {
 		reverse_proxy http://127.0.0.1:9088
 		encode gzip

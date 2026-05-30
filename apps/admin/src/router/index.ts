@@ -66,7 +66,14 @@ const routes: RouteRecordRaw[] = [
       { path: 'analytics/members', name: 'analytics-members', component: () => import('@/views/members/MemberAnalyticsView.vue') },
       // Tenant self-service settings (payment / invoice / audit / usage)
       { path: 'tenant-settings', name: 'tenant-settings', component: () => import('@/views/tenant/TenantSettingsView.vue') },
+      { path: 'marketplace-settings', name: 'marketplace-settings', component: () => import('@/views/tenant/MarketplaceSettingsView.vue') },
       // Platform super-admin
+      {
+        path: 'platform/marketplace',
+        name: 'platform-marketplace',
+        component: () => import('@/views/platform/MarketplaceApplicationsView.vue'),
+        meta: { platformOnly: true },
+      },
       {
         path: 'platform/applications',
         name: 'platform-applications',
@@ -90,7 +97,7 @@ const routes: RouteRecordRaw[] = [
 ]
 
 export const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 })
 

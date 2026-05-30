@@ -272,6 +272,7 @@ async def submit_order(
         tenant_id=table.tenant_id,
         store_id=table.store_id,
         table_id=table.id,
+        channel="table_qr",
         status="submitted",
         customer_note=payload.customer_note,
         party_size=payload.party_size,

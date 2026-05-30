@@ -19,6 +19,7 @@ class DiningTable(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     public_token: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     seats: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_virtual: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     note: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
     store = relationship("Store", lazy="joined")

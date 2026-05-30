@@ -9,18 +9,20 @@ from sqlalchemy import select
 
 from ...core.deps import DbSession
 from ...core.ratelimit import per_ip
-from ...models import DiningTable, EmailOtp, Member, Tenant
+from ...models import DiningTable, EmailOtp, MarketplaceListing, Member, Tenant
 
 router = APIRouter(prefix="/public/members", tags=["public"])
 
 
 class MemberOtpRequest(BaseModel):
-    table_token: str
+    table_token: str | None = None
+    store_slug: str | None = None
     phone: str = Field(max_length=32)
 
 
 class MemberOtpVerify(BaseModel):
-    table_token: str
+    table_token: str | None = None
+    store_slug: str | None = None
     phone: str
     code: str = Field(min_length=4, max_length=8)
 
@@ -47,10 +49,35 @@ async def _tenant_from_table(db: DbSession, table_token: str) -> Tenant:
     return tenant
 
 
+async def _tenant_from_slug(db: DbSession, store_slug: str) -> Tenant:
+    listing = (
+        await db.execute(
+            select(MarketplaceListing).where(
+                MarketplaceListing.slug == store_slug,
+                MarketplaceListing.status == "approved",
+            )
+        )
+    ).scalar_one_or_none()
+    if not listing:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "invalid store slug")
+    tenant = await db.get(Tenant, listing.tenant_id)
+    if not tenant or tenant.status != "active":
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "tenant unavailable")
+    return tenant
+
+
+async def _resolve_tenant(db: DbSession, table_token: str | None, store_slug: str | None) -> Tenant:
+    if table_token:
+        return await _tenant_from_table(db, table_token)
+    if store_slug:
+        return await _tenant_from_slug(db, store_slug)
+    raise HTTPException(status.HTTP_400_BAD_REQUEST, "table_token or store_slug required")
+
+
 @router.post("/otp/request")
 @per_ip("10/minute")
 async def request_otp(request: Request, payload: MemberOtpRequest, db: DbSession):
-    tenant = await _tenant_from_table(db, payload.table_token)
+    tenant = await _resolve_tenant(db, payload.table_token, payload.store_slug)
     code = f"{secrets.randbelow(900000) + 100000:06d}"
     otp = EmailOtp(
         purpose="member_login",
@@ -68,7 +95,7 @@ async def request_otp(request: Request, payload: MemberOtpRequest, db: DbSession
 @router.post("/otp/verify", response_model=PublicMemberRead)
 @per_ip("20/minute")
 async def verify_otp(request: Request, payload: MemberOtpVerify, db: DbSession):
-    tenant = await _tenant_from_table(db, payload.table_token)
+    tenant = await _resolve_tenant(db, payload.table_token, payload.store_slug)
     otp = (
         await db.execute(
             select(EmailOtp)

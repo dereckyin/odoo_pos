@@ -275,3 +275,82 @@ async def list_plans(db: DbSession, _: PlatformSuperDep):
         )
     ).scalars().all()
     return rows
+
+
+# ---------------------------------------------------------------------------
+# Marketplace listing review
+# ---------------------------------------------------------------------------
+
+@router.get("/marketplace/applications")
+async def list_marketplace_applications(
+    db: DbSession,
+    _: PlatformSuperDep,
+    status_filter: str = Query(default="pending"),
+):
+    from ...models import MarketplaceListing
+    from .marketplace_admin import _to_read
+
+    stmt = select(MarketplaceListing).where(MarketplaceListing.status == status_filter)
+    stmt = stmt.order_by(MarketplaceListing.submitted_at.desc().nullslast())
+    rows = (await db.execute(stmt)).scalars().all()
+    return [_to_read(r) for r in rows]
+
+
+@router.post("/marketplace/applications/{listing_id}/approve")
+async def approve_marketplace_listing(
+    listing_id: str,
+    request: Request,
+    db: DbSession,
+    user: PlatformSuperDep,
+):
+    from ...models import MarketplaceListing
+    from .marketplace_admin import _to_read
+
+    row = await db.get(MarketplaceListing, listing_id)
+    if not row:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    if row.status != "pending":
+        raise HTTPException(status.HTTP_409_CONFLICT, f"cannot approve from status={row.status}")
+    row.status = "approved"
+    row.approved_at = _now()
+    row.approved_by_user_id = user.user_id
+    await audit(
+        db,
+        user,
+        action="marketplace_listing_approve",
+        resource_type="marketplace_listing",
+        resource_id=listing_id,
+        request=request,
+        flush=False,
+    )
+    await db.commit()
+    await db.refresh(row)
+    return _to_read(row)
+
+
+@router.post("/marketplace/applications/{listing_id}/suspend")
+async def suspend_marketplace_listing(
+    listing_id: str,
+    request: Request,
+    db: DbSession,
+    user: PlatformSuperDep,
+):
+    from ...models import MarketplaceListing
+    from .marketplace_admin import _to_read
+
+    row = await db.get(MarketplaceListing, listing_id)
+    if not row:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    row.status = "suspended"
+    await audit(
+        db,
+        user,
+        action="marketplace_listing_suspend",
+        resource_type="marketplace_listing",
+        resource_id=listing_id,
+        request=request,
+        flush=False,
+    )
+    await db.commit()
+    await db.refresh(row)
+    return _to_read(row)

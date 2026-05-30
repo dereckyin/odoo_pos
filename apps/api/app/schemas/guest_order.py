@@ -41,8 +41,16 @@ class GuestOrderRead(ORMModel):
     id: str
     tenant_id: str
     store_id: str
-    table_id: str
+    table_id: str | None = None
     table_label: str | None = None
+    channel: str = "table_qr"
+    fulfillment_type: str | None = None
+    customer_name: str | None = None
+    customer_phone: str | None = None
+    delivery_address: str | None = None
+    delivery_status: str | None = None
+    payment_method: str | None = None
+    payment_status: str | None = None
     status: str
     customer_note: str | None
     party_size: int | None

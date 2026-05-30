@@ -87,7 +87,7 @@ function statusBig(s: GuestOrderRead['status']) {
 }
 function statusHint(s: GuestOrderRead['status']) {
   return ({
-    submitted: '請耐心等候，店員稍後會接單。',
+    submitted: '請耐心等候，店員稍後會來確認您的點餐。',
     accepted: '廚房正在準備您的餐點，請稍候。',
     ready: '請至櫃台結帳，謝謝。',
     merged: '感謝您的光臨。',

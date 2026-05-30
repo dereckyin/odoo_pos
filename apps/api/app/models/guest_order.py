@@ -24,8 +24,24 @@ class GuestOrder(Base, UUIDPrimaryKey, Timestamped):
 
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True, nullable=False)
     store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"), nullable=False, index=True)
-    table_id: Mapped[str] = mapped_column(ForeignKey("dining_tables.id"), nullable=False, index=True)
+    table_id: Mapped[str | None] = mapped_column(
+        ForeignKey("dining_tables.id"), nullable=True, index=True
+    )
+    channel: Mapped[str] = mapped_column(String(16), default="table_qr", nullable=False, index=True)
+    fulfillment_type: Mapped[str | None] = mapped_column(String(16), nullable=True)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="submitted", index=True)
+
+    customer_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    customer_phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    delivery_address: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    delivery_lat: Mapped[float | None] = mapped_column(nullable=True)
+    delivery_lng: Mapped[float | None] = mapped_column(nullable=True)
+    delivery_note: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    delivery_status: Mapped[str | None] = mapped_column(String(16), nullable=True)
+
+    payment_method: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    payment_status: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    online_payment_ref: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
     customer_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     party_size: Mapped[int | None] = mapped_column(Integer, nullable=True)

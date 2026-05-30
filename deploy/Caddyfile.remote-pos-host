@@ -1,32 +1,15 @@
-# Merged snapshot for 192.168.0.168 — replace /etc/caddy/Caddyfile if this matches your intent.
-# Other hostnames unchanged; pos.myvnc.com adds /customer static + 9088.
-
-finance.myvnc.com {
-	reverse_proxy http://localhost:8080
-	encode gzip
-}
-
-dereckyin.myvnc.com {
-	reverse_proxy http://localhost:8081
-	encode gzip
-}
-
-cvsmap.myvnc.com {
-	reverse_proxy http://localhost:5000
-	encode gzip
-}
-
-dreamwalker.myvnc.com {
-	reverse_proxy http://localhost:8081
-	encode gzip
-}
-
 pos.myvnc.com {
-	# /readme/ 由 docker nginx（9088）內 apps/admin/dist/readme 提供
+	# 顧客掃碼點餐 /customer/
 	handle_path /customer* {
 		reverse_proxy http://127.0.0.1:9089
 		encode gzip
 	}
+	# 跨店市集（內部預覽）/market/
+	handle_path /market* {
+		reverse_proxy http://127.0.0.1:9090
+		encode gzip
+	}
+	# 商家後台 / + API + 產品說明
 	handle {
 		reverse_proxy http://127.0.0.1:9088
 		encode gzip

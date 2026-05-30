@@ -684,8 +684,16 @@ export interface GuestOrderRead {
   id: string
   tenant_id: string
   store_id: string
-  table_id: string
+  table_id: string | null
   table_label: string | null
+  channel?: string
+  fulfillment_type?: string | null
+  customer_name?: string | null
+  customer_phone?: string | null
+  delivery_address?: string | null
+  delivery_status?: string | null
+  payment_method?: string | null
+  payment_status?: string | null
   status: 'submitted' | 'accepted' | 'ready' | 'merged' | 'cancelled'
   customer_note: string | null
   party_size: number | null

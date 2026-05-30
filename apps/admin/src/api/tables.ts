@@ -26,6 +26,11 @@ export function rotateTableToken(id: string) {
   return client.post<{ id: string; public_token: string }>(`/admin/tables/${id}/rotate-token`)
 }
 
-export function listGuestOrders(params?: { store_id?: string; status_in?: string }) {
+export function listGuestOrders(params?: {
+  store_id?: string
+  status_in?: string
+  channel?: string
+  fulfillment_type?: string
+}) {
   return client.get<GuestOrderRead[]>('/guest-orders', { params })
 }

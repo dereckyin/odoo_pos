@@ -1,0 +1,186 @@
+<template>
+  <div v-if="loading" class="state-page">載入中…</div>
+  <div v-else-if="error" class="state-page">{{ error }}</div>
+  <div v-else-if="menu" class="menu-page">
+    <header class="store-header">
+      <button class="back" @click="$router.push({ name: 'home' })">‹</button>
+      <div>
+        <div class="store-name">{{ menu.meta.display_name }}</div>
+        <div v-if="!menu.meta.is_open" class="closed">休息中</div>
+      </div>
+    </header>
+
+    <nav class="cat-bar">
+      <button
+        v-for="rootId in rootCategoryIds"
+        :key="rootId"
+        :class="{ active: activeCat === rootId }"
+        @click="scrollToCat(rootId)"
+      >
+        {{ categoryById[rootId]?.name }}
+      </button>
+    </nav>
+
+    <main class="menu-list" ref="listEl" @scroll.passive="onScroll">
+      <section
+        v-for="rootId in rootCategoryIds"
+        :key="rootId"
+        :ref="(el) => setSectionRef(rootId, el)"
+        class="cat-section"
+      >
+        <h2>{{ categoryById[rootId]?.name }}</h2>
+        <template v-for="cat in categoriesUnderRoot(rootId)" :key="cat.id">
+          <h3 v-if="cat.depth === 1" class="sub-heading">{{ cat.name }}</h3>
+          <article v-for="p in productsByCat(cat.id)" :key="p.id" class="product" @click="addOne(p)">
+            <div class="info">
+              <div class="name">{{ p.name }}</div>
+              <div class="desc" v-if="p.description">{{ p.description }}</div>
+              <div class="price">${{ Math.round(p.price_cents) }}</div>
+            </div>
+            <img v-if="p.image_url" :src="resolveUploadPath(p.image_url)" alt="" />
+            <div v-else class="img-placeholder">{{ p.name.charAt(0) }}</div>
+          </article>
+        </template>
+      </section>
+    </main>
+
+    <button v-if="cart.itemCount > 0" class="cart-fab" @click="$router.push({ name: 'cart' })">
+      <span>查看購物車 {{ cart.itemCount }}</span>
+      <span>${{ Math.round(cart.subtotalCents) }}</span>
+    </button>
+
+    <OptionModal :open="optionProduct != null" :product="optionProduct" @close="optionProduct = null" @confirm="onOptionsConfirmed" />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { fetchStoreMenu, resolveUploadPath } from '@/api'
+import type { MarketplaceMenu, PublicProduct, PublicCategory, SelectedOption } from '@/types'
+import { useCartStore } from '@/stores/cart'
+import OptionModal from '@/components/OptionModal.vue'
+
+const route = useRoute()
+const cart = useCartStore()
+const slug = computed(() => String(route.params.slug))
+
+const menu = ref<MarketplaceMenu | null>(null)
+const loading = ref(true)
+const error = ref('')
+const optionProduct = ref<PublicProduct | null>(null)
+const sectionRefs = new Map<string, HTMLElement>()
+const listEl = ref<HTMLElement | null>(null)
+const activeCat = ref('')
+
+const categoryById = computed(() => {
+  const map: Record<string, PublicCategory> = {}
+  for (const c of menu.value?.categories ?? []) map[c.id] = c
+  return map
+})
+
+const rootCategoryIds = computed(() => {
+  if (!menu.value) return [] as string[]
+  if (menu.value.root_category_ids?.length) return menu.value.root_category_ids
+  return menu.value.categories.filter((c) => c.depth === 0).map((c) => c.id)
+})
+
+function setSectionRef(id: string, el: unknown) {
+  const node = el instanceof HTMLElement ? el : null
+  if (node) sectionRefs.set(id, node)
+}
+
+function productsByCat(catId: string) {
+  return menu.value?.products.filter((p) => p.category_id === catId) ?? []
+}
+
+function categoriesUnderRoot(rootId: string) {
+  if (!menu.value) return [] as PublicCategory[]
+  const byId = categoryById.value
+  const isUnderRoot = (catId: string) => {
+    let cur: PublicCategory | undefined = byId[catId]
+    while (cur) {
+      if (cur.id === rootId) return true
+      cur = cur.parent_id ? byId[cur.parent_id] : undefined
+    }
+    return false
+  }
+  return menu.value.categories
+    .filter((c) => isUnderRoot(c.id) && productsByCat(c.id).length > 0)
+    .sort((a, b) => a.sort_order - b.sort_order)
+}
+
+function addOne(p: PublicProduct) {
+  if (!menu.value) return
+  if (!cart.tryBindStore(menu.value.meta)) {
+    if (confirm('購物車已有其他商家餐點，是否清空並加入？')) {
+      cart.clear()
+      cart.bindStore(menu.value.meta)
+    } else return
+  }
+  if (p.option_groups?.length) optionProduct.value = p
+  else cart.add(p, 1)
+}
+
+function onOptionsConfirmed(options: SelectedOption[]) {
+  if (optionProduct.value) {
+    cart.add(optionProduct.value, 1, options)
+    optionProduct.value = null
+  }
+}
+
+function scrollToCat(catId: string) {
+  const target = sectionRefs.get(catId)
+  if (target && listEl.value) listEl.value.scrollTo({ top: target.offsetTop - 8, behavior: 'smooth' })
+}
+
+function onScroll() {
+  if (!listEl.value) return
+  const top = listEl.value.scrollTop + 24
+  let current = activeCat.value
+  for (const rootId of rootCategoryIds.value) {
+    const el = sectionRefs.get(rootId)
+    if (el && el.offsetTop <= top) current = rootId
+  }
+  activeCat.value = current
+}
+
+async function loadMenu() {
+  loading.value = true
+  error.value = ''
+  try {
+    const { data } = await fetchStoreMenu(slug.value)
+    menu.value = data
+    cart.tryBindStore(data.meta)
+    if (rootCategoryIds.value[0]) activeCat.value = rootCategoryIds.value[0]
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { detail?: string } } }
+    error.value = err.response?.data?.detail || '載入菜單失敗'
+  } finally {
+    loading.value = false
+  }
+}
+
+watch(slug, () => void loadMenu(), { immediate: true })
+</script>
+
+<style scoped>
+.menu-page { display: flex; flex-direction: column; height: 100vh; }
+.store-header { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #fffcf8; border-bottom: 1px solid #eee; }
+.back { border: 0; background: transparent; font-size: 24px; }
+.store-name { font-weight: 600; }
+.closed { color: #b33; font-size: 12px; }
+.cat-bar { display: flex; overflow-x: auto; padding: 8px; background: #fff; border-bottom: 1px solid #eee; }
+.cat-bar button { flex-shrink: 0; border: 0; background: transparent; padding: 8px 14px; border-radius: 16px; }
+.cat-bar button.active { background: #ffeee6; color: #c45c3e; font-weight: 600; }
+.menu-list { flex: 1; overflow-y: auto; padding: 12px 12px 96px; }
+.cat-section h2 { font-size: 16px; margin: 16px 4px 8px; }
+.sub-heading { font-size: 14px; margin: 8px 4px; color: #666; }
+.product { background: #fff; border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; gap: 12px; }
+.product .info { flex: 1; }
+.product .name { font-weight: 600; }
+.product .desc { font-size: 12px; color: #888; }
+.product .price { color: #c45c3e; font-weight: 600; }
+.product img, .product .img-placeholder { width: 72px; height: 72px; border-radius: 8px; object-fit: cover; }
+.product .img-placeholder { background: #ffeee6; display: flex; align-items: center; justify-content: center; color: #c45c3e; font-weight: 700; }
+</style>

@@ -49,6 +49,7 @@ from .invoice import Invoice
 from .idempotency import IdempotencyKey
 from .dining_table import DiningTable
 from .guest_order import GuestOrder, GuestOrderLine
+from .marketplace import MarketplaceListing
 from .purchasing import PurchaseOrder, PurchaseOrderLine, Supplier
 
 __all__ = [
@@ -106,6 +107,7 @@ __all__ = [
     "DiningTable",
     "GuestOrder",
     "GuestOrderLine",
+    "MarketplaceListing",
     "Supplier",
     "PurchaseOrder",
     "PurchaseOrderLine",

@@ -66,3 +66,23 @@ export function updateTenant(id: string, payload: TenantUpdatePayload) {
 export function listPlans() {
   return client.get<SubscriptionPlanRead[]>('/platform/plans')
 }
+
+// ----- Marketplace applications ---------------------------------------------
+
+export function listMarketplaceApplications(status = 'pending') {
+  return client.get<import('./marketplace').MarketplaceListing[]>('/platform/marketplace/applications', {
+    params: { status_filter: status },
+  })
+}
+
+export function approveMarketplaceListing(id: string) {
+  return client.post<import('./marketplace').MarketplaceListing>(
+    `/platform/marketplace/applications/${id}/approve`,
+  )
+}
+
+export function suspendMarketplaceListing(id: string) {
+  return client.post<import('./marketplace').MarketplaceListing>(
+    `/platform/marketplace/applications/${id}/suspend`,
+  )
+}

@@ -36,6 +36,14 @@ def _to_read(g: GuestOrder) -> GuestOrderRead:
         store_id=g.store_id,
         table_id=g.table_id,
         table_label=g.table.label if g.table else None,
+        channel=g.channel,
+        fulfillment_type=g.fulfillment_type,
+        customer_name=g.customer_name,
+        customer_phone=g.customer_phone,
+        delivery_address=g.delivery_address,
+        delivery_status=g.delivery_status,
+        payment_method=g.payment_method,
+        payment_status=g.payment_status,
         status=g.status,
         customer_note=g.customer_note,
         party_size=g.party_size,
@@ -72,6 +80,8 @@ async def list_guest_orders(
     db: DbSession,
     scope: TenantScope,
     store_id: str | None = Query(default=None),
+    channel: str | None = Query(default=None, description="table_qr|marketplace"),
+    fulfillment_type: str | None = Query(default=None),
     status_in: str = Query(
         default="submitted,accepted,ready",
         description="comma-separated subset of: submitted,accepted,ready,merged,cancelled",
@@ -83,6 +93,10 @@ async def list_guest_orders(
     stmt = apply_tenant(select(GuestOrder), GuestOrder, scope)
     if target_store:
         stmt = stmt.where(GuestOrder.store_id == target_store)
+    if channel:
+        stmt = stmt.where(GuestOrder.channel == channel)
+    if fulfillment_type:
+        stmt = stmt.where(GuestOrder.fulfillment_type == fulfillment_type)
     stmt = (
         stmt.where(GuestOrder.status.in_(statuses))
         .options(selectinload(GuestOrder.lines), selectinload(GuestOrder.table))

@@ -1,8 +1,24 @@
 <template>
   <div>
-    <a-page-header title="桌邊訂單監控">
+    <a-page-header title="桌邊 / 網路訂單監控">
       <template #extra>
         <a-space>
+          <a-select
+            v-model:value="channelFilter"
+            style="width: 140px"
+            allow-clear
+            placeholder="來源"
+            :options="channelOptions"
+            @change="fetchData"
+          />
+          <a-select
+            v-model:value="fulfillmentFilter"
+            style="width: 120px"
+            allow-clear
+            placeholder="取餐"
+            :options="fulfillmentOptions"
+            @change="fetchData"
+          />
           <a-select
             v-model:value="storeFilter"
             style="width: 220px"
@@ -55,7 +71,18 @@
       </template>
 
       <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'status'">
+        <template v-if="column.key === 'channel'">
+          {{ record.channel === 'marketplace' ? '市集' : 'QR' }}
+        </template>
+        <template v-else-if="column.key === 'fulfillment'">
+          {{ fulfillmentLabel(record.fulfillment_type) }}
+        </template>
+        <template v-else-if="column.key === 'contact'">
+          <span v-if="record.table_label">{{ record.table_label }}</span>
+          <span v-else-if="record.customer_phone">{{ record.customer_name }} {{ record.customer_phone }}</span>
+          <span v-else>—</span>
+        </template>
+        <template v-else-if="column.key === 'status'">
           <a-tag :color="statusColor(record.status)">{{ statusLabel(record.status) }}</a-tag>
         </template>
         <template v-if="column.key === 'estimated_subtotal_cents'">
@@ -81,6 +108,8 @@ const orders = ref<GuestOrderRead[]>([])
 const stores = ref<StoreRead[]>([])
 const loading = ref(false)
 const storeFilter = ref<string | undefined>(undefined)
+const channelFilter = ref<string | undefined>(undefined)
+const fulfillmentFilter = ref<string | undefined>(undefined)
 const statusFilter = ref<string[]>(['submitted', 'accepted', 'ready'])
 let pollHandle: number | null = null
 
@@ -96,8 +125,20 @@ const statusOptions = [
   { label: '已取消', value: 'cancelled' },
 ]
 
+const channelOptions = [
+  { label: '桌邊 QR', value: 'table_qr' },
+  { label: '網路市集', value: 'marketplace' },
+]
+const fulfillmentOptions = [
+  { label: '外帶', value: 'pickup' },
+  { label: '外送', value: 'delivery' },
+  { label: '內用', value: 'dine_in' },
+]
+
 const columns = [
-  { title: '桌號', dataIndex: 'table_label', width: 100 },
+  { title: '來源', key: 'channel', width: 100 },
+  { title: '取餐', key: 'fulfillment', width: 80 },
+  { title: '桌號/聯絡', key: 'contact', width: 120 },
   { title: '狀態', key: 'status', width: 100 },
   { title: '人數', dataIndex: 'party_size', width: 80 },
   { title: '估計金額', key: 'estimated_subtotal_cents', width: 120 },
@@ -105,6 +146,9 @@ const columns = [
   { title: 'guest order id', dataIndex: 'id' },
 ]
 
+function fulfillmentLabel(s: string | null | undefined) {
+  return ({ pickup: '外帶', delivery: '外送', dine_in: '內用' } as Record<string, string>)[s ?? ''] || '—'
+}
 function statusColor(s: string) {
   switch (s) {
     case 'submitted':
@@ -147,6 +191,8 @@ async function fetchData() {
     const { data } = await listGuestOrders({
       store_id: storeFilter.value,
       status_in: statusFilter.value.join(','),
+      channel: channelFilter.value,
+      fulfillment_type: fulfillmentFilter.value,
     })
     orders.value = data
   } finally {
