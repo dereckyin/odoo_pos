@@ -71,16 +71,35 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(heldCarts);
           }
           if (from < 5) {
-            await m.addColumn(orders, orders.orderNo);
-            await m.addColumn(orders, orders.tableLabel);
-            await m.addColumn(orders, orders.primaryPaymentMethod);
-            await m.addColumn(orders, orders.sourceGuestOrderId);
+            await _addColumnIfMissing(m, orders, orders.orderNo);
+            await _addColumnIfMissing(m, orders, orders.tableLabel);
+            await _addColumnIfMissing(m, orders, orders.primaryPaymentMethod);
+            await _addColumnIfMissing(m, orders, orders.sourceGuestOrderId);
           }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },
       );
+
+  /// SQLite has no IF NOT EXISTS for ADD COLUMN; skip when a partial upgrade
+  /// already created the column (e.g. app crash mid-migration).
+  Future<void> _addColumnIfMissing(
+    Migrator m,
+    TableInfo table,
+    GeneratedColumn column,
+  ) async {
+    final tableName = table.actualTableName;
+    final columnName = column.name;
+    final rows = await customSelect(
+      "SELECT 1 AS ok FROM pragma_table_info('$tableName') WHERE name = ?",
+      variables: [Variable.withString(columnName)],
+      readsFrom: {table},
+    ).get();
+    if (rows.isEmpty) {
+      await m.addColumn(table, column);
+    }
+  }
 
   Future<String?> getMeta(String key) async {
     final row = await (select(kvMeta)..where((t) => t.key.equals(key))).getSingleOrNull();
