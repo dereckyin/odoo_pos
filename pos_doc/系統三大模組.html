@@ -119,12 +119,6 @@
       vertical-align: middle;
     }
 
-    .changelog-item .ver-date {
-      font-size: 0.75rem;
-      color: var(--muted);
-      font-weight: 400;
-    }
-
     .pill {
       display: inline-flex;
       align-items: center;
@@ -499,73 +493,427 @@
       margin-left: 1.2rem;
     }
 
-    /* Phone mock for customer (no screenshot) */
+    /* Phone mock — customer order web (matches /customer/ UI) */
+    .phone-gallery {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .phone-gallery-item {
+      flex: 1 1 240px;
+      max-width: 280px;
+    }
+
+    .phone-gallery-label {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
     .phone-mock {
       max-width: 280px;
       margin: 0 auto;
       border-radius: 28px;
-      padding: 12px;
-      background: #1e2130;
+      padding: 10px;
+      background: #1a1a1a;
       border: 3px solid #333;
       box-shadow: var(--shadow);
     }
 
     .phone-screen {
-      border-radius: 18px;
+      border-radius: 20px;
       overflow: hidden;
-      background: #fff;
-      color: #111;
-      min-height: 360px;
-    }
-
-    .phone-top {
-      background: linear-gradient(135deg, #f59e0b, #ea580c);
-      color: #fff;
-      padding: 1rem;
-      text-align: center;
-    }
-
-    .phone-top h3 { font-size: 1rem; margin-bottom: 0.15rem; }
-    .phone-top p { font-size: 0.75rem; opacity: 0.9; }
-
-    .phone-body { padding: 0.85rem; }
-
-    .menu-item {
+      background: #f5f5f5;
+      color: #222;
+      font-family: "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      position: relative;
       display: flex;
-      gap: 0.65rem;
-      padding: 0.65rem 0;
-      border-bottom: 1px solid #eee;
-      font-size: 0.8rem;
+      flex-direction: column;
     }
 
-    .menu-item .thumb {
-      width: 48px;
-      height: 48px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #fde68a, #fcd34d);
+    .phone-screen--menu { min-height: 420px; }
+    .phone-screen--cart { min-height: 400px; }
+
+    .cust-topbar {
+      background: #fff;
+      padding: 0.55rem 0.65rem;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       flex-shrink: 0;
     }
 
-    .menu-item .price { color: #ea580c; font-weight: 700; margin-left: auto; }
-
-    .phone-cart {
-      margin-top: 0.75rem;
-      padding: 0.75rem;
-      background: #fff7ed;
-      border-radius: 10px;
-      text-align: center;
+    .cust-store { font-size: 0.72rem; font-weight: 600; color: #333; }
+    .cust-table {
+      background: #ff6b35;
+      color: #fff;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.62rem;
+      font-weight: 600;
     }
 
-    .phone-cart button {
+    .cust-catbar {
+      background: #fff;
+      display: flex;
+      gap: 0.15rem;
+      padding: 0.35rem 0.4rem;
+      border-bottom: 1px solid #eee;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+
+    .cust-catbar span {
+      flex-shrink: 0;
+      font-size: 0.62rem;
+      padding: 0.25rem 0.45rem;
+      border-radius: 999px;
+      color: #666;
+    }
+
+    .cust-catbar span.active {
+      background: #ffeee6;
+      color: #ff6b35;
+      font-weight: 600;
+    }
+
+    .cust-scroll {
+      flex: 1;
+      overflow: hidden;
+      padding: 0.45rem 0.45rem 2.6rem;
+      background: #f5f5f5;
+    }
+
+    .cust-cat-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #333;
+      margin: 0.35rem 0.15rem 0.25rem;
+    }
+
+    .cust-sub-title {
+      font-size: 0.62rem;
+      font-weight: 600;
+      color: #555;
+      margin: 0.25rem 0.15rem 0.15rem;
+    }
+
+    .cust-product {
+      background: #fff;
+      border-radius: 8px;
+      padding: 0.45rem;
+      margin-bottom: 0.35rem;
+      display: flex;
+      gap: 0.45rem;
+      align-items: center;
+    }
+
+    .cust-product .thumb {
+      width: 2.4rem;
+      height: 2.4rem;
+      border-radius: 6px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .cust-product .info { flex: 1; min-width: 0; }
+    .cust-product .name { font-size: 0.68rem; font-weight: 600; color: #222; }
+    .cust-product .desc { font-size: 0.55rem; color: #888; margin-top: 0.1rem; }
+    .cust-product .meta {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      margin-top: 0.15rem;
+    }
+    .cust-product .price { font-size: 0.65rem; font-weight: 700; color: #ff6b35; }
+    .cust-badge-opt {
+      font-size: 0.5rem;
+      padding: 0.08rem 0.28rem;
+      border-radius: 4px;
+      background: #fff3e0;
+      color: #e65100;
+      border: 1px solid #ffcc80;
+    }
+
+    .cust-cartbar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #ff6b35;
+      color: #fff;
+      padding: 0.45rem 0.55rem;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.62rem;
+      font-weight: 600;
+    }
+
+    .cust-cartbar .count {
+      background: rgba(255,255,255,0.25);
+      width: 1.25rem;
+      height: 1.25rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+    }
+
+    .cust-cartbar .subtotal { margin-left: auto; font-size: 0.72rem; }
+
+    /* Option sheet overlay */
+    .cust-option-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: flex;
+      align-items: flex-end;
+      z-index: 5;
+    }
+
+    .cust-option-sheet {
+      background: #fff;
       width: 100%;
-      margin-top: 0.5rem;
-      padding: 0.6rem;
+      border-radius: 12px 12px 0 0;
+      padding: 0.55rem 0.55rem 0.65rem;
+      max-height: 72%;
+      overflow: hidden;
+    }
+
+    .cust-option-sheet header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.35rem;
+      padding-bottom: 0.35rem;
+      border-bottom: 1px solid #eee;
+      margin-bottom: 0.35rem;
+    }
+
+    .cust-option-sheet h4 {
+      font-size: 0.72rem;
+      font-weight: 700;
+      margin: 0;
+      flex: 1;
+    }
+
+    .cust-option-sheet .sheet-price {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #ff6b35;
+    }
+
+    .cust-opt-group { margin-bottom: 0.35rem; }
+    .cust-opt-group h5 {
+      font-size: 0.58rem;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 0.2rem;
+    }
+
+    .cust-opt-group h5 em {
+      color: #ff6b35;
+      font-style: normal;
+    }
+
+    .cust-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.2rem;
+    }
+
+    .cust-chips span {
+      font-size: 0.52rem;
+      padding: 0.15rem 0.35rem;
+      border-radius: 999px;
+      border: 1px solid #ddd;
+      color: #555;
+      background: #fff;
+    }
+
+    .cust-chips span.on {
+      border-color: #ff6b35;
+      background: #ffeee6;
+      color: #ff6b35;
+      font-weight: 600;
+    }
+
+    .cust-opt-confirm {
+      width: 100%;
+      margin-top: 0.25rem;
+      padding: 0.4rem;
       border: none;
       border-radius: 8px;
-      background: #ea580c;
+      background: #ff6b35;
       color: #fff;
+      font-size: 0.62rem;
       font-weight: 600;
+    }
+
+    /* Cart screen */
+    .cust-cart-top {
+      background: #fff;
+      padding: 0.5rem 0.55rem;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    .cust-cart-top .back { color: #ff6b35; font-size: 1rem; line-height: 1; }
+
+    .cust-line {
+      background: #fff;
+      border-radius: 8px;
+      padding: 0.45rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .cust-line-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.68rem;
+      font-weight: 600;
+    }
+
+    .cust-line-opts {
+      font-size: 0.55rem;
+      color: #888;
+      margin-top: 0.15rem;
+    }
+
+    .cust-qty-row {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-top: 0.25rem;
+      font-size: 0.62rem;
+    }
+
+    .cust-qty-row button {
+      width: 1.1rem;
+      height: 1.1rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+      color: #333;
+      font-size: 0.7rem;
+      line-height: 1;
+      padding: 0;
+    }
+
+    .cust-qty-row .line-total {
+      margin-left: auto;
+      font-weight: 700;
+      color: #ff6b35;
+    }
+
+    .cust-note {
+      width: 100%;
+      margin-top: 0.25rem;
+      padding: 0.25rem 0.35rem;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      font-size: 0.52rem;
+      color: #aaa;
+      background: #fafafa;
+    }
+
+    .cust-block {
+      background: #fff;
+      border-radius: 8px;
+      padding: 0.4rem 0.45rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .cust-block label {
+      display: block;
+      font-size: 0.58rem;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 0.2rem;
+    }
+
+    .cust-member-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cust-member-btn {
+      font-size: 0.55rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 6px;
+      border: 1px solid #ff6b35;
+      color: #ff6b35;
+      background: #fff;
+    }
+
+    .cust-member-logged {
+      font-size: 0.55rem;
+      color: #333;
+    }
+
+    .cust-earn-hint {
+      font-size: 0.52rem;
+      color: #2e7d32;
+      margin-top: 0.2rem;
+    }
+
+    .cust-pay-hint {
+      font-size: 0.55rem;
+      color: #888;
+      text-align: center;
+      margin: 0.25rem 0;
+    }
+
+    .cust-submit-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border-top: 1px solid #eee;
+      padding: 0.4rem 0.55rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .cust-submit-bar .total {
+      flex: 1;
+      font-size: 0.58rem;
+      color: #666;
+    }
+
+    .cust-submit-bar .total strong {
+      display: block;
       font-size: 0.85rem;
+      color: #ff6b35;
+    }
+
+    .cust-submit-btn {
+      padding: 0.4rem 0.65rem;
+      border: none;
+      border-radius: 8px;
+      background: #ff6b35;
+      color: #fff;
+      font-size: 0.62rem;
+      font-weight: 600;
+      white-space: nowrap;
     }
 
     .note-box {
@@ -841,10 +1189,10 @@
     <!-- Changelog -->
     <section id="changelog" class="card">
       <h2>版本歷程與功能更新</h2>
-      <p class="subtitle">版本採 <strong>v1.0 → v1.01 → v1.02 …</strong> 疊加；下方由新到舊列出各版重點。目前正式環境為 <strong>__APP_VERSION__</strong>。</p>
+      <p class="subtitle">由新到舊整理各版重點。目前版本 <strong>__APP_VERSION__</strong>。</p>
 
       <article class="changelog-item">
-        <h3><span class="ver">v1.06</span><span class="ver-date">2026-05-30</span> 報表金額顯示修正</h3>
+        <h3><span class="ver">v1.06</span> 報表金額顯示修正</h3>
         <ul>
           <li><strong>銷售報表</strong> — 總營收、淨營收、客單價等統計數字與訂單列表一致（TWD 以元為單位）</li>
           <li><strong>分析圖表</strong> — 日營收、品類占比、環境洞察等圖表刻度同步修正</li>
@@ -853,7 +1201,7 @@
       </article>
 
       <article class="changelog-item">
-        <h3><span class="ver">v1.05</span><span class="ver-date">2026-05</span> 專業會員與商業智慧</h3>
+        <h3><span class="ver">v1.05</span> 專業會員與商業智慧</h3>
         <ul>
           <li><strong>忠誠度引擎</strong> — 可設定累點規則、點數兌換折抵、自動升級／降級、優惠券過期驗證</li>
           <li><strong>後台會員管理</strong> — 新增／編輯會員、手動調點、點數流水、訂單紀錄、等級 CRUD、忠誠度設定頁</li>
@@ -873,7 +1221,7 @@
       </article>
 
       <article class="changelog-item">
-        <h3><span class="ver">v1.04</span><span class="ver-date">2026-05</span> 商品選項與商業智慧</h3>
+        <h3><span class="ver">v1.04</span> 商品選項與商業智慧</h3>
         <ul>
           <li><strong>選項庫</strong> — 甜度、冰塊、加料等可重用選項，商品自由綁定；收銀與桌邊點餐同步支援</li>
           <li><strong>多層分類</strong> — 樹狀菜單分類，後台與現場逐層點選</li>
@@ -883,7 +1231,7 @@
       </article>
 
       <article class="changelog-item">
-        <h3><span class="ver">v1.03</span><span class="ver-date">2026-05</span> 採購與商品能見度</h3>
+        <h3><span class="ver">v1.03</span> 採購與商品能見度</h3>
         <ul>
           <li><strong>採購管理</strong> — 供應商、採購單建立與追蹤</li>
           <li><strong>選單顯示控制</strong> — 商品／分類可個別設定是否出現在 POS 或桌邊點餐</li>
@@ -891,7 +1239,7 @@
       </article>
 
       <article class="changelog-item">
-        <h3><span class="ver">v1.02</span><span class="ver-date">2026-05</span> 桌邊 QR 點餐</h3>
+        <h3><span class="ver">v1.02</span> 桌邊 QR 點餐</h3>
         <ul>
           <li><strong>桌位 QR</strong> — 後台產生桌碼、列印貼桌</li>
           <li><strong>客人自助點餐</strong> — 掃碼看菜單、選項、購物車、送出至廚房</li>
@@ -902,7 +1250,7 @@
       </article>
 
       <article class="changelog-item">
-        <h3><span class="ver">v1.01</span><span class="ver-date">2026-05</span> 多店 SaaS 與平台化</h3>
+        <h3><span class="ver">v1.01</span> 多店 SaaS 與平台化</h3>
         <ul>
           <li><strong>多租戶</strong> — 一平台服務多家品牌，資料完全隔離</li>
           <li><strong>店家申請開通</strong> — 線上填表、信箱驗證、平台審核後自動開通</li>
@@ -912,7 +1260,7 @@
       </article>
 
       <article class="changelog-item">
-        <h3><span class="ver">v1.0</span><span class="ver-date">2026-05</span> 品牌與正式環境</h3>
+        <h3><span class="ver">v1.0</span> 品牌與正式環境</h3>
         <ul>
           <li><strong>品牌定名「點餐趣」</strong> — 收銀 App、後台、說明頁統一視覺</li>
           <li><strong>正式站點</strong> — pos.myvnc.com 提供後台、桌邊點餐、APK 下載與本說明頁</li>
@@ -1076,38 +1424,161 @@
         </div>
 
         <div>
-          <p style="text-align:center;font-size:0.85rem;color:var(--muted);margin-bottom:0.75rem">客人手機畫面示意</p>
-          <div class="phone-mock" role="img" aria-label="桌邊點餐手機畫面示意">
-            <div class="phone-screen">
-              <div class="phone-top">
-                <h3>窗邊 1 桌 · 旗艦店</h3>
-                <p>掃碼點餐 · 點餐趣</p>
+          <p style="text-align:center;font-size:0.85rem;color:var(--muted);margin-bottom:0.75rem">客人手機畫面示意（菜單 · 選項 · 購物車）</p>
+          <div class="phone-gallery" role="group" aria-label="桌邊點餐手機畫面示意">
+            <!-- 菜單 + 選項面板 -->
+            <div class="phone-gallery-item">
+              <p class="phone-gallery-label">① 瀏覽菜單 · 選項</p>
+              <div class="phone-mock">
+                <div class="phone-screen phone-screen--menu">
+                  <div class="cust-topbar">
+                    <span class="cust-store">點餐趣 · 信義旗艦店</span>
+                    <span class="cust-table">桌 A3</span>
+                  </div>
+                  <div class="cust-catbar">
+                    <span class="active">飲料</span>
+                    <span>輕食</span>
+                    <span>主餐</span>
+                    <span>甜點</span>
+                  </div>
+                  <div class="cust-scroll">
+                    <div class="cust-cat-title">飲料</div>
+                    <div class="cust-sub-title">手搖茶</div>
+                    <div class="cust-product">
+                      <div class="thumb" style="background:linear-gradient(135deg,#fde68a,#fbbf24)">🧋</div>
+                      <div class="info">
+                        <div class="name">珍珠奶茶</div>
+                        <div class="desc">经典黑糖風味 · 中杯</div>
+                        <div class="meta">
+                          <span class="price">$55 起</span>
+                          <span class="cust-badge-opt">可選甜度·冰塊·加料</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="cust-product">
+                      <div class="thumb" style="background:linear-gradient(135deg,#bbf7d0,#86efac)">🍵</div>
+                      <div class="info">
+                        <div class="name">烏龍青茶</div>
+                        <div class="meta"><span class="price">$45</span></div>
+                      </div>
+                    </div>
+                    <div class="cust-sub-title">咖啡</div>
+                    <div class="cust-product">
+                      <div class="thumb" style="background:linear-gradient(135deg,#d6d3d1,#a8a29e)">☕</div>
+                      <div class="info">
+                        <div class="name">美式咖啡</div>
+                        <div class="meta">
+                          <span class="price">$60</span>
+                          <span class="cust-badge-opt">可選冰熱</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="cust-cartbar">
+                    <span class="count">2</span>
+                    <span>查看購物車</span>
+                    <span class="subtotal">$120</span>
+                  </div>
+                  <div class="cust-option-overlay" aria-hidden="true">
+                    <div class="cust-option-sheet">
+                      <header>
+                        <h4>珍珠奶茶</h4>
+                        <span class="sheet-price">$65</span>
+                      </header>
+                      <div class="cust-opt-group">
+                        <h5>甜度 <em>*</em></h5>
+                        <div class="cust-chips">
+                          <span>全糖</span>
+                          <span class="on">半糖</span>
+                          <span>微糖</span>
+                          <span>無糖</span>
+                        </div>
+                      </div>
+                      <div class="cust-opt-group">
+                        <h5>冰塊 <em>*</em></h5>
+                        <div class="cust-chips">
+                          <span>正常冰</span>
+                          <span class="on">少冰</span>
+                          <span>去冰</span>
+                          <span>熱飲</span>
+                        </div>
+                      </div>
+                      <div class="cust-opt-group">
+                        <h5>加料</h5>
+                        <div class="cust-chips">
+                          <span class="on">珍珠 (+$10)</span>
+                          <span>布丁 (+$10)</span>
+                          <span>椰果 (+$10)</span>
+                        </div>
+                      </div>
+                      <button type="button" class="cust-opt-confirm">加入購物車</button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="phone-body">
-                <div class="menu-item">
-                  <div class="thumb"></div>
-                  <div>
-                    <div>珍珠奶茶</div><br />
-                    <span class="price">NT$ 55</span>
+            </div>
+
+            <!-- 購物車 -->
+            <div class="phone-gallery-item">
+              <p class="phone-gallery-label">② 購物車 · 會員 · 送單</p>
+              <div class="phone-mock">
+                <div class="phone-screen phone-screen--cart">
+                  <div class="cust-cart-top">
+                    <span class="back">‹</span>
+                    <span>購物車</span>
                   </div>
-                </div>
-                <div class="menu-item">
-                  <div class="thumb" style="background:linear-gradient(135deg,#bbf7d0,#86efac)"></div>
-                  <div>
-                    滷肉飯<br />
-                    <span class="price">NT$ 65</span>
+                  <div class="cust-scroll" style="padding-bottom:3.2rem">
+                    <div class="cust-line">
+                      <div class="cust-line-head">
+                        <span>珍珠奶茶</span>
+                        <span>$65</span>
+                      </div>
+                      <div class="cust-line-opts">半糖 · 少冰 · 珍珠</div>
+                      <div class="cust-qty-row">
+                        <button type="button">−</button>
+                        <span>1</span>
+                        <button type="button">+</button>
+                        <span class="line-total">小計 $65</span>
+                      </div>
+                      <div class="cust-note">其他備註（選填）</div>
+                    </div>
+                    <div class="cust-line">
+                      <div class="cust-line-head">
+                        <span>滷肉飯</span>
+                        <span>$85</span>
+                      </div>
+                      <div class="cust-line-opts">不辣</div>
+                      <div class="cust-qty-row">
+                        <button type="button">−</button>
+                        <span>1</span>
+                        <button type="button">+</button>
+                        <span class="line-total">小計 $85</span>
+                      </div>
+                    </div>
+                    <div class="cust-block">
+                      <label>整單備註</label>
+                      <div class="cust-note" style="margin-top:0">例：兒童餐具、麻煩慢一點上菜</div>
+                    </div>
+                    <div class="cust-block">
+                      <label>用餐人數（選填）</label>
+                      <div class="cust-note" style="margin-top:0">2</div>
+                    </div>
+                    <div class="cust-block">
+                      <div class="cust-member-row">
+                        <label style="margin:0">會員</label>
+                        <span class="cust-member-logged">王小明（128 點）</span>
+                      </div>
+                      <p class="cust-earn-hint">預估本次累點 1 點（櫃台結帳後入帳）</p>
+                    </div>
+                    <p class="cust-pay-hint">送出後請至櫃台結帳</p>
                   </div>
-                </div>
-                <div class="menu-item">
-                  <div class="thumb" style="background:linear-gradient(135deg,#fecaca,#fca5a5)"></div>
-                  <div>
-                    紅燒牛肉麵<br />
-                    <span class="price">NT$ 120</span>
+                  <div class="cust-submit-bar">
+                    <div class="total">
+                      <span>合計</span>
+                      <strong>$150</strong>
+                    </div>
+                    <button type="button" class="cust-submit-btn">送出至廚房</button>
                   </div>
-                </div>
-                <div class="phone-cart">
-                  購物車 2 品項 · NT$ 120<br />
-                  <button type="button">送出點餐</button>
                 </div>
               </div>
             </div>
