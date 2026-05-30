@@ -1,6 +1,6 @@
 <template>
   <a-layout style="min-height: 100vh">
-    <a-layout-sider v-model:collapsed="collapsed" collapsible :trigger="null" breakpoint="lg" @collapse="collapsed = $event">
+    <a-layout-sider v-model:collapsed="collapsed" collapsible :trigger="null" breakpoint="lg" class="app-sider" @collapse="collapsed = $event">
       <div class="logo">
         <span v-if="!collapsed">點餐趣｜後台</span>
         <span v-else>點</span>
@@ -78,6 +78,10 @@
           <a-menu-item key="platform-alliances" @click="$router.push({ name: 'platform-alliances' })">聯盟管理</a-menu-item>
         </a-sub-menu>
       </a-menu>
+      <div class="sider-footer">
+        <span v-if="!collapsed" class="sider-version">{{ APP_VERSION }}</span>
+        <span v-else class="sider-version sider-version--mini">{{ APP_VERSION }}</span>
+      </div>
     </a-layout-sider>
     <a-layout>
       <a-layout-header class="app-header">
@@ -100,6 +104,7 @@
             </a-menu>
           </template>
         </a-dropdown>
+        <span class="header-version">{{ APP_VERSION }}</span>
       </a-layout-header>
       <a-layout-content class="app-content">
         <router-view />
@@ -112,6 +117,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { APP_VERSION } from '@/version'
 import {
   DashboardOutlined, ShoppingOutlined, GiftOutlined, TeamOutlined,
   InboxOutlined, ShopOutlined, FileTextOutlined, BarChartOutlined, UserOutlined,
@@ -204,5 +210,40 @@ function handleLogout() {
 }
 .user-link {
   color: rgba(0,0,0,.65);
+}
+.app-sider {
+  position: relative;
+}
+.app-sider :deep(.ant-layout-sider-children) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.app-sider :deep(.ant-menu) {
+  flex: 1;
+  overflow-y: auto;
+}
+.header-version {
+  margin-left: 16px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+}
+.sider-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+.sider-version {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.5px;
+}
+.sider-version--mini {
+  font-size: 10px;
 }
 </style>

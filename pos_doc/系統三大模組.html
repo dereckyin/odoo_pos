@@ -101,6 +101,30 @@
       justify-content: center;
     }
 
+    .version-line {
+      margin: 1rem auto 0;
+      font-size: 0.95rem;
+      opacity: 0.9;
+    }
+
+    .version-badge {
+      display: inline-block;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+      background: rgba(255, 248, 240, 0.22);
+      border: 1px solid rgba(212, 168, 83, 0.55);
+      vertical-align: middle;
+    }
+
+    .changelog-item .ver-date {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
     .pill {
       display: inline-flex;
       align-items: center;
@@ -614,6 +638,13 @@
 
     footer a { color: var(--accent); }
 
+    footer .version-badge {
+      background: rgba(196, 92, 62, 0.1);
+      border-color: rgba(196, 92, 62, 0.25);
+      color: var(--accent);
+      margin-left: 0.25rem;
+    }
+
     code {
       background: var(--surface-2);
       padding: 0.15em 0.4em;
@@ -729,6 +760,7 @@
         <span class="pill pill--admin"><span class="dot"></span>管理後台</span>
         <span class="pill pill--customer"><span class="dot"></span>桌邊點餐</span>
       </div>
+      <p class="version-line">目前版本 <span class="version-badge">__APP_VERSION__</span></p>
       <div class="download-banner">
         <a class="btn-download" href="/readme/pos-release.apk" download="點餐趣-pos.apk">
           <span aria-hidden="true">📲</span> 下載 Android 收銀 App
@@ -809,10 +841,19 @@
     <!-- Changelog -->
     <section id="changelog" class="card">
       <h2>版本歷程與功能更新</h2>
-      <p class="subtitle">依上線時間整理，方便店家了解系統演進與訂閱方案差異。</p>
+      <p class="subtitle">版本採 <strong>v1.0 → v1.01 → v1.02 …</strong> 疊加；下方由新到舊列出各版重點。目前正式環境為 <strong>__APP_VERSION__</strong>。</p>
 
       <article class="changelog-item">
-        <h3><span class="ver">2026.05</span> 專業會員與商業智慧</h3>
+        <h3><span class="ver">v1.06</span><span class="ver-date">2026-05-30</span> 報表金額顯示修正</h3>
+        <ul>
+          <li><strong>銷售報表</strong> — 總營收、淨營收、客單價等統計數字與訂單列表一致（TWD 以元為單位）</li>
+          <li><strong>分析圖表</strong> — 日營收、品類占比、環境洞察等圖表刻度同步修正</li>
+          <li><strong>版本標示</strong> — 後台與說明頁顯示版本號，方便辨識與回報問題</li>
+        </ul>
+      </article>
+
+      <article class="changelog-item">
+        <h3><span class="ver">v1.05</span><span class="ver-date">2026-05</span> 專業會員與商業智慧</h3>
         <ul>
           <li><strong>忠誠度引擎</strong> — 可設定累點規則、點數兌換折抵、自動升級／降級、優惠券過期驗證</li>
           <li><strong>後台會員管理</strong> — 新增／編輯會員、手動調點、點數流水、訂單紀錄、等級 CRUD、忠誠度設定頁</li>
@@ -832,7 +873,7 @@
       </article>
 
       <article class="changelog-item">
-        <h3><span class="ver">2026.05</span> 商品選項與商業智慧</h3>
+        <h3><span class="ver">v1.04</span><span class="ver-date">2026-05</span> 商品選項與商業智慧</h3>
         <ul>
           <li><strong>選項庫</strong> — 甜度、冰塊、加料等可重用選項，商品自由綁定；收銀與桌邊點餐同步支援</li>
           <li><strong>多層分類</strong> — 樹狀菜單分類，後台與現場逐層點選</li>
@@ -842,7 +883,7 @@
       </article>
 
       <article class="changelog-item">
-        <h3><span class="ver">2026.05</span> 採購與商品能見度</h3>
+        <h3><span class="ver">v1.03</span><span class="ver-date">2026-05</span> 採購與商品能見度</h3>
         <ul>
           <li><strong>採購管理</strong> — 供應商、採購單建立與追蹤</li>
           <li><strong>選單顯示控制</strong> — 商品／分類可個別設定是否出現在 POS 或桌邊點餐</li>
@@ -850,7 +891,7 @@
       </article>
 
       <article class="changelog-item">
-        <h3><span class="ver">2026.05</span> 桌邊 QR 點餐</h3>
+        <h3><span class="ver">v1.02</span><span class="ver-date">2026-05</span> 桌邊 QR 點餐</h3>
         <ul>
           <li><strong>桌位 QR</strong> — 後台產生桌碼、列印貼桌</li>
           <li><strong>客人自助點餐</strong> — 掃碼看菜單、選項、購物車、送出至廚房</li>
@@ -861,7 +902,7 @@
       </article>
 
       <article class="changelog-item">
-        <h3><span class="ver">2026.05</span> 多店 SaaS 與平台化</h3>
+        <h3><span class="ver">v1.01</span><span class="ver-date">2026-05</span> 多店 SaaS 與平台化</h3>
         <ul>
           <li><strong>多租戶</strong> — 一平台服務多家品牌，資料完全隔離</li>
           <li><strong>店家申請開通</strong> — 線上填表、信箱驗證、平台審核後自動開通</li>
@@ -871,7 +912,7 @@
       </article>
 
       <article class="changelog-item">
-        <h3><span class="ver">2026.05</span> 品牌與正式環境</h3>
+        <h3><span class="ver">v1.0</span><span class="ver-date">2026-05</span> 品牌與正式環境</h3>
         <ul>
           <li><strong>品牌定名「點餐趣」</strong> — 收銀 App、後台、說明頁統一視覺</li>
           <li><strong>正式站點</strong> — pos.myvnc.com 提供後台、桌邊點餐、APK 下載與本說明頁</li>
@@ -1125,7 +1166,7 @@
   </main>
 
   <footer>
-    <p>點餐趣 · 餐飲 POS 解決方案</p>
+    <p>點餐趣 · 餐飲 POS 解決方案 · <span class="version-badge">__APP_VERSION__</span></p>
     <p style="margin-top:0.5rem;color:var(--muted);font-size:0.88rem">
       正式站點 <a href="https://pos.myvnc.com/">pos.myvnc.com</a> ·
       最新更新見上方 <a href="#changelog">版本歷程</a>

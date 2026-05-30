@@ -41,6 +41,7 @@
           還沒有帳號？
           <a @click.prevent="$router.push({ name: 'signup' })">申請開通新店家</a>
         </div>
+        <p class="login-version">{{ APP_VERSION }}</p>
       </a-form>
     </a-card>
 
@@ -82,6 +83,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { formatApiError } from '@/api/formatApiError'
 import { useAuthStore } from '@/stores/auth'
+import { APP_VERSION } from '@/version'
 import * as authApi from '@/api/auth'
 
 const router = useRouter()
@@ -199,5 +201,11 @@ async function submitChangePassword() {
   background: rgba(0, 0, 0, 0.06);
   padding: 0 4px;
   border-radius: 2px;
+}
+.login-version {
+  text-align: center;
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.35);
 }
 </style>

@@ -10,6 +10,20 @@ import { fileURLToPath } from 'url'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const srcDir = path.join(root, 'pos_doc')
 const dstDir = path.join(root, 'apps/admin/public/readme')
+const versionPath = path.join(root, 'version.json')
+
+function loadVersion() {
+  if (!fs.existsSync(versionPath)) {
+    return { displayVersion: 'v?.??', version: '?.??' }
+  }
+  return JSON.parse(fs.readFileSync(versionPath, 'utf8'))
+}
+
+function applyVersion(html, version) {
+  return html
+    .replaceAll('__APP_VERSION__', version.displayVersion)
+    .replaceAll('__APP_VERSION_FULL__', version.version)
+}
 
 if (!fs.existsSync(srcDir)) {
   console.error('pos_doc/ not found')
@@ -28,7 +42,10 @@ if (!fs.existsSync(htmlSrc)) {
   htmlSrc = path.join(srcDir, fallback)
 }
 
-fs.copyFileSync(htmlSrc, path.join(dstDir, 'index.html'))
+const version = loadVersion()
+let html = fs.readFileSync(htmlSrc, 'utf8')
+html = applyVersion(html, version)
+fs.writeFileSync(path.join(dstDir, 'index.html'), html)
 
 for (const name of fs.readdirSync(srcDir)) {
   if (name.endsWith('.png')) {
@@ -44,4 +61,4 @@ if (fs.existsSync(apk)) {
   console.warn('WARN: app-release.apk not found — run `flutter build apk` to refresh download link')
 }
 
-console.log('Synced readme → apps/admin/public/readme')
+console.log(`Synced readme → apps/admin/public/readme (${version.displayVersion})`)
