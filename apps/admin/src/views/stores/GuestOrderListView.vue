@@ -82,6 +82,12 @@
           <span v-else-if="record.customer_phone">{{ record.customer_name }} {{ record.customer_phone }}</span>
           <span v-else>—</span>
         </template>
+        <template v-else-if="column.key === 'payment'">
+          {{ paymentLabel(record) }}
+        </template>
+        <template v-else-if="column.key === 'delivery'">
+          {{ deliveryLabel(record) }}
+        </template>
         <template v-else-if="column.key === 'status'">
           <a-tag :color="statusColor(record.status)">{{ statusLabel(record.status) }}</a-tag>
         </template>
@@ -139,6 +145,8 @@ const columns = [
   { title: '來源', key: 'channel', width: 100 },
   { title: '取餐', key: 'fulfillment', width: 80 },
   { title: '桌號/聯絡', key: 'contact', width: 120 },
+  { title: '付款', key: 'payment', width: 100 },
+  { title: '送達', key: 'delivery', width: 90 },
   { title: '狀態', key: 'status', width: 100 },
   { title: '人數', dataIndex: 'party_size', width: 80 },
   { title: '估計金額', key: 'estimated_subtotal_cents', width: 120 },
@@ -148,6 +156,19 @@ const columns = [
 
 function fulfillmentLabel(s: string | null | undefined) {
   return ({ pickup: '外帶', delivery: '外送', dine_in: '內用' } as Record<string, string>)[s ?? ''] || '—'
+}
+function paymentLabel(record: GuestOrderRead) {
+  if (record.payment_method === 'online') {
+    return record.payment_status === 'paid' ? '線上已付' : '線上待付'
+  }
+  if (record.payment_method === 'counter') return '櫃台付'
+  return '—'
+}
+function deliveryLabel(record: GuestOrderRead) {
+  if (record.fulfillment_type !== 'delivery') return '—'
+  if (record.delivery_status === 'delivered') return '已送達'
+  if (record.delivery_status === 'pending') return '待送達'
+  return record.delivery_status || '—'
 }
 function statusColor(s: string) {
   switch (s) {

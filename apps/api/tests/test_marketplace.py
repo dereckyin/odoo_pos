@@ -167,3 +167,89 @@ async def test_marketplace_feed_category_auto_and_override(app, client):
     assert r.status_code == 200
     cats = r.json()
     assert any(c["name"] == "便當" and c["product_count"] >= 1 for c in cats)
+
+
+async def test_guest_order_complete_and_deliver(app, client):
+    factory = db_mod.get_session_factory()
+    bundle, product, listing = await _seed_listing(factory)
+
+    async with factory() as db:
+        row = await db.get(MarketplaceListing, listing.id)
+        row.supports_delivery = True
+        row.payment_online = True
+        row.delivery_fee_cents = 3000
+        await db.commit()
+
+    r = await client.post(
+        f"/public/marketplace/stores/{listing.slug}/orders",
+        json={
+            "fulfillment_type": "delivery",
+            "payment_method": "online",
+            "customer_name": "外送客",
+            "customer_phone": "0911111111",
+            "delivery_address": "台北市信義區1號",
+            "lines": [{"product_id": product.id, "qty": 1}],
+        },
+    )
+    assert r.status_code == 201, r.text
+    gid = r.json()["order_id"]
+
+    async with factory() as db:
+        from app.models import GuestOrder
+
+        g = await db.get(GuestOrder, gid)
+        g.payment_status = "paid"
+        await db.commit()
+
+    from .helpers import login_pos
+
+    token = await login_pos(client, bundle)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    r = await client.post(f"/guest-orders/{gid}/accept", headers=headers)
+    assert r.status_code == 200, r.text
+    r = await client.post(f"/guest-orders/{gid}/ready", headers=headers)
+    assert r.status_code == 200, r.text
+
+    r = await client.post(f"/guest-orders/{gid}/complete", headers=headers)
+    assert r.status_code == 409, r.text
+
+    r = await client.post(f"/guest-orders/{gid}/deliver", headers=headers)
+    assert r.status_code == 200, r.text
+    assert r.json()["delivery_status"] == "delivered"
+
+    r = await client.post(f"/guest-orders/{gid}/complete", headers=headers)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["status"] == "merged"
+    assert body["merged_at"] is not None
+    assert body["merged_order_id"] is None
+
+
+async def test_guest_order_complete_rejects_counter(app, client):
+    factory = db_mod.get_session_factory()
+    bundle, product, listing = await _seed_listing(factory)
+
+    r = await client.post(
+        f"/public/marketplace/stores/{listing.slug}/orders",
+        json={
+            "fulfillment_type": "pickup",
+            "payment_method": "counter",
+            "customer_name": "櫃台客",
+            "customer_phone": "0922222222",
+            "lines": [{"product_id": product.id, "qty": 1}],
+        },
+    )
+    assert r.status_code == 201, r.text
+    gid = r.json()["order_id"]
+
+    from .helpers import login_pos
+
+    token = await login_pos(client, bundle)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    await client.post(f"/guest-orders/{gid}/accept", headers=headers)
+    await client.post(f"/guest-orders/{gid}/ready", headers=headers)
+
+    r = await client.post(f"/guest-orders/{gid}/complete", headers=headers)
+    assert r.status_code == 409, r.text

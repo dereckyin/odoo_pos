@@ -29,7 +29,7 @@ class CartPanel extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          _GuestOrderBar(),
+          _MarketplaceOrderBar(),
           _MemberBar(member: cart.member, onTap: onMember, onClear: () => controller.setMember(null)),
           const Divider(height: 1),
           Expanded(
@@ -73,51 +73,134 @@ class CartPanel extends ConsumerWidget {
   }
 }
 
-class _GuestOrderBar extends ConsumerWidget {
+class _MarketplaceOrderBar extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_MarketplaceOrderBar> createState() => _MarketplaceOrderBarState();
+}
+
+class _MarketplaceOrderBarState extends ConsumerState<_MarketplaceOrderBar> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
     final guest = ref.watch(importedGuestOrderProvider);
     if (guest == null) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context)!;
-    final table = guest.displayTitle;
+    final scheme = Theme.of(context).colorScheme;
+    final isMarketplace = guest.isMarketplace;
+
     return Material(
-      color: Theme.of(context).colorScheme.primaryContainer,
+      color: scheme.primaryContainer,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(Icons.table_restaurant_outlined, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                l10n.guestOrderSource(table),
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-            ),
-            TextButton.icon(
-              onPressed: () async {
-                try {
-                  await ref.read(kitchenPrinterServiceProvider).printTicket(
-                        kitchenTicketFromGuestOrder(guest),
-                      );
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.reprintKitchenTicket)),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('列印失敗：$e'),
-                        backgroundColor: Theme.of(context).colorScheme.error,
+            Row(
+              children: [
+                Icon(
+                  isMarketplace ? Icons.storefront_outlined : Icons.table_restaurant_outlined,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.guestOrderSource(guest.displayTitle),
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                ),
+                if (isMarketplace && guest.paymentLabel.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: (guest.isOnlinePaid ? Colors.green : Colors.orange).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      guest.paymentLabel,
+                      style: TextStyle(
+                        color: guest.isOnlinePaid ? Colors.green : Colors.orange,
+                        fontSize: 12,
                       ),
-                    );
+                    ),
+                  ),
+              ],
+            ),
+            if (isMarketplace) ...[
+              const SizedBox(height: 6),
+              if ((guest.customerName ?? '').isNotEmpty || (guest.customerPhone ?? '').isNotEmpty)
+                Text(
+                  '${guest.customerName ?? ''} ${guest.customerPhone ?? ''}'.trim(),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              Row(
+                children: [
+                  Chip(
+                    label: Text(guest.fulfillmentLabel),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  if (guest.isDelivery && guest.isDelivered)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 4),
+                      child: Chip(
+                        label: Text('已送達'),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                ],
+              ),
+              if (guest.isDelivery && (guest.deliveryAddress ?? '').isNotEmpty)
+                InkWell(
+                  onTap: () => setState(() => _expanded = !_expanded),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          guest.deliveryAddress!,
+                          maxLines: _expanded ? null : 1,
+                          overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                      Icon(_expanded ? Icons.expand_less : Icons.expand_more, size: 18),
+                    ],
+                  ),
+                ),
+              if (_expanded && (guest.deliveryNote ?? '').isNotEmpty)
+                Text(
+                  '外送備註：${guest.deliveryNote}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+            ],
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () async {
+                  try {
+                    await ref.read(kitchenPrinterServiceProvider).printTicket(
+                          kitchenTicketFromGuestOrder(guest),
+                        );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.reprintKitchenTicket)),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('列印失敗：$e'),
+                          backgroundColor: scheme.error,
+                        ),
+                      );
+                    }
                   }
-                }
-              },
-              icon: const Icon(Icons.print_outlined, size: 18),
-              label: Text(l10n.reprintKitchenTicket),
+                },
+                icon: const Icon(Icons.print_outlined, size: 18),
+                label: Text(l10n.reprintKitchenTicket),
+              ),
             ),
           ],
         ),

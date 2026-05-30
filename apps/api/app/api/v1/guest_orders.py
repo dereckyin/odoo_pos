@@ -41,6 +41,7 @@ def _to_read(g: GuestOrder) -> GuestOrderRead:
         customer_name=g.customer_name,
         customer_phone=g.customer_phone,
         delivery_address=g.delivery_address,
+        delivery_note=g.delivery_note,
         delivery_status=g.delivery_status,
         payment_method=g.payment_method,
         payment_status=g.payment_status,
@@ -153,6 +154,58 @@ async def cancel(
     g.cancel_reason = payload.reason
     await audit(db, scope, action="guest_order_cancel", resource_type="guest_order",
                 resource_id=gid, flush=False)
+    await db.commit()
+    await db.refresh(g)
+    return _to_read(g)
+
+
+@router.post("/{gid}/complete", response_model=GuestOrderRead)
+async def complete_online_paid(gid: str, db: DbSession, scope: TenantScope):
+    """Mark a marketplace online-paid guest order as merged without creating a POS payment."""
+    g = await _load(db, scope, gid)
+    if g.channel != "marketplace":
+        raise HTTPException(status.HTTP_409_CONFLICT, "complete is only for marketplace orders")
+    if g.payment_method != "online" or g.payment_status != "paid":
+        raise HTTPException(status.HTTP_409_CONFLICT, "order is not online-paid")
+    if g.status not in ("ready", "accepted"):
+        raise HTTPException(status.HTTP_409_CONFLICT, f"cannot complete from status={g.status}")
+    if g.fulfillment_type == "delivery" and g.delivery_status != "delivered":
+        raise HTTPException(status.HTTP_409_CONFLICT, "delivery orders must be marked delivered first")
+
+    g.status = "merged"
+    g.merged_at = datetime.now(timezone.utc)
+    await audit(
+        db,
+        scope,
+        action="guest_order_complete",
+        resource_type="guest_order",
+        resource_id=gid,
+        flush=False,
+    )
+    await db.commit()
+    await db.refresh(g)
+    return _to_read(g)
+
+
+@router.post("/{gid}/deliver", response_model=GuestOrderRead)
+async def mark_delivered(gid: str, db: DbSession, scope: TenantScope):
+    g = await _load(db, scope, gid)
+    if g.fulfillment_type != "delivery":
+        raise HTTPException(status.HTTP_409_CONFLICT, "not a delivery order")
+    if g.status not in ("accepted", "ready"):
+        raise HTTPException(status.HTTP_409_CONFLICT, f"cannot deliver from status={g.status}")
+    if g.delivery_status == "delivered":
+        raise HTTPException(status.HTTP_409_CONFLICT, "already delivered")
+
+    g.delivery_status = "delivered"
+    await audit(
+        db,
+        scope,
+        action="guest_order_deliver",
+        resource_type="guest_order",
+        resource_id=gid,
+        flush=False,
+    )
     await db.commit()
     await db.refresh(g)
     return _to_read(g)

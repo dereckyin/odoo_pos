@@ -163,6 +163,8 @@ async def upload_order(
 
     for ln_data in validated_lines:
         db.add(OrderLine(order_id=order.id, **ln_data))
+        if ln_data.get("sku") == "MARKETPLACE-DELIVERY-FEE":
+            continue
         mvt = InventoryMovement(
             tenant_id=scope.tenant_id,
             store_id=order.store_id,

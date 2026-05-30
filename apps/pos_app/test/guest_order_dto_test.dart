@@ -51,4 +51,32 @@ void main() {
 
     expect(order.displayTitle, '桌 A3');
   });
+
+  test('GuestOrderDto parses payment and delivery fields', () {
+    final order = GuestOrderDto.fromJson({
+      'id': 'go-3',
+      'store_id': 'store-1',
+      'channel': 'marketplace',
+      'fulfillment_type': 'delivery',
+      'customer_name': '李小華',
+      'customer_phone': '0987654321',
+      'delivery_address': '台北市中正區',
+      'delivery_note': '放管理室',
+      'delivery_status': 'pending',
+      'payment_method': 'online',
+      'payment_status': 'paid',
+      'status': 'ready',
+      'estimated_subtotal_cents': 15000,
+      'created_at': '2026-05-30T10:00:00Z',
+      'updated_at': '2026-05-30T10:00:00Z',
+      'lines': [],
+    });
+
+    expect(order.isOnlinePaid, isTrue);
+    expect(order.isDelivery, isTrue);
+    expect(order.isDelivered, isFalse);
+    expect(order.paymentLabel, '已線上付款');
+    expect(order.fulfillmentLabel, '外送');
+    expect(order.checkoutNotePrefix, '市集外送 · 李小華 · 0987654321');
+  });
 }

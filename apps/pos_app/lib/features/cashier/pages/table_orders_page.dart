@@ -13,6 +13,7 @@ import '../widgets/order_detail_conflict_dialog.dart';
 ///
 /// Primary path: ``submitted`` → **接單出餐並帶入** (print + accept + ready +
 /// import to order detail). Fallback: ``accepted`` / ``ready`` → **帶入點單明細**.
+/// Marketplace online-paid orders skip checkout and use **確認完成（免收款）**.
 class TableOrdersPage extends ConsumerStatefulWidget {
   const TableOrdersPage({super.key});
 
@@ -31,7 +32,6 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final snapshot = ref.watch(guestOrdersControllerProvider);
 
     final pending = snapshot.ofStatus('submitted');
@@ -64,7 +64,6 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
             ...pending.map(
               (o) => _GuestOrderTile(
                 order: o,
-                fulfillLabel: l10n.fulfillAndImport,
                 onFulfillAndImport: _fulfillAndImport,
               ),
             ),
@@ -78,8 +77,9 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
             ...checkoutPending.map(
               (o) => _GuestOrderTile(
                 order: o,
-                fulfillLabel: l10n.importToOrderDetail,
                 onImport: _importToOrderDetail,
+                onComplete: _completeOrder,
+                onDeliver: _deliverOrder,
               ),
             ),
         ],
@@ -145,6 +145,13 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
     final l10n = AppLocalizations.of(context)!;
     try {
       final ready = await ref.read(guestOrdersControllerProvider.notifier).acceptAndReady(order);
+      if (order.isOnlinePaid) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${ready.displayTitle} 已出餐，請在待結帳區確認完成')),
+        );
+        return;
+      }
       if (!await _importToCart(ready)) return;
       _goToCashierWithSnack(ready);
     } catch (e) {
@@ -159,6 +166,7 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
   }
 
   Future<void> _importToOrderDetail(GuestOrderDto order) async {
+    if (order.isOnlinePaid) return;
     final l10n = AppLocalizations.of(context)!;
     try {
       var target = order;
@@ -172,6 +180,50 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${l10n.importOrderDetailFailed}：$e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _completeOrder(GuestOrderDto order) async {
+    try {
+      var target = order;
+      if (order.status == 'accepted') {
+        target = await ref.read(guestOrdersControllerProvider.notifier).markReady(order);
+      }
+      await ref.read(guestOrdersControllerProvider.notifier).complete(target);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${target.displayTitle} 已確認完成（免收款）')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('確認完成失敗：$e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _deliverOrder(GuestOrderDto order) async {
+    try {
+      var target = order;
+      if (order.status == 'accepted') {
+        target = await ref.read(guestOrdersControllerProvider.notifier).markReady(order);
+      }
+      await ref.read(guestOrdersControllerProvider.notifier).deliver(target);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${target.displayTitle} 已標記送達')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('標記送達失敗：$e'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -202,19 +254,29 @@ class _SectionHeader extends StatelessWidget {
 class _GuestOrderTile extends StatelessWidget {
   const _GuestOrderTile({
     required this.order,
-    required this.fulfillLabel,
     this.onFulfillAndImport,
     this.onImport,
+    this.onComplete,
+    this.onDeliver,
   });
   final GuestOrderDto order;
-  final String fulfillLabel;
   final Future<void> Function(GuestOrderDto)? onFulfillAndImport;
   final Future<void> Function(GuestOrderDto)? onImport;
+  final Future<void> Function(GuestOrderDto)? onComplete;
+  final Future<void> Function(GuestOrderDto)? onDeliver;
 
   @override
   Widget build(BuildContext context) {
     final df = DateFormat('HH:mm');
     final estimated = (order.estimatedSubtotalCents / 100).toStringAsFixed(0);
+    final l10n = AppLocalizations.of(context)!;
+    final isSubmitted = order.status == 'submitted';
+    final showComplete = !isSubmitted &&
+        order.isOnlinePaid &&
+        (!order.isDelivery || order.isDelivered);
+    final showImport = !isSubmitted && order.isCounterPayment;
+    final showDeliver = !isSubmitted && order.isDelivery && !order.isDelivered;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Padding(
@@ -230,10 +292,41 @@ class _GuestOrderTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 _StatusChip(status: order.status),
+                if (order.isMarketplace) ...[
+                  const SizedBox(width: 6),
+                  _TagChip(label: order.fulfillmentLabel),
+                ],
+                if (order.paymentLabel.isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  _TagChip(
+                    label: order.paymentLabel,
+                    color: order.isOnlinePaid ? Colors.green : Colors.orange,
+                  ),
+                ],
+                if (order.isDelivered) ...[
+                  const SizedBox(width: 6),
+                  const _TagChip(label: '已送達', color: Colors.teal),
+                ],
                 const Spacer(),
                 Text(df.format(order.createdAt.toLocal())),
               ],
             ),
+            if (order.isMarketplace &&
+                ((order.customerPhone ?? '').isNotEmpty ||
+                    (order.customerName ?? '').isNotEmpty)) ...[
+              const SizedBox(height: 4),
+              Text(
+                '${order.customerName ?? ''} ${order.customerPhone ?? ''}'.trim(),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+            if (order.isDelivery && (order.deliveryAddress ?? '').isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                order.deliveryAddress!,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: 6),
             Text('估計金額：\$$estimated'),
             const SizedBox(height: 8),
@@ -251,21 +344,41 @@ class _GuestOrderTile extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                if (order.status == 'submitted' && onFulfillAndImport != null)
+                if (isSubmitted && onFulfillAndImport != null)
                   FilledButton.icon(
                     onPressed: () => onFulfillAndImport!(order),
                     icon: const Icon(Icons.playlist_add_check),
-                    label: Text(fulfillLabel),
+                    label: Text(
+                      order.isOnlinePaid ? '接單出餐' : l10n.fulfillAndImport,
+                    ),
                   )
-                else if (onImport != null)
-                  FilledButton.icon(
-                    onPressed: () => onImport!(order),
-                    icon: const Icon(Icons.playlist_add_check),
-                    label: Text(fulfillLabel),
-                  ),
+                else ...[
+                  if (showDeliver && onDeliver != null)
+                    OutlinedButton.icon(
+                      onPressed: () => onDeliver!(order),
+                      icon: const Icon(Icons.delivery_dining),
+                      label: const Text('標記已送達'),
+                    ),
+                  if (showComplete && onComplete != null)
+                    FilledButton.icon(
+                      onPressed: () => onComplete!(order),
+                      icon: const Icon(Icons.check_circle_outline),
+                      label: Text(
+                        '確認完成（免收款） \$${(order.estimatedSubtotalCents / 100).toStringAsFixed(0)}',
+                      ),
+                    ),
+                  if (showImport && onImport != null)
+                    FilledButton.icon(
+                      onPressed: () => onImport!(order),
+                      icon: const Icon(Icons.playlist_add_check),
+                      label: Text(l10n.importToOrderDetail),
+                    ),
+                ],
               ],
             ),
           ],
@@ -298,6 +411,25 @@ class _StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(label, style: TextStyle(color: color)),
+    );
+  }
+}
+
+class _TagChip extends StatelessWidget {
+  const _TagChip({required this.label, this.color});
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? Colors.blueGrey;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: c.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(label, style: TextStyle(color: c, fontSize: 12)),
     );
   }
 }

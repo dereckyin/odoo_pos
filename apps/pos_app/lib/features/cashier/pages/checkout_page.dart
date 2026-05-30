@@ -6,6 +6,7 @@ import 'package:pos_domain/pos_domain.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
 import '../../../data/printer/printer_providers.dart';
+import '../../../data/api/dto.dart';
 import '../providers/cart_controller.dart';
 import '../providers/checkout_controller.dart';
 
@@ -68,6 +69,12 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                         MoneyText(payable,
                             style: theme.textTheme.displayLarge?.copyWith(color: theme.colorScheme.primary)),
                       ]),
+                      if (ref.watch(importedGuestOrderProvider)?.isMarketplace == true) ...[
+                        const SizedBox(height: 12),
+                        _MarketplaceCustomerCard(
+                          order: ref.watch(importedGuestOrderProvider)!,
+                        ),
+                      ],
                       if (cart.member != null) ...[
                         const SizedBox(height: 12),
                         Card(
@@ -303,7 +310,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
               code: _carrierCtl.text.trim().isEmpty ? null : _carrierCtl.text.trim(),
             );
 
-      final tableLabel = ref.read(importedGuestOrderProvider)?.tableLabel;
+      final guestOrder = ref.read(importedGuestOrderProvider);
+      final tableLabel = guestOrder?.displayTitle;
 
       final result = await ref.read(checkoutControllerProvider).finalize(
         payments: [payment],
@@ -312,6 +320,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         invoiceGateway: 'ezpay',
         pointsRedeemed: _pointsToRedeem,
         couponCode: _couponCtl.text.trim().isEmpty ? null : _couponCtl.text.trim(),
+        note: cart.note,
       );
 
       try {
@@ -340,4 +349,36 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         InvoiceCarrierType.citizenDigital => '自然人憑證',
         InvoiceCarrierType.member => '會員載具',
       };
+}
+
+class _MarketplaceCustomerCard extends StatelessWidget {
+  const _MarketplaceCustomerCard({required this.order});
+  final GuestOrderDto order;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('市集訂單', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            if ((order.customerName ?? '').isNotEmpty)
+              Text('姓名：${order.customerName}'),
+            if ((order.customerPhone ?? '').isNotEmpty)
+              Text('電話：${order.customerPhone}'),
+            Text('取餐：${order.fulfillmentLabel}'),
+            if (order.paymentLabel.isNotEmpty) Text('付款：${order.paymentLabel}'),
+            if (order.isDelivery && (order.deliveryAddress ?? '').isNotEmpty)
+              Text('地址：${order.deliveryAddress}'),
+            if (order.isDelivery && (order.deliveryNote ?? '').isNotEmpty)
+              Text('外送備註：${order.deliveryNote}'),
+          ],
+        ),
+      ),
+    );
+  }
 }

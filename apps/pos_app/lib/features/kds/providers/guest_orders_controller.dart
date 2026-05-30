@@ -123,6 +123,20 @@ class GuestOrdersController extends StateNotifier<GuestOrdersSnapshot> {
     _replace(updated);
   }
 
+  Future<GuestOrderDto> complete(GuestOrderDto order) async {
+    final api = _ref.read(posApiProvider);
+    final updated = await api.completeGuestOrder(order.id);
+    _replace(updated);
+    return updated;
+  }
+
+  Future<GuestOrderDto> deliver(GuestOrderDto order) async {
+    final api = _ref.read(posApiProvider);
+    final updated = await api.deliverGuestOrder(order.id);
+    _replace(updated);
+    return updated;
+  }
+
   void _replace(GuestOrderDto updated) {
     final next = [
       for (final o in state.orders)

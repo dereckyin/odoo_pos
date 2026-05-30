@@ -33,6 +33,7 @@ class CheckoutController {
     int taxType = 1,
     int pointsRedeemed = 0,
     String? couponCode,
+    String? note,
   }) async {
     final cart = _ref.read(cartControllerProvider);
     final session = _ref.read(authStateProvider).session;
@@ -62,6 +63,7 @@ class CheckoutController {
       payments: payments,
       now: now,
       invoiceCarrier: carrier?.code,
+      note: note ?? cart.note,
     );
 
     await db.transaction(() async {

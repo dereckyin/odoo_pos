@@ -41,6 +41,10 @@ class GuestOrderCard extends StatelessWidget {
                       .titleLarge
                       ?.copyWith(fontWeight: FontWeight.w800),
                 ),
+                if (order.isMarketplace && order.paymentLabel.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  _PaymentChip(label: order.paymentLabel, paid: order.isOnlinePaid),
+                ],
                 const Spacer(),
                 if (order.partySize != null)
                   Padding(
@@ -59,16 +63,22 @@ class GuestOrderCard extends StatelessWidget {
             if (order.isMarketplace && (order.customerPhone ?? '').isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
-                order.customerPhone!,
+                '${order.customerName ?? ''} ${order.customerPhone!}'.trim(),
                 style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
               ),
             ],
-            if (order.fulfillmentType == 'delivery' &&
-                (order.deliveryAddress ?? '').isNotEmpty) ...[
+            if (order.isDelivery && (order.deliveryAddress ?? '').isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
                 order.deliveryAddress!,
                 style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+              ),
+            ],
+            if (order.isDelivery && (order.deliveryNote ?? '').isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                '外送備註：${order.deliveryNote}',
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
               ),
             ],
             const SizedBox(height: 8),
@@ -159,5 +169,24 @@ class GuestOrderCard extends StatelessWidget {
   String _fmtQty(num q) {
     if (q == q.toInt()) return q.toInt().toString();
     return q.toStringAsFixed(2);
+  }
+}
+
+class _PaymentChip extends StatelessWidget {
+  const _PaymentChip({required this.label, required this.paid});
+  final String label;
+  final bool paid;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = paid ? Colors.green : Colors.orange;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(label, style: TextStyle(color: color, fontSize: 12)),
+    );
   }
 }

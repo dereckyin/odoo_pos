@@ -186,6 +186,10 @@ class _GuestOrderJson {
     this.customerPhone,
     this.deliveryAddress,
     this.customerNote,
+    this.paymentMethod,
+    this.paymentStatus,
+    this.deliveryStatus,
+    this.deliveryNote,
     this.partySize,
   });
 
@@ -203,6 +207,10 @@ class _GuestOrderJson {
         customerName: o.customerName,
         customerPhone: o.customerPhone,
         deliveryAddress: o.deliveryAddress,
+        deliveryNote: o.deliveryNote,
+        deliveryStatus: o.deliveryStatus,
+        paymentMethod: o.paymentMethod,
+        paymentStatus: o.paymentStatus,
         customerNote: o.customerNote,
         partySize: o.partySize,
         lines: o.lines
@@ -237,6 +245,10 @@ class _GuestOrderJson {
         customerName: j['customer_name'] as String?,
         customerPhone: j['customer_phone'] as String?,
         deliveryAddress: j['delivery_address'] as String?,
+        deliveryNote: j['delivery_note'] as String?,
+        deliveryStatus: j['delivery_status'] as String?,
+        paymentMethod: j['payment_method'] as String?,
+        paymentStatus: j['payment_status'] as String?,
         customerNote: j['customer_note'] as String?,
         partySize: (j['party_size'] as num?)?.toInt(),
         lines: (j['lines'] as List).cast<Map<String, dynamic>>(),
@@ -248,7 +260,8 @@ class _GuestOrderJson {
   final String createdAt, updatedAt;
   final String channel;
   final String? fulfillmentType;
-  final String? customerName, customerPhone, deliveryAddress;
+  final String? customerName, customerPhone, deliveryAddress, deliveryNote;
+  final String? paymentMethod, paymentStatus, deliveryStatus;
   final String? tableLabel, customerNote;
   final int? partySize;
   final List<Map<String, dynamic>> lines;
@@ -266,6 +279,10 @@ class _GuestOrderJson {
         if (customerName != null) 'customer_name': customerName,
         if (customerPhone != null) 'customer_phone': customerPhone,
         if (deliveryAddress != null) 'delivery_address': deliveryAddress,
+        if (deliveryNote != null) 'delivery_note': deliveryNote,
+        if (deliveryStatus != null) 'delivery_status': deliveryStatus,
+        if (paymentMethod != null) 'payment_method': paymentMethod,
+        if (paymentStatus != null) 'payment_status': paymentStatus,
         if (tableLabel != null) 'table_label': tableLabel,
         if (customerNote != null) 'customer_note': customerNote,
         if (partySize != null) 'party_size': partySize,
@@ -286,6 +303,10 @@ class _GuestOrderJson {
         customerName: customerName,
         customerPhone: customerPhone,
         deliveryAddress: deliveryAddress,
+        deliveryNote: deliveryNote,
+        deliveryStatus: deliveryStatus,
+        paymentMethod: paymentMethod,
+        paymentStatus: paymentStatus,
         customerNote: customerNote,
         partySize: partySize,
         lines: lines

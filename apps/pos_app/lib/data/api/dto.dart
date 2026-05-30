@@ -1,6 +1,9 @@
 /// JSON DTOs - hand-rolled to avoid build_runner being a hard requirement on
 /// first checkout. They mirror the FastAPI schemas in `apps/api/app/schemas`.
 
+/// SKU on synthetic delivery-fee lines imported from marketplace guest orders.
+const marketplaceDeliveryFeeSku = 'MARKETPLACE-DELIVERY-FEE';
+
 class StoreDto {
   StoreDto({
     required this.id,
@@ -523,6 +526,10 @@ class GuestOrderDto {
     this.customerPhone,
     this.deliveryAddress,
     this.customerNote,
+    this.paymentMethod,
+    this.paymentStatus,
+    this.deliveryStatus,
+    this.deliveryNote,
     this.partySize,
     this.acceptedAt,
     this.readyAt,
@@ -543,6 +550,10 @@ class GuestOrderDto {
         customerName: j['customer_name'] as String?,
         customerPhone: j['customer_phone'] as String?,
         deliveryAddress: j['delivery_address'] as String?,
+        deliveryNote: j['delivery_note'] as String?,
+        deliveryStatus: j['delivery_status'] as String?,
+        paymentMethod: j['payment_method'] as String?,
+        paymentStatus: j['payment_status'] as String?,
         status: j['status'] as String,
         customerNote: j['customer_note'] as String?,
         partySize: (j['party_size'] as num?)?.toInt(),
@@ -566,7 +577,8 @@ class GuestOrderDto {
   final String? tableId, tableLabel;
   final String channel;
   final String? fulfillmentType;
-  final String? customerName, customerPhone, deliveryAddress;
+  final String? customerName, customerPhone, deliveryAddress, deliveryNote;
+  final String? paymentMethod, paymentStatus, deliveryStatus;
   final String? customerNote, cancelReason, acceptedByUserId, mergedOrderId;
   final int? partySize;
   final int estimatedSubtotalCents;
@@ -575,6 +587,41 @@ class GuestOrderDto {
   final List<GuestOrderLineDto> lines;
 
   bool get isMarketplace => channel == 'marketplace';
+
+  bool get isOnlinePaid =>
+      paymentMethod == 'online' && paymentStatus == 'paid';
+
+  bool get isCounterPayment =>
+      paymentMethod == 'counter' || (paymentMethod != 'online' && !isOnlinePaid);
+
+  bool get isDelivery => fulfillmentType == 'delivery';
+
+  bool get isDelivered => deliveryStatus == 'delivered';
+
+  String get fulfillmentLabel => switch (fulfillmentType) {
+        'pickup' => '外帶',
+        'delivery' => '外送',
+        'dine_in' => '內用',
+        _ => isMarketplace ? '市集' : '內用',
+      };
+
+  String get paymentLabel => switch (paymentMethod) {
+        'online' when paymentStatus == 'paid' => '已線上付款',
+        'online' => '線上付款（待付）',
+        'counter' => '櫃台付款',
+        _ => '',
+      };
+
+  /// Prefix for POS receipt / order note when checking out a marketplace order.
+  String get checkoutNotePrefix {
+    if (!isMarketplace) return '';
+    final parts = <String>['市集$fulfillmentLabel'];
+    final name = customerName?.trim();
+    if (name != null && name.isNotEmpty) parts.add(name);
+    final phone = customerPhone?.trim();
+    if (phone != null && phone.isNotEmpty) parts.add(phone);
+    return parts.join(' · ');
+  }
 
   /// Short label for KDS cards, kitchen tickets, and cashier import snackbars.
   String get displayTitle {

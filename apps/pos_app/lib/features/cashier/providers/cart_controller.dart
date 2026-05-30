@@ -178,11 +178,13 @@ class CartController extends StateNotifier<Cart> {
     }
     final repo = _ref.read(productRepositoryProvider);
     final lines = <CartLine>[];
+    Product? anchorProduct;
     for (final l in guestOrder.lines) {
       final product = await repo.findById(l.productId);
       if (product == null) {
         throw ValidationError('product not found: ${l.productName}');
       }
+      anchorProduct ??= product;
       lines.add(CartLine.custom(
         id: newUuid(),
         product: product,
@@ -194,7 +196,37 @@ class CartController extends StateNotifier<Cart> {
             .toList(growable: false),
       ));
     }
-    state = state.copyWith(lines: lines, note: guestOrder.customerNote);
+
+    final linesSum = guestOrder.lines.fold<int>(0, (sum, l) => sum + l.lineTotalCents);
+    final feeGap = guestOrder.estimatedSubtotalCents - linesSum;
+    if (feeGap > 0 && anchorProduct != null) {
+      lines.add(CartLine.custom(
+        id: newUuid(),
+        product: Product(
+          id: anchorProduct.id,
+          sku: marketplaceDeliveryFeeSku,
+          name: '外送費',
+          price: Money(feeGap),
+          hideFromPosBrowse: true,
+        ),
+        qty: 1,
+        unitPrice: Money(feeGap),
+        note: 'marketplace_delivery_fee',
+      ));
+    }
+
+    final noteParts = <String>[];
+    if (guestOrder.isMarketplace && guestOrder.checkoutNotePrefix.isNotEmpty) {
+      noteParts.add(guestOrder.checkoutNotePrefix);
+    }
+    if ((guestOrder.customerNote ?? '').isNotEmpty) {
+      noteParts.add(guestOrder.customerNote!);
+    }
+
+    state = state.copyWith(
+      lines: lines,
+      note: noteParts.isEmpty ? null : noteParts.join('\n'),
+    );
     _ref.read(pendingGuestOrderIdProvider.notifier).state = guestOrder.id;
     _ref.read(importedGuestOrderProvider.notifier).state = guestOrder;
     await _evaluatePromotions();

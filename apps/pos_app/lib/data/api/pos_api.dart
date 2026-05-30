@@ -269,6 +269,16 @@ class PosApi {
     return GuestOrderDto.fromJson(_asMap(r.data));
   }
 
+  Future<GuestOrderDto> completeGuestOrder(String id) async {
+    final r = await _dio.post('/guest-orders/$id/complete');
+    return GuestOrderDto.fromJson(_asMap(r.data));
+  }
+
+  Future<GuestOrderDto> deliverGuestOrder(String id) async {
+    final r = await _dio.post('/guest-orders/$id/deliver');
+    return GuestOrderDto.fromJson(_asMap(r.data));
+  }
+
   // helpers
   Map<String, dynamic> _asMap(dynamic data) => (data as Map).cast<String, dynamic>();
 }

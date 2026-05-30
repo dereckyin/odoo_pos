@@ -48,6 +48,7 @@ class GuestOrderRead(ORMModel):
     customer_name: str | None = None
     customer_phone: str | None = None
     delivery_address: str | None = None
+    delivery_note: str | None = None
     delivery_status: str | None = None
     payment_method: str | None = None
     payment_status: str | None = None
