@@ -173,13 +173,18 @@ class _GuestOrderJson {
   const _GuestOrderJson({
     required this.id,
     required this.storeId,
-    required this.tableId,
     required this.status,
     required this.estimatedSubtotalCents,
     required this.createdAt,
     required this.updatedAt,
     required this.lines,
+    this.tableId,
     this.tableLabel,
+    this.channel = 'table_qr',
+    this.fulfillmentType,
+    this.customerName,
+    this.customerPhone,
+    this.deliveryAddress,
     this.customerNote,
     this.partySize,
   });
@@ -193,6 +198,11 @@ class _GuestOrderJson {
         createdAt: o.createdAt.toUtc().toIso8601String(),
         updatedAt: o.updatedAt.toUtc().toIso8601String(),
         tableLabel: o.tableLabel,
+        channel: o.channel,
+        fulfillmentType: o.fulfillmentType,
+        customerName: o.customerName,
+        customerPhone: o.customerPhone,
+        deliveryAddress: o.deliveryAddress,
         customerNote: o.customerNote,
         partySize: o.partySize,
         lines: o.lines
@@ -216,20 +226,29 @@ class _GuestOrderJson {
   factory _GuestOrderJson.fromJson(Map<String, dynamic> j) => _GuestOrderJson(
         id: j['id'] as String,
         storeId: j['store_id'] as String,
-        tableId: j['table_id'] as String,
+        tableId: j['table_id'] as String?,
         status: j['status'] as String,
         estimatedSubtotalCents: (j['estimated_subtotal_cents'] as num?)?.toInt() ?? 0,
         createdAt: j['created_at'] as String,
         updatedAt: j['updated_at'] as String,
         tableLabel: j['table_label'] as String?,
+        channel: j['channel'] as String? ?? 'table_qr',
+        fulfillmentType: j['fulfillment_type'] as String?,
+        customerName: j['customer_name'] as String?,
+        customerPhone: j['customer_phone'] as String?,
+        deliveryAddress: j['delivery_address'] as String?,
         customerNote: j['customer_note'] as String?,
         partySize: (j['party_size'] as num?)?.toInt(),
         lines: (j['lines'] as List).cast<Map<String, dynamic>>(),
       );
 
-  final String id, storeId, tableId, status;
+  final String id, storeId, status;
+  final String? tableId;
   final int estimatedSubtotalCents;
   final String createdAt, updatedAt;
+  final String channel;
+  final String? fulfillmentType;
+  final String? customerName, customerPhone, deliveryAddress;
   final String? tableLabel, customerNote;
   final int? partySize;
   final List<Map<String, dynamic>> lines;
@@ -237,11 +256,16 @@ class _GuestOrderJson {
   Map<String, dynamic> toJson() => {
         'id': id,
         'store_id': storeId,
-        'table_id': tableId,
+        if (tableId != null) 'table_id': tableId,
         'status': status,
         'estimated_subtotal_cents': estimatedSubtotalCents,
         'created_at': createdAt,
         'updated_at': updatedAt,
+        'channel': channel,
+        if (fulfillmentType != null) 'fulfillment_type': fulfillmentType,
+        if (customerName != null) 'customer_name': customerName,
+        if (customerPhone != null) 'customer_phone': customerPhone,
+        if (deliveryAddress != null) 'delivery_address': deliveryAddress,
         if (tableLabel != null) 'table_label': tableLabel,
         if (customerNote != null) 'customer_note': customerNote,
         if (partySize != null) 'party_size': partySize,
@@ -257,6 +281,11 @@ class _GuestOrderJson {
         createdAt: DateTime.parse(createdAt),
         updatedAt: DateTime.parse(updatedAt),
         tableLabel: tableLabel,
+        channel: channel,
+        fulfillmentType: fulfillmentType,
+        customerName: customerName,
+        customerPhone: customerPhone,
+        deliveryAddress: deliveryAddress,
         customerNote: customerNote,
         partySize: partySize,
         lines: lines
