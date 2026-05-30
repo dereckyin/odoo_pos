@@ -77,7 +77,7 @@
         <strong>${{ Math.round(cart.subtotalCents) }}</strong>
       </div>
       <button class="submit-btn" :disabled="submitting" @click="submit">
-        {{ submitting ? '送出中…' : '送出至廚房' }}
+        {{ submitting ? '送出中…' : '送出點餐' }}
       </button>
     </footer>
   </div>

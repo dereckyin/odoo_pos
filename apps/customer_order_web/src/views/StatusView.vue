@@ -78,9 +78,9 @@ function statusClass(s: GuestOrderRead['status']) {
 }
 function statusBig(s: GuestOrderRead['status']) {
   return ({
-    submitted: '已送出，等待廚房接受',
-    accepted: '廚房製作中',
-    ready: '已完成製作',
+    submitted: '已送出，等待接單',
+    accepted: '餐點準備中',
+    ready: '餐點已備好',
     merged: '已結帳',
     cancelled: '已取消',
   } as Record<string, string>)[s]
@@ -88,7 +88,7 @@ function statusBig(s: GuestOrderRead['status']) {
 function statusHint(s: GuestOrderRead['status']) {
   return ({
     submitted: '請耐心等候，店員稍後會接單。',
-    accepted: '餐點正在製作，完成後會送至您的桌位。',
+    accepted: '廚房正在準備您的餐點，請稍候。',
     ready: '請至櫃台結帳，謝謝。',
     merged: '感謝您的光臨。',
     cancelled: '此訂單已取消。',
