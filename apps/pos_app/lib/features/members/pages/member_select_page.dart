@@ -43,7 +43,8 @@ class _MemberSelectPageState extends ConsumerState<MemberSelectPage> {
                     await api.findMemberByPhone(q) ?? await api.findMemberByQr(q);
                 if (!mounted) return;
                 if (remote != null) {
-                  _bindAndPop(_dtoToDomain(remote));
+                  final local = await ref.read(memberRepositoryProvider).findById(remote.id);
+                  _bindAndPop(local ?? _dtoToDomain(remote));
                   return;
                 }
                 setState(() => _query = q);

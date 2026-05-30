@@ -123,7 +123,7 @@ async def test_orders_list_does_not_leak_other_tenants(app, client):
     # A's listing contains only A's order.
     r = await client.get("/orders", headers={"Authorization": f"Bearer {a_token}"})
     assert r.status_code == 200
-    ids = {o["id"] for o in r.json()}
+    ids = {o["id"] for o in r.json()["items"]}
     assert ids == {"ord-a-1"}
 
     # A cannot fetch B's order by id.

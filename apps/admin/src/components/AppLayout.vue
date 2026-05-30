@@ -15,6 +15,7 @@
           <template #title>產品管理</template>
           <a-menu-item key="products" @click="$router.push({ name: 'products' })">商品列表</a-menu-item>
           <a-menu-item key="categories" @click="$router.push({ name: 'categories' })">分類管理</a-menu-item>
+          <a-menu-item key="option-groups" @click="$router.push({ name: 'option-groups' })">選項庫</a-menu-item>
           <a-menu-item key="product-import" @click="$router.push({ name: 'product-import' })">CSV 匯入</a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="marketing-group">
@@ -28,6 +29,8 @@
           <template #title>會員管理</template>
           <a-menu-item key="members" @click="$router.push({ name: 'members' })">會員列表</a-menu-item>
           <a-menu-item key="member-levels" @click="$router.push({ name: 'member-levels' })">等級管理</a-menu-item>
+          <a-menu-item key="loyalty-settings" @click="$router.push({ name: 'loyalty-settings' })">忠誠度設定</a-menu-item>
+          <a-menu-item key="member-webhooks" @click="$router.push({ name: 'member-webhooks' })">Webhook</a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="inventory-group">
           <template #icon><InboxOutlined /></template>
@@ -55,6 +58,14 @@
           <a-menu-item key="orders" @click="$router.push({ name: 'orders' })">訂單查詢</a-menu-item>
           <a-menu-item key="reports" @click="$router.push({ name: 'reports' })">銷售報表</a-menu-item>
         </a-sub-menu>
+        <a-sub-menu key="bi-group">
+          <template #icon><BarChartOutlined /></template>
+          <template #title>商業智慧</template>
+          <a-menu-item key="analytics-sales" @click="$router.push({ name: 'analytics-sales' })">銷售分析</a-menu-item>
+          <a-menu-item key="analytics-stores" @click="$router.push({ name: 'analytics-stores' })">門店績效</a-menu-item>
+          <a-menu-item key="analytics-context" @click="$router.push({ name: 'analytics-context' })">環境洞察</a-menu-item>
+          <a-menu-item key="analytics-members" @click="$router.push({ name: 'analytics-members' })">會員分析</a-menu-item>
+        </a-sub-menu>
         <a-menu-item v-if="auth.isTenantAdmin" key="tenant-settings" @click="$router.push({ name: 'tenant-settings' })">
           <template #icon><SafetyOutlined /></template>
           <span>租戶設定</span>
@@ -64,6 +75,7 @@
           <template #title>平台管理</template>
           <a-menu-item key="platform-applications" @click="$router.push({ name: 'platform-applications' })">店家申請審核</a-menu-item>
           <a-menu-item key="platform-tenants" @click="$router.push({ name: 'platform-tenants' })">租戶管理</a-menu-item>
+          <a-menu-item key="platform-alliances" @click="$router.push({ name: 'platform-alliances' })">聯盟管理</a-menu-item>
         </a-sub-menu>
       </a-menu>
     </a-layout-sider>
@@ -102,7 +114,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import {
   DashboardOutlined, ShoppingOutlined, GiftOutlined, TeamOutlined,
-  InboxOutlined, ShopOutlined, FileTextOutlined, UserOutlined,
+  InboxOutlined, ShopOutlined, FileTextOutlined, BarChartOutlined, UserOutlined,
   MenuFoldOutlined, MenuUnfoldOutlined, QrcodeOutlined, CrownOutlined,
   SafetyOutlined,
 } from '@ant-design/icons-vue'
@@ -115,7 +127,7 @@ const router = useRouter()
 const nameMap: Record<string, string> = {
   dashboard: '總覽',
   products: '商品列表', 'product-create': '新增商品', 'product-edit': '編輯商品', 'product-import': 'CSV 匯入',
-  categories: '分類管理',
+  categories: '分類管理', 'option-groups': '選項庫',
   promotions: '促銷活動', 'promotion-create': '新增活動', 'promotion-edit': '編輯活動',
   coupons: '優惠券', 'coupon-create': '新增優惠券',
   members: '會員列表', 'member-detail': '會員詳情', 'member-levels': '等級管理',
@@ -125,6 +137,7 @@ const nameMap: Record<string, string> = {
   tables: '桌位管理', 'tables-print': 'QR 列印',
   'guest-orders': '桌邊訂單',
   orders: '訂單查詢', 'order-detail': '訂單詳情', reports: '銷售報表',
+  'analytics-sales': '銷售分析', 'analytics-stores': '門店績效', 'analytics-context': '環境洞察',
   'tenant-settings': '租戶設定',
   'platform-applications': '店家申請審核', 'platform-tenants': '租戶管理',
 }
@@ -143,6 +156,16 @@ watch(() => route.name, (name) => {
   if (['inventory', 'transfers', 'supplier-list', 'purchase-orders', 'purchase-order-detail'].includes(n)) {
     if (!openKeys.value.includes('inventory-group')) {
       openKeys.value = [...openKeys.value, 'inventory-group']
+    }
+  }
+  if (['orders', 'order-detail', 'reports'].includes(n)) {
+    if (!openKeys.value.includes('order-group')) {
+      openKeys.value = [...openKeys.value, 'order-group']
+    }
+  }
+  if (['analytics-sales', 'analytics-stores', 'analytics-context'].includes(n)) {
+    if (!openKeys.value.includes('bi-group')) {
+      openKeys.value = [...openKeys.value, 'bi-group']
     }
   }
 }, { immediate: true })

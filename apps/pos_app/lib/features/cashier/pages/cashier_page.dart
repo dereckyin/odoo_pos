@@ -10,9 +10,11 @@ import '../../../data/scanner/barcode_listener.dart';
 import '../demo/book_sale_demo.dart';
 import '../../../data/sync/sync_providers.dart';
 import '../../sync/widgets/master_data_sync_button.dart';
+import '../../kds/providers/guest_orders_controller.dart';
 import '../providers/cart_controller.dart';
 import '../widgets/cart_panel.dart';
 import '../widgets/category_bar.dart';
+import '../widgets/option_picker_sheet.dart';
 import '../widgets/product_grid.dart';
 
 class CashierPage extends ConsumerStatefulWidget {
@@ -29,9 +31,18 @@ class _CashierPageState extends ConsumerState<CashierPage> {
   Timer? _debounce;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(guestOrdersControllerProvider.notifier).startPolling();
+    });
+  }
+
+  @override
   void dispose() {
     _searchCtl.dispose();
     _debounce?.cancel();
+    ref.read(guestOrdersControllerProvider.notifier).stopPolling();
     super.dispose();
   }
 
@@ -56,6 +67,8 @@ class _CashierPageState extends ConsumerState<CashierPage> {
   Widget build(BuildContext context) {
     final session = ref.watch(authStateProvider).session;
     final pendingCount = ref.watch(pendingSyncCountProvider).maybeWhen(data: (v) => v, orElse: () => 0);
+    final guestOrders = ref.watch(guestOrdersControllerProvider);
+    final pendingTableOrders = guestOrders.ofStatus('submitted').length;
 
     return BarcodeKeyboardListener(
       onBarcode: _onBarcode,
@@ -113,9 +126,15 @@ class _CashierPageState extends ConsumerState<CashierPage> {
               onPressed: () => context.push('/promotions'),
             ),
             IconButton(
-              tooltip: '桌邊訂單',
-              icon: const Icon(Icons.table_restaurant_outlined),
+              tooltip: pendingTableOrders > 0
+                  ? '桌邊訂單（$pendingTableOrders 筆待接單）'
+                  : '桌邊訂單',
               onPressed: () => context.push('/table-orders'),
+              icon: Badge(
+                isLabelVisible: pendingTableOrders > 0,
+                label: Text('$pendingTableOrders'),
+                child: const Icon(Icons.table_restaurant_outlined),
+              ),
             ),
             IconButton(
               tooltip: '訂單記錄',
@@ -153,6 +172,11 @@ class _CashierPageState extends ConsumerState<CashierPage> {
                         if (p.isWeighted) {
                           final qty = await _promptDecimal(context, '輸入重量 (${p.unit})');
                           if (qty != null && qty > 0) await ctl.addProduct(p, qty: qty);
+                        } else if (p.hasOptions) {
+                          final options = await OptionPickerSheet.show(context, product: p);
+                          if (options != null) {
+                            await ctl.addProductWithOptions(p, options);
+                          }
                         } else {
                           await ctl.addProduct(p);
                         }

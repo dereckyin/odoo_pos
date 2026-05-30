@@ -231,6 +231,37 @@ class MemberLevelDto {
   final String? color;
 }
 
+class CouponDto {
+  CouponDto({
+    required this.id,
+    required this.code,
+    required this.type,
+    required this.value,
+    required this.minSpendCents,
+    required this.updatedAt,
+    this.memberId,
+    this.expiresAt,
+    this.usedAt,
+  });
+  factory CouponDto.fromJson(Map<String, dynamic> j) => CouponDto(
+        id: j['id'] as String,
+        code: j['code'] as String,
+        type: j['type'] as String,
+        value: (j['value'] as num).toDouble(),
+        memberId: j['member_id'] as String?,
+        minSpendCents: (j['min_spend_cents'] as num?)?.toInt() ?? 0,
+        expiresAt: j['expires_at'] == null ? null : DateTime.parse(j['expires_at'] as String),
+        usedAt: j['used_at'] == null ? null : DateTime.parse(j['used_at'] as String),
+        updatedAt: DateTime.parse(j['updated_at'] as String),
+      );
+  final String id, code, type;
+  final double value;
+  final String? memberId;
+  final int minSpendCents;
+  final DateTime? expiresAt, usedAt;
+  final DateTime updatedAt;
+}
+
 class PromotionDto {
   PromotionDto({
     required this.id,
@@ -300,6 +331,128 @@ class InventoryLevelDto {
   final DateTime updatedAt;
 }
 
+class OptionChoiceDto {
+  OptionChoiceDto({
+    required this.id,
+    required this.optionGroupId,
+    required this.name,
+    required this.priceDeltaCents,
+    required this.isDefault,
+    required this.sortOrder,
+    required this.isActive,
+    required this.updatedAt,
+    this.deletedAt,
+  });
+
+  factory OptionChoiceDto.fromJson(Map<String, dynamic> j) => OptionChoiceDto(
+        id: j['id'] as String,
+        optionGroupId: j['option_group_id'] as String,
+        name: j['name'] as String,
+        priceDeltaCents: (j['price_delta_cents'] as num?)?.toInt() ?? 0,
+        isDefault: j['is_default'] as bool? ?? false,
+        sortOrder: (j['sort_order'] as num?)?.toInt() ?? 0,
+        isActive: j['is_active'] as bool? ?? true,
+        updatedAt: DateTime.parse(j['updated_at'] as String),
+        deletedAt: j['deleted_at'] == null ? null : DateTime.parse(j['deleted_at'] as String),
+      );
+
+  final String id, optionGroupId, name;
+  final int priceDeltaCents, sortOrder;
+  final bool isDefault, isActive;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+}
+
+class OptionGroupDto {
+  OptionGroupDto({
+    required this.id,
+    required this.name,
+    required this.selectionType,
+    required this.isRequired,
+    required this.minSelections,
+    required this.sortOrder,
+    required this.updatedAt,
+    this.maxSelections,
+    this.deletedAt,
+    this.choices = const [],
+  });
+
+  factory OptionGroupDto.fromJson(Map<String, dynamic> j) => OptionGroupDto(
+        id: j['id'] as String,
+        name: j['name'] as String,
+        selectionType: j['selection_type'] as String? ?? 'single',
+        isRequired: j['is_required'] as bool? ?? true,
+        minSelections: (j['min_selections'] as num?)?.toInt() ?? 0,
+        maxSelections: (j['max_selections'] as num?)?.toInt(),
+        sortOrder: (j['sort_order'] as num?)?.toInt() ?? 0,
+        updatedAt: DateTime.parse(j['updated_at'] as String),
+        deletedAt: j['deleted_at'] == null ? null : DateTime.parse(j['deleted_at'] as String),
+        choices: (j['choices'] as List?)
+                ?.map((e) => OptionChoiceDto.fromJson((e as Map).cast<String, dynamic>()))
+                .toList() ??
+            const [],
+      );
+
+  final String id, name, selectionType;
+  final bool isRequired;
+  final int minSelections, sortOrder;
+  final int? maxSelections;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final List<OptionChoiceDto> choices;
+}
+
+class ProductOptionLinkDto {
+  ProductOptionLinkDto({
+    required this.id,
+    required this.productId,
+    required this.optionGroupId,
+    required this.sortOrder,
+    required this.updatedAt,
+    this.isRequired,
+  });
+
+  factory ProductOptionLinkDto.fromJson(Map<String, dynamic> j) => ProductOptionLinkDto(
+        id: j['id'] as String,
+        productId: j['product_id'] as String,
+        optionGroupId: j['option_group_id'] as String,
+        sortOrder: (j['sort_order'] as num?)?.toInt() ?? 0,
+        isRequired: j['is_required'] as bool?,
+        updatedAt: DateTime.parse(j['updated_at'] as String),
+      );
+
+  final String id, productId, optionGroupId;
+  final int sortOrder;
+  final bool? isRequired;
+  final DateTime updatedAt;
+}
+
+class ProductOptionOverrideDto {
+  ProductOptionOverrideDto({
+    required this.id,
+    required this.productId,
+    required this.optionChoiceId,
+    required this.isHidden,
+    required this.updatedAt,
+    this.priceDeltaCents,
+  });
+
+  factory ProductOptionOverrideDto.fromJson(Map<String, dynamic> j) =>
+      ProductOptionOverrideDto(
+        id: j['id'] as String,
+        productId: j['product_id'] as String,
+        optionChoiceId: j['option_choice_id'] as String,
+        priceDeltaCents: (j['price_delta_cents'] as num?)?.toInt(),
+        isHidden: j['is_hidden'] as bool? ?? false,
+        updatedAt: DateTime.parse(j['updated_at'] as String),
+      );
+
+  final String id, productId, optionChoiceId;
+  final int? priceDeltaCents;
+  final bool isHidden;
+  final DateTime updatedAt;
+}
+
 class DeltaPage<T> {
   DeltaPage({required this.items, required this.serverTime, required this.nextSince});
   final List<T> items;
@@ -326,6 +479,7 @@ class GuestOrderLineDto {
     required this.lineTotalCents,
     required this.createdAt,
     this.note,
+    this.optionsJson = const [],
   });
   factory GuestOrderLineDto.fromJson(Map<String, dynamic> j) => GuestOrderLineDto(
         id: j['id'] as String,
@@ -337,11 +491,16 @@ class GuestOrderLineDto {
         lineTotalCents: (j['line_total_cents'] as num).toInt(),
         note: j['note'] as String?,
         createdAt: DateTime.parse(j['created_at'] as String),
+        optionsJson: (j['options_json'] as List?)
+                ?.map((e) => (e as Map).cast<String, dynamic>())
+                .toList() ??
+            const [],
       );
   final String id, productId, productName, sku;
   final double qty;
   final int unitPriceCents, lineTotalCents;
   final String? note;
+  final List<Map<String, dynamic>> optionsJson;
   final DateTime createdAt;
 }
 

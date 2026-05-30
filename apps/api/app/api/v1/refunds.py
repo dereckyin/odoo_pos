@@ -10,11 +10,11 @@ from ...models import (
     Member,
     Order,
     OrderLine,
-    PointTransaction,
     Refund,
     RefundLine,
 )
 from ...schemas.order import RefundCreate, RefundRead
+from ...services.loyalty_engine import reverse_order_loyalty
 
 router = APIRouter(prefix="/orders", tags=["refunds"])
 
@@ -111,18 +111,15 @@ async def refund_order(
     if order.member_id:
         member = await db.get(Member, order.member_id)
         if member:
-            deduct = max(0, total_cents // 100)
-            if deduct > 0:
-                member.points = max(0, member.points - deduct)
-                db.add(
-                    PointTransaction(
-                        tenant_id=order.tenant_id,
-                        member_id=member.id,
-                        delta=-deduct,
-                        reason=f"refund:{refund.id}",
-                        order_id=order.id,
-                    )
-                )
+            await reverse_order_loyalty(
+                db,
+                tenant_id=order.tenant_id,
+                member=member,
+                order_id=order.id,
+                refund_cents=total_cents,
+                original_total_cents=order.total_cents,
+                points_redeemed_on_order=order.points_redeemed or 0,
+            )
 
     await audit(db, scope, action="order_refund", resource_type="order",
                 resource_id=order.id, extra={"total_cents": total_cents}, flush=False)

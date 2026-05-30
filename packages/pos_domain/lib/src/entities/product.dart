@@ -1,5 +1,7 @@
 import 'package:pos_core/pos_core.dart';
 
+import 'option.dart';
+
 class Product {
   const Product({
     required this.id,
@@ -17,6 +19,7 @@ class Product {
     this.updatedAt,
     this.hideFromPublicOrdering = false,
     this.hideFromPosBrowse = false,
+    this.optionConfigs = const [],
   });
 
   final String id;
@@ -38,6 +41,9 @@ class Product {
   final DateTime? updatedAt;
   final bool hideFromPublicOrdering;
   final bool hideFromPosBrowse;
+  final List<ProductOptionConfig> optionConfigs;
+
+  bool get hasOptions => optionConfigs.isNotEmpty;
 
   Product copyWith({
     String? id,
@@ -55,6 +61,7 @@ class Product {
     DateTime? updatedAt,
     bool? hideFromPublicOrdering,
     bool? hideFromPosBrowse,
+    List<ProductOptionConfig>? optionConfigs,
   }) =>
       Product(
         id: id ?? this.id,
@@ -72,5 +79,6 @@ class Product {
         updatedAt: updatedAt ?? this.updatedAt,
         hideFromPublicOrdering: hideFromPublicOrdering ?? this.hideFromPublicOrdering,
         hideFromPosBrowse: hideFromPosBrowse ?? this.hideFromPosBrowse,
+        optionConfigs: optionConfigs ?? this.optionConfigs,
       );
 }

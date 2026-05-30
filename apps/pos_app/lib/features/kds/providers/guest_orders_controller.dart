@@ -80,7 +80,7 @@ class GuestOrdersController extends StateNotifier<GuestOrdersSnapshot> {
   /// successful print (or printer disabled) do we advance the state. This
   /// avoids a foot-gun where the kitchen taps "accept" but never sees a
   /// paper ticket.
-  Future<void> accept(GuestOrderDto order) async {
+  Future<GuestOrderDto> accept(GuestOrderDto order) async {
     final printer = _ref.read(kitchenPrinterServiceProvider);
     final ticket = KitchenTicket(
       guestOrderId: order.id,
@@ -101,12 +101,20 @@ class GuestOrdersController extends StateNotifier<GuestOrdersSnapshot> {
     final api = _ref.read(posApiProvider);
     final updated = await api.acceptGuestOrder(order.id);
     _replace(updated);
+    return updated;
   }
 
-  Future<void> markReady(GuestOrderDto order) async {
+  Future<GuestOrderDto> markReady(GuestOrderDto order) async {
     final api = _ref.read(posApiProvider);
     final updated = await api.markGuestOrderReady(order.id);
     _replace(updated);
+    return updated;
+  }
+
+  /// Print kitchen ticket, accept, then mark ready — for cashier-all-in-one flow.
+  Future<GuestOrderDto> acceptAndReady(GuestOrderDto order) async {
+    final accepted = await accept(order);
+    return markReady(accepted);
   }
 
   Future<void> cancel(GuestOrderDto order, {String? reason}) async {

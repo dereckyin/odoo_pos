@@ -9,9 +9,16 @@
 
     <a-space style="margin-bottom: 16px" wrap>
       <a-input-search v-model:value="search" placeholder="搜尋商品名稱/SKU" style="width: 260px" allow-clear @search="fetchData" />
-      <a-select v-model:value="filterCategory" placeholder="分類篩選" style="width: 180px" allow-clear @change="fetchData">
-        <a-select-option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</a-select-option>
-      </a-select>
+      <a-tree-select
+        v-model:value="filterCategory"
+        placeholder="分類篩選"
+        style="width: 280px"
+        allow-clear
+        tree-default-expand-all
+        :tree-data="categoryTreeOptions"
+        :field-names="{ label: 'path_label', value: 'id', children: 'children' }"
+        @change="fetchData"
+      />
       <a-select v-model:value="filterActive" placeholder="上架狀態" style="width: 140px" allow-clear @change="fetchData">
         <a-select-option :value="true">上架中</a-select-option>
         <a-select-option :value="false">已下架</a-select-option>
@@ -56,11 +63,12 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
 import { message } from 'ant-design-vue'
-import { listProducts, deleteProduct, updateProduct, listCategories } from '@/api/products'
-import type { ProductRead, CategoryRead } from '@/types'
+import { listProducts, deleteProduct, updateProduct, listCategoriesTree } from '@/api/products'
+import type { ProductRead, CategoryTreeNode } from '@/types'
 
 const products = ref<ProductRead[]>([])
-const categories = ref<CategoryRead[]>([])
+const categoryTreeOptions = ref<CategoryTreeNode[]>([])
+const flatCategories = ref<{ id: string; path_label?: string; name: string }[]>([])
 const loading = ref(false)
 const search = ref('')
 const filterCategory = ref<string | undefined>()
@@ -68,16 +76,34 @@ const filterActive = ref<boolean | undefined>()
 
 const categoryMap = computed(() => {
   const map: Record<string, string> = {}
-  categories.value.forEach(c => { map[c.id] = c.name })
+  flatCategories.value.forEach((c) => {
+    map[c.id] = c.path_label || c.name
+  })
   return map
 })
+
+function flattenTree(nodes: CategoryTreeNode[], out: { id: string; path_label?: string; name: string }[] = []) {
+  for (const n of nodes) {
+    out.push(n)
+    if (n.children?.length) flattenTree(n.children, out)
+  }
+  return out
+}
+
+function decorateTree(nodes: CategoryTreeNode[]): CategoryTreeNode[] {
+  return nodes.map((n) => ({
+    ...n,
+    path_label: n.path_label || n.name,
+    children: n.children?.length ? decorateTree(n.children) : [],
+  }))
+}
 
 const columns = [
   { title: '圖片', key: 'image_url', width: 72 },
   { title: 'SKU', dataIndex: 'sku', key: 'sku', width: 120 },
   { title: '名稱', dataIndex: 'name', key: 'name' },
   { title: '售價', key: 'price_cents', width: 100 },
-  { title: '分類', key: 'category_id', width: 120 },
+  { title: '分類', key: 'category_id', width: 200 },
   { title: '條碼', key: 'barcodes', width: 180 },
   { title: '狀態', key: 'is_active', width: 80 },
   { title: '操作', key: 'actions', width: 200 },
@@ -110,8 +136,9 @@ async function toggleActive(record: ProductRead) {
 }
 
 onMounted(async () => {
-  const { data } = await listCategories()
-  categories.value = data
+  const { data } = await listCategoriesTree()
+  categoryTreeOptions.value = decorateTree(data)
+  flatCategories.value = flattenTree(data)
   fetchData()
 })
 </script>

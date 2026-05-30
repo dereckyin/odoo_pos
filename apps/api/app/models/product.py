@@ -7,7 +7,9 @@ from ._mixins import SoftDelete, Timestamped, UUIDPrimaryKey
 
 class Category(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     __tablename__ = "categories"
-    __table_args__ = (UniqueConstraint("tenant_id", "name", name="uq_category_tenant_name"),)
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "parent_id", "name", name="uq_category_tenant_parent_name"),
+    )
 
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(128), index=True)

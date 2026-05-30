@@ -39,7 +39,13 @@ class EscPosReceiptBuilder {
     bytes.addAll(gen.text('-' * 32, styles: const PosStyles(align: PosAlign.center)));
 
     for (final line in order.lines) {
-      bytes.addAll(gen.text('${line.productName}'));
+      final optionLabel = line.selectedOptions.displayLabel;
+      bytes.addAll(gen.text(
+        optionLabel.isEmpty ? line.productName : '${line.productName} / $optionLabel',
+      ));
+      if (line.note != null && line.note!.isNotEmpty) {
+        bytes.addAll(gen.text('  備註: ${line.note}'));
+      }
       bytes.addAll(gen.row([
         PosColumn(
           text: '  ${line.qty} x ${_money(line.unitPrice)}',

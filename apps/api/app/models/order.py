@@ -1,17 +1,35 @@
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, JSON, Numeric, String, Text
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, JSON, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..core.db import Base
 from ._mixins import Timestamped, UUIDPrimaryKey
 
 
+class OrderSequence(Base, UUIDPrimaryKey, Timestamped):
+    """Daily per-store sequence for human-readable order numbers."""
+
+    __tablename__ = "order_sequences"
+    __table_args__ = (
+        UniqueConstraint("store_id", "business_date", name="uq_order_seq_store_date"),
+    )
+
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True, nullable=False)
+    store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"), index=True, nullable=False)
+    business_date: Mapped[date] = mapped_column(Date, nullable=False)
+    last_seq: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+
 class Order(Base, UUIDPrimaryKey, Timestamped):
     __tablename__ = "orders"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "order_no", name="uq_order_tenant_order_no"),
+    )
 
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True, nullable=False)
     store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"), index=True)
+    order_no: Mapped[str | None] = mapped_column(String(32), index=True, nullable=True)
     terminal_id: Mapped[str] = mapped_column(ForeignKey("terminals.id"), index=True)
     cashier_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
     member_id: Mapped[str | None] = mapped_column(ForeignKey("members.id"), nullable=True, index=True)
@@ -22,6 +40,8 @@ class Order(Base, UUIDPrimaryKey, Timestamped):
     tax_cents: Mapped[int] = mapped_column(Integer, default=0)
     total_cents: Mapped[int] = mapped_column(Integer, default=0)
     refunded_cents: Mapped[int] = mapped_column(Integer, default=0)
+    points_redeemed: Mapped[int] = mapped_column(Integer, default=0)
+    coupon_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     invoice_number: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     invoice_carrier: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -48,6 +68,7 @@ class OrderLine(Base, UUIDPrimaryKey, Timestamped):
     line_total_cents: Mapped[int] = mapped_column(Integer)
     tax_rate: Mapped[float] = mapped_column(Float, default=0.05)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    options_json: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
     order: Mapped[Order] = relationship(back_populates="lines")
 

@@ -21,8 +21,9 @@ class CartController extends StateNotifier<Cart> {
   CartController(this._ref) : super(Cart());
   final Ref _ref;
 
-  Future<void> addProduct(Product p, {num qty = 1, Money? unitPrice}) async {
-    final existing = state.lines.firstWhereOrNull((l) => l.product.id == p.id);
+  Future<void> addProduct(Product p, {num qty = 1, Money? unitPrice, List<SelectedOption>? selectedOptions}) async {
+    final mergeKey = '${p.id}|${(selectedOptions ?? const []).optionsSignature}';
+    final existing = state.lines.firstWhereOrNull((l) => l.mergeKey == mergeKey);
     if (existing != null) {
       final updated = existing.copyWith(qty: existing.qty + qty);
       state = state.copyWith(lines: [
@@ -32,10 +33,37 @@ class CartController extends StateNotifier<Cart> {
       state = state.copyWith(lines: [
         ...state.lines,
         unitPrice == null
-            ? CartLine(id: newUuid(), product: p, qty: qty)
-            : CartLine.custom(id: newUuid(), product: p, qty: qty, unitPrice: unitPrice),
+            ? CartLine(
+                id: newUuid(),
+                product: p,
+                qty: qty,
+                selectedOptions: selectedOptions,
+              )
+            : CartLine.custom(
+                id: newUuid(),
+                product: p,
+                qty: qty,
+                unitPrice: unitPrice,
+                selectedOptions: selectedOptions,
+              ),
       ]);
     }
+    await _evaluatePromotions();
+  }
+
+  Future<void> addProductWithOptions(Product p, List<SelectedOption> options, {num qty = 1}) async {
+    await addProduct(p, qty: qty, selectedOptions: options);
+  }
+
+  Future<void> updateLineOptions(String lineId, List<SelectedOption> options) async {
+    final line = state.lines.firstWhereOrNull((l) => l.id == lineId);
+    if (line == null) return;
+    final unitPrice = line.product.price + Money(options.totalPriceDeltaCents);
+    final updated = line.copyWith(selectedOptions: options, unitPrice: unitPrice);
+    state = state.copyWith(lines: [
+      for (final l in state.lines)
+        if (l.id == lineId) updated else l,
+    ]);
     await _evaluatePromotions();
   }
 
@@ -81,6 +109,9 @@ class CartController extends StateNotifier<Cart> {
         qty: l.qty,
         unitPrice: Money(l.unitPriceCents),
         note: l.note,
+        selectedOptions: l.optionsJson
+            .map((j) => SelectedOption.fromJson(j))
+            .toList(growable: false),
       ));
     }
     state = state.copyWith(lines: lines, note: guestOrder.customerNote);
@@ -108,7 +139,11 @@ class CartController extends StateNotifier<Cart> {
   Future<void> _evaluatePromotions() async {
     final promotions = await _ref.read(promotionsListProvider.future);
     final engine = _ref.read(promotionEngineProvider);
-    final result = engine.evaluate(cart: state, promotions: promotions);
+    final result = engine.evaluate(
+      cart: state,
+      promotions: promotions,
+      categoryTree: _ref.read(categoryTreeProvider),
+    );
     state = result.cart;
   }
 

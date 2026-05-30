@@ -93,7 +93,7 @@
                   <a-descriptions-item label="方案代號">{{ plan.code }}</a-descriptions-item>
                   <a-descriptions-item label="名稱">{{ plan.name }}</a-descriptions-item>
                   <a-descriptions-item label="價格">
-                    {{ plan.price_cents > 0 ? `$${plan.price_cents / 100} / ${plan.interval}` : '免費' }}
+                    {{ plan.price_cents > 0 ? `NT$${plan.price_cents} / ${plan.interval}` : '免費' }}
                   </a-descriptions-item>
                   <a-descriptions-item label="店家上限">{{ plan.max_stores }}</a-descriptions-item>
                   <a-descriptions-item label="終端機上限">{{ plan.max_terminals }}</a-descriptions-item>
@@ -119,6 +119,16 @@
             </a-card>
           </a-col>
         </a-row>
+      </a-tab-pane>
+
+      <!-- ───── General settings ───── -->
+      <a-tab-pane key="general" tab="一般設定">
+        <a-form layout="vertical" style="max-width: 480px">
+          <a-form-item label="營業時區（報表與訂單編號日期）">
+            <a-select v-model:value="generalTimezone" :options="timezoneOptions" />
+          </a-form-item>
+          <a-button type="primary" :loading="generalSaving" @click="saveGeneral">儲存</a-button>
+        </a-form>
       </a-tab-pane>
 
       <!-- ───── Audit logs ───── -->
@@ -231,7 +241,36 @@ import { PlusOutlined } from '@ant-design/icons-vue'
 import * as tenantApi from '@/api/tenant'
 import type { SubscriptionPlanRead } from '@/types'
 
-const activeTab = ref<'payments' | 'invoices' | 'subscription' | 'audit'>('payments')
+const activeTab = ref<'payments' | 'invoices' | 'subscription' | 'general' | 'audit'>('payments')
+
+const generalTimezone = ref('Asia/Taipei')
+const generalSaving = ref(false)
+const timezoneOptions = [
+  { label: '台北 (Asia/Taipei)', value: 'Asia/Taipei' },
+  { label: '東京 (Asia/Tokyo)', value: 'Asia/Tokyo' },
+  { label: 'UTC', value: 'UTC' },
+]
+
+async function loadGeneral() {
+  try {
+    const { data } = await tenantApi.getGeneralSettings()
+    generalTimezone.value = data.timezone
+  } catch {
+    /* best-effort */
+  }
+}
+
+async function saveGeneral() {
+  generalSaving.value = true
+  try {
+    await tenantApi.updateGeneralSettings({ timezone: generalTimezone.value })
+    message.success('已儲存')
+  } catch (e: any) {
+    message.error(e.response?.data?.detail || '儲存失敗')
+  } finally {
+    generalSaving.value = false
+  }
+}
 
 // ----- Payments -----
 const paymentRows = ref<tenantApi.TenantPaymentSettingRead[]>([])
@@ -481,6 +520,6 @@ async function loadAudit() {
 }
 
 onMounted(async () => {
-  await Promise.all([loadPayments(), loadInvoices(), loadSubscription(), loadAudit()])
+  await Promise.all([loadPayments(), loadInvoices(), loadSubscription(), loadGeneral(), loadAudit()])
 })
 </script>

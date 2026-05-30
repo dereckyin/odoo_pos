@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_domain/pos_domain.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
+import '../../kds/providers/guest_orders_controller.dart';
 import '../providers/cart_controller.dart';
+import 'option_picker_sheet.dart';
 
 class CartPanel extends ConsumerWidget {
   const CartPanel({super.key, required this.onCheckout, required this.onMember});
@@ -14,6 +16,7 @@ class CartPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cart = ref.watch(cartControllerProvider);
     final controller = ref.read(cartControllerProvider.notifier);
+    final pendingTableOrders = ref.watch(guestOrdersControllerProvider).ofStatus('submitted').length;
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: 380,
@@ -27,7 +30,7 @@ class CartPanel extends ConsumerWidget {
           const Divider(height: 1),
           Expanded(
             child: cart.isEmpty
-                ? const EmptyState(icon: Icons.shopping_cart_outlined, title: '購物車是空的', subtitle: '點選左側商品加入購物車')
+                ? _EmptyCartHint(pendingTableOrders: pendingTableOrders)
                 : ListView.separated(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: cart.lines.length,
@@ -61,6 +64,48 @@ class CartPanel extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EmptyCartHint extends StatelessWidget {
+  const _EmptyCartHint({required this.pendingTableOrders});
+  final int pendingTableOrders;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const EmptyState(
+              icon: Icons.shopping_cart_outlined,
+              title: '購物車是空的',
+              subtitle: '點選左側商品加入購物車',
+            ),
+            if (pendingTableOrders > 0) ...[
+              const SizedBox(height: 16),
+              Text(
+                '有 $pendingTableOrders 筆桌邊訂單待接單',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '請點右上角桌邊訂單圖示',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -108,21 +153,38 @@ class _CartLineTile extends ConsumerWidget {
     final controller = ref.read(cartControllerProvider.notifier);
     return ListTile(
       title: Text(line.product.name),
-      subtitle: Row(
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          MoneyText(line.unitPrice, style: Theme.of(context).textTheme.bodySmall),
-          const Spacer(),
-          QuantityStepper(
-            value: line.qty,
-            onChanged: (v) {
-              if (v <= 0) {
-                controller.removeLine(line.id);
-              } else {
-                controller.updateQty(line.id, v);
-              }
-            },
-            min: 0,
-            allowDecimal: line.product.isWeighted,
+          if (line.selectedOptions.isNotEmpty)
+            Text(
+              line.selectedOptions.displayLabel,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
+          if (line.note != null && line.note!.isNotEmpty)
+            Text(
+              line.note!,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          Row(
+            children: [
+              MoneyText(line.unitPrice, style: Theme.of(context).textTheme.bodySmall),
+              const Spacer(),
+              QuantityStepper(
+                value: line.qty,
+                onChanged: (v) {
+                  if (v <= 0) {
+                    controller.removeLine(line.id);
+                  } else {
+                    controller.updateQty(line.id, v);
+                  }
+                },
+                min: 0,
+                allowDecimal: line.product.isWeighted,
+              ),
+            ],
           ),
         ],
       ),
@@ -138,6 +200,18 @@ class _CartLineTile extends ConsumerWidget {
         ],
       ),
       onLongPress: () => _showLineMenu(context, ref, line),
+      onTap: line.product.hasOptions
+          ? () async {
+              final options = await OptionPickerSheet.show(
+                context,
+                product: line.product,
+                initialSelections: line.selectedOptions,
+              );
+              if (options != null) {
+                await controller.updateLineOptions(line.id, options);
+              }
+            }
+          : null,
     );
   }
 

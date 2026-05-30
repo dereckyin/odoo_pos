@@ -65,7 +65,7 @@ async function handleSubmit() {
   try {
     await createCoupon({
       ...form,
-      min_spend_cents: Math.round(minSpendDisplay.value * 100),
+      min_spend_cents: Math.round(minSpendDisplay.value),
       expires_at: expiresDate.value?.toISOString() ?? undefined,
     })
     message.success('已建立')

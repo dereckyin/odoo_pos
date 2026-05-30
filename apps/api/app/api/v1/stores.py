@@ -15,6 +15,7 @@ from ...core.deps import (
 from ...core.usage import assert_can_add_store
 from ...models import Store, Terminal
 from ...schemas.store import StoreCreate, StoreRead, StoreUpdate, TerminalRead
+from ...services.geocoding import geocode_store_rate_limited
 
 router = APIRouter(prefix="/stores", tags=["stores"])
 
@@ -76,6 +77,21 @@ async def delete_store(store_id: str, db: DbSession, scope: TenantAdminDep):
     await audit(db, scope, action="store_delete", resource_type="store",
                 resource_id=store_id, flush=False)
     await db.commit()
+
+
+@router.post("/{store_id}/geocode", response_model=StoreRead)
+async def geocode_store_endpoint(store_id: str, db: DbSession, scope: TenantAdminDep):
+    s = await db.get(Store, store_id)
+    if not s or s.deleted_at:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    ensure_same_tenant(scope, s)
+    try:
+        await geocode_store_rate_limited(db, s)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e)) from e
+    await db.commit()
+    await db.refresh(s)
+    return s
 
 
 @router.get("/{store_id}/terminals", response_model=list[TerminalRead])

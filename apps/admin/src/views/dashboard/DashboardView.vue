@@ -27,7 +27,7 @@
       <a-row :gutter="16" style="margin-bottom: 24px">
         <a-col :span="6">
           <a-card>
-            <a-statistic title="今日營收" :value="stats.today_revenue_cents / 100" prefix="$" :precision="0" />
+            <a-statistic title="今日營收" :value="stats.today_revenue_cents" prefix="NT$" :precision="0" />
           </a-card>
         </a-col>
       </a-row>

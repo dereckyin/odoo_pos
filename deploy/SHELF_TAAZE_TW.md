@@ -1,8 +1,38 @@
 # 部署到 pos.myvnc.com（點餐趣）
 
-本文件假設：**主機已安裝 Docker Engine + Docker Compose plugin**，且 **`pos.myvnc.com` 的 DNS（A/AAAA）已指向該主機**。無法從開發機代為登入你的伺服器，請在主機上依序執行下列步驟。
+本文件假設：**主機已安裝 Docker Engine + Docker Compose plugin**，且 **`pos.myvnc.com` 的 DNS（A/AAAA）已指向該主機**。
 
-## 1. 取得程式碼
+## 快速部署（Windows 開發機，一鍵）
+
+日常更新（含 `/readme` 產品說明、後台、API、顧客端）：
+
+```powershell
+.\scripts\deploy-prod.ps1
+```
+
+腳本會依序：
+
+1. 將 `pos_doc/系統三大模組.html` 同步到 `apps/admin/public/readme/`（**admin `npm run build` 的 prebuild 也會自動執行**）
+2. （可選）`flutter build apk` 並打包進 readme
+3. `npm run build` admin + customer web
+4. 打包上傳至 `ubuntu@pos.myvnc.com`，重建 Docker
+
+常用參數：
+
+| 參數 | 說明 |
+|------|------|
+| `-SkipApk` | 略過 Flutter APK 建置（readme 仍保留上次 APK） |
+| `-SkipCustomer` | 略過顧客端 `/customer/` 建置 |
+| `-SkipBuild` | 只上傳現有 `dist/` 並重啟容器 |
+| `-Key "C:\path\to\key.pem"` | 自訂 SSH 私鑰路徑 |
+
+**說明頁來源**：只需編輯 `pos_doc/系統三大模組.html`（與同目錄截圖 `.png`），下次 deploy 或 `npm run build`（admin）即會帶上，無需手動 scp readme。
+
+---
+
+## 手動步驟（首次安裝或除錯）
+
+### 1. 取得程式碼
 
 ```bash
 cd /opt   # 或你慣用的目錄
@@ -35,10 +65,10 @@ cp deploy/.env.api.example deploy/.env.api
 ```bash
 cd apps/admin
 npm ci
-npm run build
+npm run build   # prebuild 會自動 sync pos_doc → public/readme → dist/readme
 ```
 
-產物目錄為 `apps/admin/dist/`。`docker-compose.prod.yml` 會把此目錄掛進 Nginx 容器；若你在別台 build，請把整個 `dist/` 同步到伺服器上對應路徑。
+產物目錄為 `apps/admin/dist/`（**含 `/readme/` 說明頁與 APK 下載**）。`docker-compose.prod.yml` 會把此目錄掛進 Nginx 容器。
 
 **顧客掃碼點餐（可選）**：若要掛 `/customer/`，請依 `安裝手冊.md` 建置 `apps/customer_order_web`，並設定 `deploy/pos.myvnc.com.caddyfile.example` 內註解的 `handle_path /customer*`。
 
@@ -88,3 +118,4 @@ docker exec -it pos_api_prod python -m app.scripts.seed
 
 - **403、回應 body 為空、Server 顯示 aiohttp**：代表請求可能沒進到本 repo 的 Uvicorn（例如被其他服務或錯誤埠佔用）。請確認 Caddy `reverse_proxy` 目標為 **`127.0.0.1:9088`**，且 `docker compose ps` 顯示 `pos_web_prod`、`pos_api_prod` 皆為 Up。
 - **CORS 錯誤**：檢查 `CORS_ORIGINS` 是否包含 `https://pos.myvnc.com`（與瀏覽器網址列完全一致，含 http/https）。
+- **`/readme` 變成下載檔**：確認 `deploy/nginx.conf` 的 `/readme/` 區塊含 `default_type text/html;`（已內建於 repo）。

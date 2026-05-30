@@ -181,6 +181,65 @@ class OrderLines extends Table {
   IntColumn get lineTotalCents => integer()();
   RealColumn get taxRate => real().withDefault(const Constant(0.05))();
   TextColumn get note => text().nullable()();
+  TextColumn get optionsJson => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('OptionGroupRow')
+class OptionGroups extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get selectionType => text().withDefault(const Constant('single'))();
+  BoolColumn get isRequired => boolean().withDefault(const Constant(true))();
+  IntColumn get minSelections => integer().withDefault(const Constant(0))();
+  IntColumn get maxSelections => integer().nullable()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('OptionChoiceRow')
+class OptionChoices extends Table {
+  TextColumn get id => text()();
+  TextColumn get optionGroupId => text().references(OptionGroups, #id)();
+  TextColumn get name => text()();
+  IntColumn get priceDeltaCents => integer().withDefault(const Constant(0))();
+  BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('ProductOptionGroupRow')
+class ProductOptionGroups extends Table {
+  TextColumn get id => text()();
+  TextColumn get productId => text().references(Products, #id)();
+  TextColumn get optionGroupId => text().references(OptionGroups, #id)();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  BoolColumn get isRequired => boolean().nullable()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('ProductOptionChoiceOverrideRow')
+class ProductOptionChoiceOverrides extends Table {
+  TextColumn get id => text()();
+  TextColumn get productId => text().references(Products, #id)();
+  TextColumn get optionChoiceId => text().references(OptionChoices, #id)();
+  IntColumn get priceDeltaCents => integer().nullable()();
+  BoolColumn get isHidden => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get updatedAt => dateTime()();
 
   @override
   Set<Column> get primaryKey => {id};

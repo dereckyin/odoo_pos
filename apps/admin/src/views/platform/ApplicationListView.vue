@@ -129,7 +129,7 @@
         <a-form-item label="訂閱方案" :rules="[{ required: true }]">
           <a-select v-model:value="approveForm.plan_code" placeholder="請選擇方案">
             <a-select-option v-for="p in plans" :key="p.code" :value="p.code">
-              {{ p.name }} — {{ p.code }} ({{ p.price_cents > 0 ? `$${p.price_cents / 100}` : '免費' }})
+              {{ p.name }} — {{ p.code }} ({{ p.price_cents > 0 ? `NT$${p.price_cents}` : '免費' }})
             </a-select-option>
           </a-select>
         </a-form-item>

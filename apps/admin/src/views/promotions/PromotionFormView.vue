@@ -112,9 +112,16 @@
         </a-form-item>
 
         <a-form-item label="指定分類">
-          <a-select v-model:value="form.applicable_category_ids" mode="multiple" placeholder="留空 = 適用全部分類" style="width: 100%">
-            <a-select-option v-for="c in allCategories" :key="c.id" :value="c.id">{{ c.name }}</a-select-option>
-          </a-select>
+          <a-tree-select
+            v-model:value="form.applicable_category_ids"
+            tree-checkable
+            multiple
+            placeholder="留空 = 適用全部分類（選父分類含子孫商品）"
+            tree-default-expand-all
+            :tree-data="categoryTreeOptions"
+            :field-names="{ label: 'path_label', value: 'id', children: 'children' }"
+            style="width: 100%"
+          />
         </a-form-item>
 
         <a-form-item label="會員等級">
@@ -140,9 +147,9 @@ import { useRoute, useRouter } from 'vue-router'
 import dayjs, { type Dayjs } from 'dayjs'
 import { message } from 'ant-design-vue'
 import { getPromotion, createPromotion, updatePromotion } from '@/api/promotions'
-import { listProducts, listCategories } from '@/api/products'
+import { listProducts, listCategoriesTree } from '@/api/products'
 import { listMemberLevels } from '@/api/members'
-import type { ProductRead, CategoryRead, MemberLevelRead } from '@/types'
+import type { ProductRead, CategoryTreeNode, MemberLevelRead } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -151,8 +158,16 @@ const loading = ref(false)
 const submitting = ref(false)
 
 const allProducts = ref<ProductRead[]>([])
-const allCategories = ref<CategoryRead[]>([])
+const categoryTreeOptions = ref<CategoryTreeNode[]>([])
 const allLevels = ref<MemberLevelRead[]>([])
+
+function decorateTree(nodes: CategoryTreeNode[]): CategoryTreeNode[] {
+  return nodes.map((n) => ({
+    ...n,
+    path_label: n.path_label || n.name,
+    children: n.children?.length ? decorateTree(n.children) : [],
+  }))
+}
 
 const dateRange = ref<[Dayjs, Dayjs] | null>(null)
 
@@ -214,11 +229,11 @@ async function handleSubmit() {
 async function loadDropdownData() {
   const [prods, cats, levels] = await Promise.allSettled([
     listProducts({ limit: 200 }),
-    listCategories(),
+    listCategoriesTree(),
     listMemberLevels(),
   ])
   if (prods.status === 'fulfilled') allProducts.value = prods.value.data
-  if (cats.status === 'fulfilled') allCategories.value = cats.value.data
+  if (cats.status === 'fulfilled') categoryTreeOptions.value = decorateTree(cats.value.data)
   if (levels.status === 'fulfilled') allLevels.value = levels.value.data
 }
 

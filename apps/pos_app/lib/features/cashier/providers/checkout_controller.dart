@@ -8,7 +8,6 @@ import 'package:pos_domain/pos_domain.dart';
 
 import '../../../core/providers.dart';
 import '../../../data/database/app_database.dart';
-import '../../../data/database/tables.dart';
 import '../../../data/sync/sync_models.dart';
 import '../../../data/sync/sync_providers.dart';
 import '../../../data/sync/sync_queue_dao.dart';
@@ -32,6 +31,8 @@ class CheckoutController {
     String? donationCode,
     String invoiceGateway = 'ezpay',
     int taxType = 1,
+    int pointsRedeemed = 0,
+    String? couponCode,
   }) async {
     final cart = _ref.read(cartControllerProvider);
     final session = _ref.read(authStateProvider).session;
@@ -77,6 +78,9 @@ class CheckoutController {
             createdAt: now,
           ));
       for (final l in order.lines) {
+        final optionsJson = l.selectedOptions.isEmpty
+            ? null
+            : jsonEncode(l.selectedOptions.map((o) => o.toJson()).toList());
         await db.into(db.orderLines).insert(OrderLinesCompanion.insert(
               id: l.id,
               orderId: order.id,
@@ -88,6 +92,8 @@ class CheckoutController {
               lineDiscountCents: d.Value(l.lineDiscount.cents),
               lineTotalCents: l.lineTotal.cents,
               taxRate: d.Value(l.taxRate),
+              note: d.Value(l.note),
+              optionsJson: d.Value(optionsJson),
             ));
         // movement
         await db.into(db.inventoryMovements).insert(InventoryMovementsCompanion.insert(
@@ -121,7 +127,14 @@ class CheckoutController {
       // Enqueue order upload
       await dao.enqueue(
         SyncOpKind.uploadOrder,
-        _orderToPayload(order, now, sourceGuestOrderId: sourceGuestOrderId),
+        _orderToPayload(
+          order,
+          now,
+          sourceGuestOrderId: sourceGuestOrderId,
+          pointsRedeemed: pointsRedeemed,
+          couponCode: couponCode,
+          extraDiscountCents: pointsRedeemed,
+        ),
       );
 
       // Enqueue invoice issue (always; let server reject if duplicate)
@@ -158,6 +171,7 @@ class CheckoutController {
 
     _ref.read(cartControllerProvider.notifier).clear();
     unawaited(_ref.read(syncWorkerProvider).flush());
+    unawaited(_ref.read(deltaPullerProvider).pullAll());
     return CheckoutResult(order: order, invoiceId: null);
   }
 
@@ -165,6 +179,9 @@ class CheckoutController {
     Order o,
     DateTime clientCreatedAt, {
     String? sourceGuestOrderId,
+    int pointsRedeemed = 0,
+    String? couponCode,
+    int extraDiscountCents = 0,
   }) {
     return {
       'id': o.id,
@@ -174,9 +191,11 @@ class CheckoutController {
       'member_id': o.memberId,
       'status': 'paid',
       'subtotal_cents': o.subtotal.cents,
-      'discount_cents': o.discount.cents,
+      'discount_cents': o.discount.cents + extraDiscountCents,
       'tax_cents': o.tax.cents,
-      'total_cents': o.total.cents,
+      'total_cents': o.total.cents - extraDiscountCents,
+      'points_redeemed': pointsRedeemed,
+      if (couponCode != null && couponCode.isNotEmpty) 'coupon_code': couponCode,
       'invoice_carrier': o.invoiceCarrier,
       'note': o.note,
       if (sourceGuestOrderId != null) 'source_guest_order_id': sourceGuestOrderId,
@@ -193,6 +212,8 @@ class CheckoutController {
                 'line_total_cents': l.lineTotal.cents,
                 'tax_rate': l.taxRate,
                 'note': l.note,
+                if (l.selectedOptions.isNotEmpty)
+                  'options_json': l.selectedOptions.map((o) => o.toJson()).toList(),
               })
           .toList(),
       'payments': o.payments

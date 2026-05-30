@@ -16,8 +16,11 @@ from ..models import (
     Category,
     Member,
     MemberLevel,
+    OptionChoice,
+    OptionGroup,
     Product,
     ProductBarcode,
+    ProductOptionGroup,
     Promotion,
     Store,
     SubscriptionPlan,
@@ -152,6 +155,59 @@ async def seed() -> None:
             db.add(p)
             await db.flush()
             db.add(ProductBarcode(tenant_id=tenant.id, product_id=p.id, barcode=sku))
+
+        # Drink-shop option template + sample customizable items
+        opt_sweet = OptionGroup(
+            tenant_id=tenant.id, name="甜度", selection_type="single", is_required=True, sort_order=0,
+        )
+        opt_ice = OptionGroup(
+            tenant_id=tenant.id, name="冰塊", selection_type="single", is_required=True, sort_order=1,
+        )
+        opt_topping = OptionGroup(
+            tenant_id=tenant.id, name="加料", selection_type="multi", is_required=False,
+            max_selections=3, sort_order=2,
+        )
+        opt_spice = OptionGroup(
+            tenant_id=tenant.id, name="辣度", selection_type="single", is_required=True, sort_order=3,
+        )
+        db.add_all([opt_sweet, opt_ice, opt_topping, opt_spice])
+        await db.flush()
+
+        sweet_choices = [
+            ("全糖", 0, True), ("半糖", 0, False), ("微糖", 0, False), ("無糖", 0, False),
+        ]
+        ice_choices = [
+            ("正常冰", 0, True), ("少冰", 0, False), ("去冰", 0, False), ("熱飲", 0, False),
+        ]
+        topping_choices = [("珍珠", 1000, False), ("布丁", 1000, False), ("椰果", 1000, False)]
+        spice_choices = [("不辣", 0, True), ("小辣", 0, False), ("中辣", 0, False), ("大辣", 0, False)]
+
+        for i, (name, price, is_def) in enumerate(sweet_choices):
+            db.add(OptionChoice(option_group_id=opt_sweet.id, name=name, price_delta_cents=price, is_default=is_def, sort_order=i))
+        for i, (name, price, is_def) in enumerate(ice_choices):
+            db.add(OptionChoice(option_group_id=opt_ice.id, name=name, price_delta_cents=price, is_default=is_def, sort_order=i))
+        for i, (name, price, is_def) in enumerate(topping_choices):
+            db.add(OptionChoice(option_group_id=opt_topping.id, name=name, price_delta_cents=price, is_default=is_def, sort_order=i))
+        for i, (name, price, is_def) in enumerate(spice_choices):
+            db.add(OptionChoice(option_group_id=opt_spice.id, name=name, price_delta_cents=price, is_default=is_def, sort_order=i))
+        await db.flush()
+
+        bubble_tea = Product(
+            tenant_id=tenant.id, sku="DRINK-BT-001", name="珍珠奶茶", price_cents=55,
+            tax_rate=0.05, category_id=cats["飲料"].id, is_active=True, unit="杯",
+        )
+        db.add(bubble_tea)
+        await db.flush()
+        db.add(ProductBarcode(tenant_id=tenant.id, product_id=bubble_tea.id, barcode="DRINK-BT-001"))
+        for sort, og in enumerate([opt_sweet, opt_ice, opt_topping]):
+            db.add(ProductOptionGroup(product_id=bubble_tea.id, option_group_id=og.id, sort_order=sort))
+
+        bento = (
+            await db.execute(
+                select(Product).where(Product.tenant_id == tenant.id, Product.sku == "4710003000015")
+            )
+        ).scalar_one()
+        db.add(ProductOptionGroup(product_id=bento.id, option_group_id=opt_spice.id, sort_order=0))
 
         now = datetime.now(timezone.utc)
         promos = [

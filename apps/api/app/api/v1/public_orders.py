@@ -19,6 +19,7 @@ from ...models import (
     DiningTable,
     GuestOrder,
     GuestOrderLine,
+    Member,
     Product,
     Store,
 )
@@ -29,18 +30,55 @@ from ...schemas.public import (
     PublicMeta,
     PublicProduct,
 )
+from ...services.category_tree import (
+    build_category_maps,
+    compute_path,
+    descendant_ids,
+)
+from ...services.option_validation import (
+    OptionValidationError,
+    load_product_option_context,
+    validate_line_options,
+)
+from ...services.public_options import load_public_product_options
 
 router = APIRouter(prefix="/public", tags=["public-ordering"])
 
 
-def _product_visible_on_public_menu(p: Product, cat_by_id: dict[str, Category]) -> bool:
+def _product_visible_on_public_menu(
+    p: Product,
+    cat_by_id: dict[str, Category],
+) -> bool:
     if p.hide_from_public_ordering:
         return False
-    if p.category_id:
-        c = cat_by_id.get(p.category_id)
-        if c is not None and c.hide_from_public_ordering:
+    if not p.category_id:
+        return True
+    cur = cat_by_id.get(p.category_id)
+    while cur is not None:
+        if cur.hide_from_public_ordering:
             return False
+        cur = cat_by_id.get(cur.parent_id) if cur.parent_id else None
     return True
+
+
+def _ancestor_ids(category_id: str, cat_by_id: dict[str, Category]) -> set[str]:
+    out: set[str] = set()
+    cur = cat_by_id.get(category_id)
+    while cur is not None:
+        out.add(cur.id)
+        cur = cat_by_id.get(cur.parent_id) if cur.parent_id else None
+    return out
+
+
+def _root_has_visible_subtree(
+    root_id: str,
+    visible_cat_ids: set[str],
+    children_map: dict[str | None, list],
+) -> bool:
+    for cid in descendant_ids(root_id, children_map):
+        if cid in visible_cat_ids:
+            return True
+    return False
 
 
 async def _product_orderable_via_public_menu(db, p: Product) -> bool:
@@ -87,6 +125,7 @@ async def get_menu(request: Request, token: str, db: DbSession):
             .order_by(Category.sort_order, Category.name)
         )
     ).scalars().all()
+    by_id, children_map = build_category_maps(cats)
     cat_by_id = {c.id: c for c in cats}
     products = (
         await db.execute(
@@ -99,9 +138,36 @@ async def get_menu(request: Request, token: str, db: DbSession):
             .order_by(Product.name)
         )
     ).scalars().all()
-    visible_products = [p for p in products if _product_visible_on_public_menu(p, cat_by_id)]
-    visible_cat_ids = {p.category_id for p in visible_products if p.category_id}
+    visible_products = [
+        p for p in products if _product_visible_on_public_menu(p, cat_by_id)
+    ]
+    visible_cat_ids: set[str] = set()
+    for p in visible_products:
+        if p.category_id:
+            visible_cat_ids.update(_ancestor_ids(p.category_id, cat_by_id))
     visible_cats = [c for c in cats if c.id in visible_cat_ids]
+    root_cats = [c for c in visible_cats if c.parent_id is None]
+    menu_roots = [
+        c
+        for c in root_cats
+        if _root_has_visible_subtree(c.id, visible_cat_ids, children_map)
+        and not c.hide_from_public_ordering
+    ]
+    options_by_product = await load_public_product_options(db, [p.id for p in visible_products])
+
+    def _to_public_category(c: Category) -> PublicCategory:
+        row = by_id[c.id]
+        depth, _, path_label = compute_path(c.id, by_id)
+        return PublicCategory(
+            id=c.id,
+            name=c.name,
+            parent_id=c.parent_id,
+            depth=depth,
+            path_label=path_label,
+            sort_order=c.sort_order,
+            color=c.color,
+            icon=c.icon,
+        )
 
     return PublicMenu(
         meta=PublicMeta(
@@ -111,12 +177,8 @@ async def get_menu(request: Request, token: str, db: DbSession):
             store_name=store.name,
             store_address=store.address,
         ),
-        categories=[
-            PublicCategory(
-                id=c.id, name=c.name, sort_order=c.sort_order, color=c.color, icon=c.icon
-            )
-            for c in visible_cats
-        ],
+        categories=[_to_public_category(c) for c in visible_cats],
+        root_category_ids=[c.id for c in menu_roots],
         products=[
             PublicProduct(
                 id=p.id,
@@ -127,6 +189,7 @@ async def get_menu(request: Request, token: str, db: DbSession):
                 image_url=p.image_url,
                 unit=p.unit,
                 description=p.description,
+                option_groups=options_by_product.get(p.id, []),
             )
             for p in visible_products
         ],
@@ -155,6 +218,7 @@ async def submit_order(
         )
     ).scalars().all()
     by_id = {p.id: p for p in products}
+    option_ctx = await load_product_option_context(db, table.tenant_id, product_ids)
 
     estimated = 0
     line_models: list[GuestOrderLine] = []
@@ -172,7 +236,19 @@ async def submit_order(
             )
         if ln.qty <= 0:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "qty must be > 0")
-        line_total = round(p.price_cents * ln.qty)
+        try:
+            options_json = validate_line_options(
+                p.id,
+                p.price_cents,
+                p.price_cents + sum(o.price_delta_cents for o in (ln.options or [])),
+                ln.options,
+                option_ctx,
+            )
+        except OptionValidationError as e:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e)) from e
+
+        unit_price = p.price_cents + sum(o["price_delta_cents"] for o in options_json)
+        line_total = round(unit_price * ln.qty)
         estimated += line_total
         line_models.append(
             GuestOrderLine(
@@ -180,11 +256,17 @@ async def submit_order(
                 product_name=p.name,
                 sku=p.sku,
                 qty=ln.qty,
-                unit_price_cents=p.price_cents,
+                unit_price_cents=unit_price,
                 line_total_cents=line_total,
                 note=ln.note,
+                options_json=options_json or None,
             )
         )
+
+    if payload.member_id:
+        member = await db.get(Member, payload.member_id)
+        if not member or member.tenant_id != table.tenant_id or member.deleted_at:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid member")
 
     g = GuestOrder(
         tenant_id=table.tenant_id,
@@ -193,6 +275,7 @@ async def submit_order(
         status="submitted",
         customer_note=payload.customer_note,
         party_size=payload.party_size,
+        member_id=payload.member_id,
         estimated_subtotal_cents=estimated,
     )
     db.add(g)

@@ -1,6 +1,7 @@
 import 'package:pos_core/pos_core.dart';
 import 'cart.dart';
 import 'payment.dart';
+import 'option.dart';
 
 enum OrderStatus { draft, paid, voided, refunded, partiallyRefunded }
 
@@ -16,6 +17,7 @@ class OrderLine {
     required this.lineTotal,
     this.taxRate = 0.05,
     this.note,
+    this.selectedOptions = const [],
   });
 
   final String id;
@@ -28,6 +30,7 @@ class OrderLine {
   final Money lineTotal;
   final double taxRate;
   final String? note;
+  final List<SelectedOption> selectedOptions;
 }
 
 class Order {
@@ -127,6 +130,8 @@ class Order {
               lineDiscount: l.discountAmount,
               lineTotal: l.net,
               taxRate: l.product.taxRate,
+              note: l.note,
+              selectedOptions: l.selectedOptions,
             ))
         .toList(growable: false);
 

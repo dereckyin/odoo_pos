@@ -19,15 +19,23 @@ class CheckoutPage extends ConsumerStatefulWidget {
 class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   PaymentMethod _method = PaymentMethod.cash;
   final NumPadBuffer _tenderedBuffer = NumPadBuffer(maxLength: 8);
+  final NumPadBuffer _pointsBuffer = NumPadBuffer(maxLength: 6);
+  final _couponCtl = TextEditingController();
   bool _busy = false;
   InvoiceCarrierType _carrierType = InvoiceCarrierType.none;
   final _carrierCtl = TextEditingController();
   final _taxIdCtl = TextEditingController();
 
+  int get _pointsToRedeem => _pointsBuffer.asInt.toInt();
+  int get _pointsDiscountCents => _pointsToRedeem;
+
+  Money _payable(Cart cart) => cart.total - Money(_pointsDiscountCents);
+
   @override
   void dispose() {
     _carrierCtl.dispose();
     _taxIdCtl.dispose();
+    _couponCtl.dispose();
     super.dispose();
   }
 
@@ -35,9 +43,11 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   Widget build(BuildContext context) {
     final cart = ref.watch(cartControllerProvider);
     final theme = Theme.of(context);
+    final payable = _payable(cart);
     final tendered = Money.fromMajor(_tenderedBuffer.asNum);
-    final change = (tendered - cart.total);
-    final canPay = _method != PaymentMethod.cash || tendered >= cart.total;
+    final change = (tendered - payable);
+    final canPay = _method != PaymentMethod.cash || tendered >= payable;
+    final maxPoints = cart.member?.points ?? 0;
 
     return LoadingOverlay(
       busy: _busy,
@@ -55,9 +65,58 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       SectionHeader(title: '應付金額', actions: [
-                        MoneyText(cart.total,
+                        MoneyText(payable,
                             style: theme.textTheme.displayLarge?.copyWith(color: theme.colorScheme.primary)),
                       ]),
+                      if (cart.member != null) ...[
+                        const SizedBox(height: 12),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text('會員 ${cart.member!.name}（${cart.member!.points} 點）'),
+                                const SizedBox(height: 8),
+                                TextField(
+                                  controller: _couponCtl,
+                                  decoration: const InputDecoration(
+                                    labelText: '優惠券代碼',
+                                    isDense: true,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    const Text('兌換點數'),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _pointsBuffer.value.isEmpty ? '0' : _pointsBuffer.value,
+                                        textAlign: TextAlign.right,
+                                        style: theme.textTheme.titleLarge,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                NumPad(
+                                  allowDecimal: false,
+                                  onKey: (k) => setState(() {
+                                    _pointsBuffer.apply(k);
+                                    if (_pointsToRedeem > maxPoints) {
+                                      _pointsBuffer.set(maxPoints.toString());
+                                    }
+                                  }),
+                                  onClear: () => setState(() => _pointsBuffer.reset()),
+                                ),
+                                if (_pointsDiscountCents > 0)
+                                  Text('點數折抵 ${Money(_pointsDiscountCents).format()}',
+                                      style: TextStyle(color: theme.colorScheme.primary)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       Wrap(
                         spacing: 12,
@@ -75,7 +134,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                         }).toList(),
                       ),
                       const Divider(height: 32),
-                      if (_method == PaymentMethod.cash) ..._buildCash(cart, tendered, change),
+                      if (_method == PaymentMethod.cash) ..._buildCash(cart, payable, tendered, change),
                       if (_method == PaymentMethod.creditCard) _buildCreditNotice(),
                       if (_method == PaymentMethod.linePay) _buildLinePayNotice(),
                       const SizedBox(height: 16),
@@ -93,8 +152,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                             flex: 2,
                             child: BigButton(
                               icon: Icons.check_circle_outline,
-                              label: '確認結帳 ${cart.total.format()}',
-                              onPressed: !canPay || _busy ? null : () => _doCheckout(cart, tendered, change),
+                              label: '確認結帳 ${payable.format()}',
+                              onPressed: !canPay || _busy ? null : () => _doCheckout(cart, payable, tendered, change),
                             ),
                           ),
                         ],
@@ -154,12 +213,12 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
     );
   }
 
-  List<Widget> _buildCash(Cart cart, Money tendered, Money change) {
+  List<Widget> _buildCash(Cart cart, Money payable, Money tendered, Money change) {
     final pre = [
       ('100', () => _setTendered(100)),
       ('500', () => _setTendered(500)),
       ('1000', () => _setTendered(1000)),
-      ('剛好', () => _setTendered(cart.total.major.toDouble())),
+      ('剛好', () => _setTendered(payable.major.toDouble())),
     ];
     return [
       Row(
@@ -224,13 +283,13 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         ),
       );
 
-  Future<void> _doCheckout(Cart cart, Money tendered, Money change) async {
+  Future<void> _doCheckout(Cart cart, Money payable, Money tendered, Money change) async {
     setState(() => _busy = true);
     try {
       final payment = Payment(
         id: newUuid(),
         method: _method,
-        amount: cart.total,
+        amount: payable,
         status: PaymentStatus.captured,
         tendered: _method == PaymentMethod.cash ? tendered : null,
         changeDue: _method == PaymentMethod.cash && change.isPositive ? change : null,
@@ -249,6 +308,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         carrier: carrier,
         taxId: _taxIdCtl.text.trim().isEmpty ? null : _taxIdCtl.text.trim(),
         invoiceGateway: 'ezpay',
+        pointsRedeemed: _pointsToRedeem,
+        couponCode: _couponCtl.text.trim().isEmpty ? null : _couponCtl.text.trim(),
       );
 
       try {

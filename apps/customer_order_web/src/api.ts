@@ -17,12 +17,27 @@ export function submitOrder(
   payload: {
     customer_note?: string | null
     party_size?: number | null
+    member_id?: string | null
     lines: { product_id: string; qty: number; note?: string | null }[]
   },
 ) {
   return http.post<GuestOrderRead>(
     `/public/orders/${encodeURIComponent(token)}`,
     payload,
+  )
+}
+
+export function requestMemberOtp(tableToken: string, phone: string) {
+  return http.post<{ ok: boolean; dev_code?: string }>('/public/members/otp/request', {
+    table_token: tableToken,
+    phone,
+  })
+}
+
+export function verifyMemberOtp(tableToken: string, phone: string, code: string) {
+  return http.post<{ id: string; name: string; phone: string; points: number; level_id: string | null }>(
+    '/public/members/otp/verify',
+    { table_token: tableToken, phone, code },
   )
 }
 

@@ -7,12 +7,10 @@ import '../../../data/api/dto.dart';
 import '../../kds/providers/guest_orders_controller.dart';
 import '../providers/cart_controller.dart';
 
-/// Cashier-facing list of QR-scanned table orders.
+/// Cashier-facing list of QR-scanned table orders (one-person workflow).
 ///
-/// Full flow can be handled here (no separate kitchen login required):
-/// ``submitted`` → **接受並印單** → ``accepted`` → **標成待結帳** → ``ready``
-/// → **匯入購物車** → checkout. Kitchen printer prefs apply to "接受" the same
-/// as on the KDS board (disabled = silent skip).
+/// Primary path: ``submitted`` → **接單出餐並結帳** (print + accept + ready +
+/// import cart + checkout). Fallback: ``accepted`` / ``ready`` → **帶入結帳**.
 class TableOrdersPage extends ConsumerStatefulWidget {
   const TableOrdersPage({super.key});
 
@@ -33,11 +31,11 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
   Widget build(BuildContext context) {
     final snapshot = ref.watch(guestOrdersControllerProvider);
 
-    final groups = <String, List<GuestOrderDto>>{
-      'ready': snapshot.ofStatus('ready'),
-      'accepted': snapshot.ofStatus('accepted'),
-      'submitted': snapshot.ofStatus('submitted'),
-    };
+    final pending = snapshot.ofStatus('submitted');
+    final checkoutPending = [
+      ...snapshot.ofStatus('accepted'),
+      ...snapshot.ofStatus('ready'),
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -53,110 +51,95 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
       ),
       body: ListView(
         children: [
-          for (final entry in groups.entries) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  _StatusChip(status: entry.key),
-                  const SizedBox(width: 8),
-                  Text('（${entry.value.length} 筆）'),
-                ],
+          _SectionHeader(label: '待接單', count: pending.length),
+          if (pending.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text('（無）'),
+            )
+          else
+            ...pending.map(
+              (o) => _GuestOrderTile(
+                order: o,
+                onFulfillAndCheckout: _fulfillAndCheckout,
               ),
             ),
-            if (entry.value.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text('（無）'),
-              )
-            else
-              ...entry.value.map(
-                (o) => _GuestOrderTile(
-                  order: o,
-                  onAccept: _accept,
-                  onMarkReady: _markReady,
-                  onImport: _import,
-                ),
+          _SectionHeader(label: '待結帳', count: checkoutPending.length),
+          if (checkoutPending.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text('（無）'),
+            )
+          else
+            ...checkoutPending.map(
+              (o) => _GuestOrderTile(
+                order: o,
+                onImportCheckout: _importCheckout,
               ),
-          ],
+            ),
         ],
       ),
     );
   }
 
-  Future<void> _accept(GuestOrderDto order) async {
-    try {
-      await ref.read(guestOrdersControllerProvider.notifier).accept(order);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已接受（廚房印表機已依設定處理）')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('接受失敗：$e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-    }
-  }
-
-  Future<void> _markReady(GuestOrderDto order) async {
-    try {
-      await ref.read(guestOrdersControllerProvider.notifier).markReady(order);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已標成待結帳，可匯入購物車')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('更新失敗：$e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-    }
-  }
-
-  Future<void> _import(GuestOrderDto order) async {
-    if (order.status != 'ready') {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('請先「標成待結帳」後再匯入購物車')),
-      );
-      return;
-    }
+  Future<bool> _confirmClearCartIfNeeded() async {
     final cart = ref.read(cartControllerProvider);
-    if (cart.lines.isNotEmpty) {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('購物車已有商品'),
-          content: const Text('匯入此桌邊訂單將會清空目前購物車，是否繼續？'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('清空並匯入')),
-          ],
-        ),
-      );
-      if (ok != true) return;
-      ref.read(cartControllerProvider.notifier).clear();
-    }
+    if (cart.lines.isEmpty) return true;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('購物車已有商品'),
+        content: const Text('匯入此桌邊訂單將會清空目前購物車，是否繼續？'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('清空並匯入')),
+        ],
+      ),
+    );
+    if (ok != true) return false;
+    ref.read(cartControllerProvider.notifier).clear();
+    return true;
+  }
 
+  Future<bool> _importToCart(GuestOrderDto order) async {
+    if (!await _confirmClearCartIfNeeded()) return false;
+    await ref.read(cartControllerProvider.notifier).importGuestOrder(order);
+    return true;
+  }
+
+  Future<void> _fulfillAndCheckout(GuestOrderDto order) async {
     try {
-      await ref.read(cartControllerProvider.notifier).importGuestOrder(order);
+      final ready = await ref.read(guestOrdersControllerProvider.notifier).acceptAndReady(order);
+      if (!await _importToCart(ready)) return;
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('已匯入桌 ${order.tableLabel ?? '?'} 訂單，請進行結帳'),
-      ));
       context.go('/');
+      context.push('/checkout');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('匯入失敗：$e'),
+          content: Text('接單出餐失敗：$e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _importCheckout(GuestOrderDto order) async {
+    try {
+      var target = order;
+      if (order.status == 'accepted') {
+        target = await ref.read(guestOrdersControllerProvider.notifier).markReady(order);
+      }
+      if (!await _importToCart(target)) return;
+      if (!mounted) return;
+      context.go('/');
+      context.push('/checkout');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('帶入結帳失敗：$e'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -164,17 +147,35 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
   }
 }
 
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.label, required this.count});
+  final String label;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Row(
+        children: [
+          Text(label, style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(width: 8),
+          Text('（$count 筆）'),
+        ],
+      ),
+    );
+  }
+}
+
 class _GuestOrderTile extends StatelessWidget {
   const _GuestOrderTile({
     required this.order,
-    required this.onAccept,
-    required this.onMarkReady,
-    required this.onImport,
+    this.onFulfillAndCheckout,
+    this.onImportCheckout,
   });
   final GuestOrderDto order;
-  final Future<void> Function(GuestOrderDto) onAccept;
-  final Future<void> Function(GuestOrderDto) onMarkReady;
-  final Future<void> Function(GuestOrderDto) onImport;
+  final Future<void> Function(GuestOrderDto)? onFulfillAndCheckout;
+  final Future<void> Function(GuestOrderDto)? onImportCheckout;
 
   @override
   Widget build(BuildContext context) {
@@ -219,23 +220,17 @@ class _GuestOrderTile extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (order.status == 'submitted')
+                if (order.status == 'submitted' && onFulfillAndCheckout != null)
                   FilledButton.icon(
-                    onPressed: () => onAccept(order),
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: const Text('接受並印單'),
+                    onPressed: () => onFulfillAndCheckout!(order),
+                    icon: const Icon(Icons.point_of_sale),
+                    label: const Text('接單出餐並結帳'),
                   )
-                else if (order.status == 'accepted')
-                  FilledButton.tonalIcon(
-                    onPressed: () => onMarkReady(order),
-                    icon: const Icon(Icons.restaurant),
-                    label: const Text('標成待結帳'),
-                  )
-                else if (order.status == 'ready')
+                else if (onImportCheckout != null)
                   FilledButton.icon(
-                    onPressed: () => onImport(order),
+                    onPressed: () => onImportCheckout!(order),
                     icon: const Icon(Icons.shopping_cart_checkout),
-                    label: const Text('匯入購物車'),
+                    label: const Text('帶入結帳'),
                   ),
               ],
             ),

@@ -25,6 +25,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'products/:id/edit', name: 'product-edit', component: () => import('@/views/products/ProductFormView.vue') },
       { path: 'products/import', name: 'product-import', component: () => import('@/views/products/ProductImportView.vue') },
       { path: 'categories', name: 'categories', component: () => import('@/views/products/CategoryListView.vue') },
+      { path: 'option-groups', name: 'option-groups', component: () => import('@/views/products/OptionGroupListView.vue') },
       // Promotions
       { path: 'promotions', name: 'promotions', component: () => import('@/views/promotions/PromotionListView.vue') },
       { path: 'promotions/create', name: 'promotion-create', component: () => import('@/views/promotions/PromotionFormView.vue') },
@@ -36,6 +37,8 @@ const routes: RouteRecordRaw[] = [
       { path: 'members', name: 'members', component: () => import('@/views/members/MemberListView.vue') },
       { path: 'members/:id', name: 'member-detail', component: () => import('@/views/members/MemberDetailView.vue') },
       { path: 'member-levels', name: 'member-levels', component: () => import('@/views/members/MemberLevelView.vue') },
+      { path: 'loyalty-settings', name: 'loyalty-settings', component: () => import('@/views/members/LoyaltySettingsView.vue') },
+      { path: 'member-webhooks', name: 'member-webhooks', component: () => import('@/views/members/WebhookSettingsView.vue') },
       // Inventory
       { path: 'inventory', name: 'inventory', component: () => import('@/views/inventory/InventoryLevelView.vue') },
       { path: 'transfers', name: 'transfers', component: () => import('@/views/inventory/TransferListView.vue') },
@@ -56,6 +59,11 @@ const routes: RouteRecordRaw[] = [
       { path: 'orders/:id', name: 'order-detail', component: () => import('@/views/orders/OrderDetailView.vue') },
       // Reports
       { path: 'reports', name: 'reports', component: () => import('@/views/reports/ReportsView.vue') },
+      // Business intelligence
+      { path: 'analytics/sales', name: 'analytics-sales', component: () => import('@/views/analytics/SalesAnalyticsView.vue') },
+      { path: 'analytics/stores', name: 'analytics-stores', component: () => import('@/views/analytics/StorePerformanceView.vue') },
+      { path: 'analytics/context', name: 'analytics-context', component: () => import('@/views/analytics/EnvironmentInsightsView.vue') },
+      { path: 'analytics/members', name: 'analytics-members', component: () => import('@/views/members/MemberAnalyticsView.vue') },
       // Tenant self-service settings (payment / invoice / audit / usage)
       { path: 'tenant-settings', name: 'tenant-settings', component: () => import('@/views/tenant/TenantSettingsView.vue') },
       // Platform super-admin
@@ -69,6 +77,12 @@ const routes: RouteRecordRaw[] = [
         path: 'platform/tenants',
         name: 'platform-tenants',
         component: () => import('@/views/platform/TenantListView.vue'),
+        meta: { platformOnly: true },
+      },
+      {
+        path: 'platform/alliances',
+        name: 'platform-alliances',
+        component: () => import('@/views/platform/AllianceListView.vue'),
         meta: { platformOnly: true },
       },
     ],

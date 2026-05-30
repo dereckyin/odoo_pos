@@ -1,6 +1,27 @@
+export interface PublicOptionChoice {
+  id: string
+  name: string
+  price_delta_cents: number
+  is_default: boolean
+}
+
+export interface PublicOptionGroup {
+  id: string
+  name: string
+  selection_type: 'single' | 'multi'
+  is_required: boolean
+  min_selections: number
+  max_selections: number | null
+  sort_order: number
+  choices: PublicOptionChoice[]
+}
+
 export interface PublicCategory {
   id: string
   name: string
+  parent_id: string | null
+  depth: number
+  path_label: string
   sort_order: number
   color: string | null
   icon: string | null
@@ -15,6 +36,15 @@ export interface PublicProduct {
   image_url: string | null
   unit: string
   description: string | null
+  option_groups: PublicOptionGroup[]
+}
+
+export interface SelectedOption {
+  group_id: string
+  group_name: string
+  choice_id: string
+  choice_name: string
+  price_delta_cents: number
 }
 
 export interface PublicMeta {
@@ -28,6 +58,7 @@ export interface PublicMeta {
 export interface PublicMenu {
   meta: PublicMeta
   categories: PublicCategory[]
+  root_category_ids: string[]
   products: PublicProduct[]
 }
 
@@ -40,6 +71,7 @@ export interface GuestOrderLineRead {
   unit_price_cents: number
   line_total_cents: number
   note: string | null
+  options_json?: SelectedOption[] | null
   created_at: string
 }
 

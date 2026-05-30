@@ -21,6 +21,7 @@ from ...core.usage import (
 )
 from ...models import (
     AuditLog,
+    Tenant,
     TenantInvoiceSetting,
     TenantPaymentSetting,
     TenantSubscription,
@@ -28,6 +29,8 @@ from ...models import (
 from ...schemas.tenant import (
     AuditLogRead,
     SubscriptionPlanRead,
+    TenantGeneralSettingsRead,
+    TenantGeneralSettingsUpdate,
     TenantInvoiceSettingRead,
     TenantInvoiceSettingUpsert,
     TenantPaymentSettingRead,
@@ -37,6 +40,32 @@ from ...schemas.tenant import (
 )
 
 router = APIRouter(prefix="/tenant", tags=["tenant-settings"])
+
+
+@router.get("/general-settings", response_model=TenantGeneralSettingsRead)
+async def get_general_settings(db: DbSession, scope: TenantAdminDep):
+    tenant = await db.get(Tenant, scope.tenant_id)
+    if not tenant:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    settings = tenant.settings or {}
+    return TenantGeneralSettingsRead(timezone=settings.get("timezone") or "Asia/Taipei")
+
+
+@router.patch("/general-settings", response_model=TenantGeneralSettingsRead)
+async def update_general_settings(
+    payload: TenantGeneralSettingsUpdate, db: DbSession, scope: TenantAdminDep
+):
+    tenant = await db.get(Tenant, scope.tenant_id)
+    if not tenant:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    settings = dict(tenant.settings or {})
+    if payload.timezone is not None:
+        settings["timezone"] = payload.timezone
+    tenant.settings = settings
+    await audit(db, scope, action="tenant_settings_update", resource_type="tenant", flush=False)
+    await db.commit()
+    await db.refresh(tenant)
+    return TenantGeneralSettingsRead(timezone=settings.get("timezone") or "Asia/Taipei")
 
 
 # ---------------------------------------------------------------------------

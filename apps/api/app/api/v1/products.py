@@ -18,6 +18,7 @@ from ...core.deps import (
 from ...core.usage import assert_can_add_product
 from ...models import Product, ProductBarcode
 from ...schemas.product import ProductCreate, ProductRead, ProductUpdate
+from ...services.category_tree import build_category_maps, descendant_ids, load_tenant_categories
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -40,6 +41,7 @@ async def list_products(
     scope: TenantScope,
     q: str | None = None,
     category_id: str | None = None,
+    include_subcategories: bool = True,
     is_active: bool | None = None,
     limit: int = Query(50, le=200),
     offset: int = 0,
@@ -54,7 +56,13 @@ async def list_products(
             or_(Product.name.ilike(like), Product.sku.ilike(like), ProductBarcode.barcode == q)
         ).distinct()
     if category_id:
-        stmt = stmt.where(Product.category_id == category_id)
+        if include_subcategories:
+            cats = await load_tenant_categories(db, scope.tenant_id)
+            _, children_map = build_category_maps(cats)
+            ids = descendant_ids(category_id, children_map)
+            stmt = stmt.where(Product.category_id.in_(ids))
+        else:
+            stmt = stmt.where(Product.category_id == category_id)
     if is_active is not None:
         stmt = stmt.where(Product.is_active == is_active)
     stmt = stmt.order_by(Product.name).limit(limit).offset(offset)

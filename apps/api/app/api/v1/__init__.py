@@ -17,22 +17,30 @@ from . import (
     uploads,
     users,
     reports,
+    analytics,
+    member_analytics,
     dashboard,
     dining_tables,
     guest_orders,
     public_orders,
     public_plans,
+    public_members,
     tenant_apply,
     tenant_settings,
     tenant_export,
     platform,
     purchasing,
+    options,
+    alliance,
+    webhooks,
 )
 
 api_router = APIRouter()
 api_router.include_router(auth.router)
 api_router.include_router(stores.router)
 api_router.include_router(products.router)
+api_router.include_router(options.product_options_router)
+api_router.include_router(options.router)
 api_router.include_router(categories.router)
 api_router.include_router(members.router)
 api_router.include_router(coupons.router)
@@ -47,12 +55,17 @@ api_router.include_router(sync.router)
 api_router.include_router(uploads.router)
 api_router.include_router(users.router)
 api_router.include_router(reports.router)
+api_router.include_router(analytics.router)
+api_router.include_router(member_analytics.router)
 api_router.include_router(dashboard.router)
 api_router.include_router(dining_tables.router)
 api_router.include_router(guest_orders.router)
 api_router.include_router(public_orders.router)
+api_router.include_router(public_members.router)
 api_router.include_router(public_plans.router)
 api_router.include_router(tenant_apply.router)
 api_router.include_router(tenant_settings.router)
 api_router.include_router(tenant_export.router)
 api_router.include_router(platform.router)
+api_router.include_router(alliance.router)
+api_router.include_router(webhooks.router)

@@ -152,6 +152,7 @@ class SubscriptionPlan(Base, UUIDPrimaryKey, Timestamped):
     max_products: Mapped[int] = mapped_column(Integer, default=500)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    features: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
 class TenantSubscription(Base, UUIDPrimaryKey, Timestamped):

@@ -12,7 +12,7 @@
           <a-tag>{{ typeLabel[record.type] || record.type }}</a-tag>
         </template>
         <template v-if="column.key === 'value'">
-          {{ record.type === 'percentage' ? `${record.value}%` : `$${record.value}` }}
+          {{ record.type === 'percentage' ? `${record.value}%` : `NT$${record.value}` }}
         </template>
         <template v-if="column.key === 'status'">
           <a-tag v-if="record.used_at" color="default">已使用</a-tag>
@@ -46,7 +46,7 @@ const columns = [
   { title: '代碼', dataIndex: 'code', key: 'code' },
   { title: '類型', key: 'type', width: 120 },
   { title: '面額', key: 'value', width: 100 },
-  { title: '最低消費', dataIndex: 'min_spend_cents', key: 'min_spend', width: 100, customRender: ({ text }: { text: number }) => `$${(text / 100).toFixed(0)}` },
+  { title: '最低消費', dataIndex: 'min_spend_cents', key: 'min_spend', width: 100, customRender: ({ text }: { text: number }) => `NT$${text}` },
   { title: '到期日', key: 'expires_at', width: 120 },
   { title: '狀態', key: 'status', width: 100 },
 ]

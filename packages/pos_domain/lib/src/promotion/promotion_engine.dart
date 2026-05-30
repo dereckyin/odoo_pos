@@ -3,6 +3,7 @@ import 'package:pos_core/pos_core.dart';
 import '../entities/cart.dart';
 import '../entities/promotion.dart';
 import '../entities/member.dart';
+import '../entities/category_tree.dart';
 import 'promotion_rule.dart';
 
 class PromotionEvaluation {
@@ -30,6 +31,7 @@ class PromotionEngine {
   PromotionEvaluation evaluate({
     required Cart cart,
     required List<Promotion> promotions,
+    CategoryTree? categoryTree,
   }) {
     final now = clock.now();
     final active = promotions.where((p) => p.isAvailableAt(now)).toList()
@@ -42,7 +44,7 @@ class PromotionEngine {
 
     final allApplied = <AppliedPromotion>[];
     for (final promo in active) {
-      final result = _applyOne(promo, workingCart);
+      final result = _applyOne(promo, workingCart, categoryTree);
       if (result == null) continue;
       workingCart = result.cart;
       allApplied.addAll(result.applied);
@@ -60,32 +62,38 @@ class PromotionEngine {
     return PromotionEvaluation(cart: workingCart, applied: allApplied);
   }
 
-  _Step? _applyOne(Promotion p, Cart cart) {
+  _Step? _applyOne(Promotion p, Cart cart, CategoryTree? categoryTree) {
     switch (p.strategy) {
       case PromotionStrategy.thresholdAmountOff:
-        return _applyThresholdAmountOff(p, cart);
+        return _applyThresholdAmountOff(p, cart, categoryTree);
       case PromotionStrategy.thresholdPercentOff:
-        return _applyThresholdPercentOff(p, cart);
+        return _applyThresholdPercentOff(p, cart, categoryTree);
       case PromotionStrategy.nthItemDiscount:
-        return _applyNthItemDiscount(p, cart);
+        return _applyNthItemDiscount(p, cart, categoryTree);
       case PromotionStrategy.buyXGetY:
-        return _applyBuyXGetY(p, cart);
+        return _applyBuyXGetY(p, cart, categoryTree);
       case PromotionStrategy.bundlePrice:
-        return _applyBundlePrice(p, cart);
+        return _applyBundlePrice(p, cart, categoryTree);
       case PromotionStrategy.memberLevelDiscount:
       case PromotionStrategy.manualDiscount:
         return null; // handled out of band
     }
   }
 
-  bool _matchesScope(Promotion p, CartLine line) {
+  bool _matchesScope(Promotion p, CartLine line, CategoryTree? categoryTree) {
     if (p.applicableProductIds.isEmpty && p.applicableCategoryIds.isEmpty) {
       return true;
     }
     if (p.applicableProductIds.contains(line.product.id)) return true;
-    if (line.product.categoryId != null &&
-        p.applicableCategoryIds.contains(line.product.categoryId)) {
-      return true;
+    if (line.product.categoryId != null && p.applicableCategoryIds.isNotEmpty) {
+      if (p.applicableCategoryIds.contains(line.product.categoryId)) return true;
+      if (categoryTree != null) {
+        for (final cid in p.applicableCategoryIds) {
+          if (categoryTree.descendantIds(cid).contains(line.product.categoryId)) {
+            return true;
+          }
+        }
+      }
     }
     return false;
   }
@@ -98,7 +106,7 @@ class PromotionEngine {
 
   // ---- strategies ----
 
-  _Step? _applyThresholdAmountOff(Promotion p, Cart cart) {
+  _Step? _applyThresholdAmountOff(Promotion p, Cart cart, CategoryTree? categoryTree) {
     if (!_memberLevelOk(p, cart.member)) return null;
     final threshold = (p.config[PromotionConfigKeys.thresholdAmount] as num).toDouble();
     final off = (p.config[PromotionConfigKeys.offAmount] as num).toDouble();
@@ -116,7 +124,7 @@ class PromotionEngine {
     );
   }
 
-  _Step? _applyThresholdPercentOff(Promotion p, Cart cart) {
+  _Step? _applyThresholdPercentOff(Promotion p, Cart cart, CategoryTree? categoryTree) {
     if (!_memberLevelOk(p, cart.member)) return null;
     final threshold = (p.config[PromotionConfigKeys.thresholdAmount] as num).toDouble();
     final pct = (p.config[PromotionConfigKeys.offPct] as num).toDouble();
@@ -134,7 +142,7 @@ class PromotionEngine {
     );
   }
 
-  _Step? _applyNthItemDiscount(Promotion p, Cart cart) {
+  _Step? _applyNthItemDiscount(Promotion p, Cart cart, CategoryTree? categoryTree) {
     if (!_memberLevelOk(p, cart.member)) return null;
     final nth = (p.config[PromotionConfigKeys.nth] as num).toInt();
     final pct = (p.config[PromotionConfigKeys.nthDiscountPct] as num).toDouble();
@@ -144,7 +152,7 @@ class PromotionEngine {
     final allApplied = <AppliedPromotion>[];
 
     for (final line in cart.lines) {
-      if (!_matchesScope(p, line)) {
+      if (!_matchesScope(p, line, categoryTree)) {
         newLines.add(line);
         continue;
       }
@@ -173,7 +181,7 @@ class PromotionEngine {
     return _Step(cart: cart.copyWith(lines: newLines), applied: allApplied);
   }
 
-  _Step? _applyBuyXGetY(Promotion p, Cart cart) {
+  _Step? _applyBuyXGetY(Promotion p, Cart cart, CategoryTree? categoryTree) {
     if (!_memberLevelOk(p, cart.member)) return null;
     final buyN = (p.config[PromotionConfigKeys.buyN] as num).toInt();
     final getN = (p.config[PromotionConfigKeys.getN] as num).toInt();
@@ -186,7 +194,7 @@ class PromotionEngine {
     final groupSize = buyN + getN;
 
     for (final line in cart.lines) {
-      if (!_matchesScope(p, line)) {
+      if (!_matchesScope(p, line, categoryTree)) {
         newLines.add(line);
         continue;
       }
@@ -213,7 +221,7 @@ class PromotionEngine {
     return _Step(cart: cart.copyWith(lines: newLines), applied: allApplied);
   }
 
-  _Step? _applyBundlePrice(Promotion p, Cart cart) {
+  _Step? _applyBundlePrice(Promotion p, Cart cart, CategoryTree? categoryTree) {
     if (!_memberLevelOk(p, cart.member)) return null;
     final ids = (p.config[PromotionConfigKeys.bundleProductIds] as List?)?.cast<String>() ?? [];
     final bundlePriceMajor = (p.config[PromotionConfigKeys.bundlePrice] as num?)?.toDouble();

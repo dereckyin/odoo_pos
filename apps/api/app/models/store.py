@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import DateTime, Float, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..core.db import Base
@@ -17,6 +17,10 @@ class Store(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     tax_id: Mapped[str | None] = mapped_column(String(16), nullable=True)
     address: Mapped[str | None] = mapped_column(String(256), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    geocoded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    geocode_label: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
     terminals: Mapped[list["Terminal"]] = relationship(back_populates="store", cascade="all, delete-orphan")
 

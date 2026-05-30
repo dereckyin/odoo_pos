@@ -628,6 +628,59 @@
       .shots--2 { grid-template-columns: 1fr; }
     }
 
+    .changelog-item {
+      border-left: 3px solid var(--accent);
+      padding: 0 0 1.25rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .changelog-item:last-child { margin-bottom: 0; padding-bottom: 0; }
+
+    .changelog-item h3 {
+      font-size: 1.05rem;
+      margin-bottom: 0.35rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+
+    .changelog-item .ver {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(196, 92, 62, 0.1);
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+    }
+
+    .changelog-item ul {
+      margin: 0.5rem 0 0;
+      padding-left: 1.2rem;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .changelog-item li { margin-bottom: 0.35rem; }
+
+    .plan-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.5rem;
+    }
+
+    .plan-tag {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      background: var(--surface-2);
+      color: var(--muted);
+    }
+
+    .plan-tag--pro { background: rgba(212, 168, 83, 0.2); color: #8b6914; }
+    .plan-tag--ent { background: rgba(139, 90, 60, 0.15); color: var(--admin); }
+
     @media (max-width: 640px) {
       .hero { padding: 2.25rem 1rem 3.25rem; }
       .hero p { font-size: 1rem; }
@@ -680,7 +733,7 @@
         <a class="btn-download" href="/readme/pos-release.apk" download="點餐趣-pos.apk">
           <span aria-hidden="true">📲</span> 下載 Android 收銀 App
         </a>
-        <span class="download-meta">APK · 約 75 MB · 適用 Android 平板／手機</span>
+        <span class="download-meta">APK · 約 76 MB · 適用 Android 平板／手機</span>
         <p class="download-note">安裝後請由店長完成「終端註冊」，再以收銀帳號登入。</p>
       </div>
     </div>
@@ -689,6 +742,7 @@
   <main>
     <nav class="toc" aria-label="快速導覽">
       <a href="#overview">總覽</a>
+      <a href="#changelog">版本歷程</a>
       <a href="#download">下載 App</a>
       <a href="#pos-app">① 收銀 App</a>
       <a href="#admin">② 管理後台</a>
@@ -699,27 +753,27 @@
     <!-- Overview -->
     <section id="overview" class="card">
       <h2>三大模組如何連在一起？</h2>
-      <p class="subtitle">後台負責「設定與看數字」，App 負責「收錢與出餐」，桌邊點餐讓客人自助下單——三者共用同一套雲端 API。</p>
+      <p class="subtitle">後台負責「設定與看數字」，App 負責「收錢與出餐」，桌邊點餐讓客人自助下單——三者資料即時同步。</p>
 
       <div class="arch">
         <div class="arch-node arch-node--admin">
           <strong>管理後台</strong>
-          <span>Vue 3 · 瀏覽器</span>
+          <span>瀏覽器 · 老闆／店長</span>
         </div>
         <span class="arch-arrow" aria-hidden="true">↔</span>
         <div class="arch-node arch-node--pos">
           <strong>收銀 App</strong>
-          <span>Flutter · 平板／電腦</span>
+          <span>平板／電腦 · 店員／廚房</span>
         </div>
         <span class="arch-arrow" aria-hidden="true">↔</span>
         <div class="arch-node arch-node--customer">
           <strong>桌邊點餐</strong>
-          <span>Vue 3 · 客人手機</span>
+          <span>客人手機 · 掃碼點餐</span>
         </div>
       </div>
 
       <p class="cloud-bar">
-        <strong>☁️ 雲端後端（FastAPI + PostgreSQL）</strong> — 商品、訂單、會員、促銷、桌位與 guest 訂單皆在此同步
+        <strong>☁️ 雲端同步</strong> — 商品、訂單、會員、促銷、桌位與桌邊訂單集中管理，各端自動更新
       </p>
 
       <div class="table-scroll">
@@ -729,7 +783,6 @@
               <th>模組</th>
               <th>誰在用</th>
               <th>核心任務</th>
-              <th>專案路徑</th>
             </tr>
           </thead>
           <tbody>
@@ -737,23 +790,95 @@
               <td><strong style="color:var(--pos)">收銀 App</strong></td>
               <td>店員、廚房</td>
               <td>結帳、掃碼、會員、接 QR 單、離線先賣</td>
-              <td><code>apps/pos_app</code></td>
             </tr>
             <tr>
               <td><strong style="color:var(--admin)">管理後台</strong></td>
               <td>老闆、店長</td>
-              <td>菜單、促銷、庫存、報表、印桌碼 QR</td>
-              <td><code>apps/admin</code></td>
+              <td>菜單、促銷、會員、庫存、報表、印桌碼 QR</td>
             </tr>
             <tr>
               <td><strong style="color:var(--customer)">桌邊點餐</strong></td>
               <td>用餐客人</td>
               <td>掃碼看菜單、加入購物車、送出點餐（櫃台付款）</td>
-              <td><code>apps/customer_order_web</code></td>
             </tr>
           </tbody>
         </table>
       </div>
+    </section>
+
+    <!-- Changelog -->
+    <section id="changelog" class="card">
+      <h2>版本歷程與功能更新</h2>
+      <p class="subtitle">依上線時間整理，方便店家了解系統演進與訂閱方案差異。</p>
+
+      <article class="changelog-item">
+        <h3><span class="ver">2026.05</span> 專業會員與商業智慧</h3>
+        <ul>
+          <li><strong>忠誠度引擎</strong> — 可設定累點規則、點數兌換折抵、自動升級／降級、優惠券過期驗證</li>
+          <li><strong>後台會員管理</strong> — 新增／編輯會員、手動調點、點數流水、訂單紀錄、等級 CRUD、忠誠度設定頁</li>
+          <li><strong>收銀 App</strong> — 結帳支援點數折抵與優惠券輸入；結帳後自動更新會員餘額</li>
+          <li><strong>桌邊點餐</strong> — 手機驗證碼登入會員、購物車預估累點、送單綁定會員身份</li>
+          <li><strong>會員分析</strong> — 總覽、等級分布、RFM 分群、流失風險名單（依方案開放）</li>
+          <li><strong>跨品牌聯盟</strong> — 多品牌共用會員池、OTP 身份、聯盟點數互通（Enterprise）</li>
+          <li><strong>Webhook</strong> — 會員建立、點數異動等事件推播至外部系統（Pro 以上）</li>
+          <li><strong>訂閱分級</strong> — Starter / Growth / Pro / Enterprise 方案功能切割（會員上限、兌點、BI、聯盟）</li>
+        </ul>
+        <div class="plan-tags">
+          <span class="plan-tag">Starter 基礎會員</span>
+          <span class="plan-tag">Growth 兌點＋自動升級</span>
+          <span class="plan-tag plan-tag--pro">Pro 會員 BI</span>
+          <span class="plan-tag plan-tag--ent">Enterprise 跨品牌聯盟</span>
+        </div>
+      </article>
+
+      <article class="changelog-item">
+        <h3><span class="ver">2026.05</span> 商品選項與商業智慧</h3>
+        <ul>
+          <li><strong>選項庫</strong> — 甜度、冰塊、加料等可重用選項，商品自由綁定；收銀與桌邊點餐同步支援</li>
+          <li><strong>多層分類</strong> — 樹狀菜單分類，後台與現場逐層點選</li>
+          <li><strong>商業智慧</strong> — 銷售分析、門店績效、環境洞察（天氣與營收關聯）</li>
+          <li><strong>訂單編號</strong> — 可讀的店別＋日期＋流水號，方便對帳與客訴查詢</li>
+        </ul>
+      </article>
+
+      <article class="changelog-item">
+        <h3><span class="ver">2026.05</span> 採購與商品能見度</h3>
+        <ul>
+          <li><strong>採購管理</strong> — 供應商、採購單建立與追蹤</li>
+          <li><strong>選單顯示控制</strong> — 商品／分類可個別設定是否出現在 POS 或桌邊點餐</li>
+        </ul>
+      </article>
+
+      <article class="changelog-item">
+        <h3><span class="ver">2026.05</span> 桌邊 QR 點餐</h3>
+        <ul>
+          <li><strong>桌位 QR</strong> — 後台產生桌碼、列印貼桌</li>
+          <li><strong>客人自助點餐</strong> — 掃碼看菜單、選項、購物車、送出至廚房</li>
+          <li><strong>廚房看板</strong> — 接單、出餐、標記完成</li>
+          <li><strong>櫃台合併結帳</strong> — 已出餐桌單一鍵帶入收銀購物車</li>
+          <li><strong>後台監看</strong> — 桌邊訂單狀態即時追蹤</li>
+        </ul>
+      </article>
+
+      <article class="changelog-item">
+        <h3><span class="ver">2026.05</span> 多店 SaaS 與平台化</h3>
+        <ul>
+          <li><strong>多租戶</strong> — 一平台服務多家品牌，資料完全隔離</li>
+          <li><strong>店家申請開通</strong> — 線上填表、信箱驗證、平台審核後自動開通</li>
+          <li><strong>訂閱方案</strong> — 依門店數、終端數、月訂單量分級</li>
+          <li><strong>租戶設定</strong> — 金流、發票、用量與稽核紀錄自助管理</li>
+        </ul>
+      </article>
+
+      <article class="changelog-item">
+        <h3><span class="ver">2026.05</span> 品牌與正式環境</h3>
+        <ul>
+          <li><strong>品牌定名「點餐趣」</strong> — 收銀 App、後台、說明頁統一視覺</li>
+          <li><strong>正式站點</strong> — pos.myvnc.com 提供後台、桌邊點餐、APK 下載與本說明頁</li>
+          <li><strong>離線優先收銀</strong> — 斷網先記帳，恢復後背景同步</li>
+          <li><strong>促銷引擎</strong> — 滿額折、第 N 件、買送、會員等級限定、優先順序與疊加</li>
+        </ul>
+      </article>
     </section>
 
     <section id="download" class="card card--download">
@@ -761,7 +886,7 @@
       <p class="subtitle">現場櫃台、廚房看板建議使用平板安裝；Windows／macOS 桌面版請向服務商取得安裝包。</p>
       <div class="download-inline">
         <a class="btn-download btn-download--secondary" href="/readme/pos-release.apk" download="點餐趣-pos.apk">
-          下載 APK（約 75 MB）
+          下載 APK（約 76 MB）
         </a>
         <span style="color:var(--muted);font-size:0.9rem">
           檔名：<code>點餐趣-pos.apk</code> · 需允許「安裝未知來源應用程式」
@@ -782,7 +907,6 @@
           <h2>① 收銀 App</h2>
           <p class="tagline">現場第一線：結帳、促銷計算、會員綁定，斷網也能先記帳。</p>
           <div class="meta-grid">
-            <span class="meta-chip">Flutter</span>
             <span class="meta-chip">Android / Windows / macOS</span>
             <span class="meta-chip">角色：收銀 · 廚房 · 店長</span>
           </div>
@@ -793,12 +917,13 @@
         <div>
           <h3 style="font-size:1rem;margin-bottom:0.75rem;color:var(--muted)">主要能力</h3>
           <ul class="feature-list">
-            <li><strong>收銀結帳</strong> — 分類選品、搜尋 SKU／條碼、購物車與折扣自動計算</li>
-            <li><strong>會員</strong> — 手機或 QR 綁定，套用會員價與促銷</li>
+            <li><strong>收銀結帳</strong> — 多層分類逐層點選、搜尋 SKU／條碼、購物車與折扣自動計算</li>
+            <li><strong>品項選項</strong> — 甜度、冰塊、加料等選項面板，加價自動計入單價</li>
+            <li><strong>會員</strong> — 手機或 QR 綁定、等級折扣；結帳可兌換點數折抵、輸入優惠券</li>
             <li><strong>促銷同步</strong> — 後台設好的活動在櫃台自動生效，店員可查活動列表</li>
             <li><strong>桌邊單接單</strong> — 廚房看板接 QR 訂單；收銀將「已出餐」單帶入購物車結帳</li>
             <li><strong>離線優先</strong> — 網路不穩時先寫入本機，恢復後背景同步雲端</li>
-            <li><strong>安全終端</strong> — 管理員註冊裝置並發放 API Key，防止未授權收銀機</li>
+            <li><strong>安全終端</strong> — 管理員註冊裝置並發放授權金鑰，防止未授權收銀機</li>
           </ul>
         </div>
         <div class="shots shots--2">
@@ -816,7 +941,7 @@
       <div class="shots" style="margin-top:1.25rem">
         <figure class="zoom-shot">
           <img src="/readme/pos_02.png" alt="終端機註冊畫面" width="400" height="500" loading="lazy" tabindex="0" />
-          <figcaption>首次使用：店長註冊終端機並取得 API Key（僅管理員可操作）<span class="zoom-hint">點擊放大</span></figcaption>
+          <figcaption>首次使用：店長註冊終端機並取得授權金鑰（僅管理員可操作）<span class="zoom-hint">點擊放大</span></figcaption>
         </figure>
       </div>
     </article>
@@ -829,9 +954,8 @@
           <h2>② 管理後台</h2>
           <p class="tagline">營運指揮中心：不用到現場也能改菜單、設活動、看今日營收。</p>
           <div class="meta-grid">
-            <span class="meta-chip">Vue 3 + Ant Design Vue</span>
             <span class="meta-chip">瀏覽器開啟</span>
-            <span class="meta-chip">多租戶 SaaS</span>
+            <span class="meta-chip">多店管理</span>
           </div>
         </div>
       </header>
@@ -841,9 +965,12 @@
           <h3 style="font-size:1rem;margin-bottom:0.75rem;color:var(--muted)">主要能力</h3>
           <ul class="feature-list">
             <li><strong>總覽儀表板</strong> — 今日訂單、營收、商品／會員／活動數量</li>
-            <li><strong>產品管理</strong> — 分類、商品、CSV 匯入</li>
+            <li><strong>產品管理</strong> — 多層分類（樹狀）、選項庫、商品綁定、CSV 匯入</li>
             <li><strong>行銷方案</strong> — 滿額折、第 N 件折扣、買送、優先順序與疊加規則</li>
-            <li><strong>會員與庫存</strong> — 等級、水位、調撥、採購</li>
+            <li><strong>會員管理</strong> — 會員列表、等級、忠誠度設定、點數流水、優惠券與 Webhook</li>
+            <li><strong>會員分析</strong> — 活躍／沉睡、等級分布、RFM、流失名單（依方案）</li>
+            <li><strong>商業智慧</strong> — 銷售分析、門店績效、環境洞察</li>
+            <li><strong>庫存與採購</strong> — 水位、調撥、供應商、採購單</li>
             <li><strong>門店與桌位</strong> — 多店管理、桌號、產生並列印 QR 碼</li>
             <li><strong>QR 點餐監看</strong> — 追蹤桌邊訂單狀態</li>
             <li><strong>訂單報表</strong> — 銷售查詢與統計</li>
@@ -878,9 +1005,8 @@
           <h2>③ 桌邊點餐系統</h2>
           <p class="tagline">客人掃桌上的 QR 碼，用手機自助點餐；付款仍在櫃台完成。</p>
           <div class="meta-grid">
-            <span class="meta-chip">Vue 3 輕量 SPA</span>
             <span class="meta-chip">無需安裝 App</span>
-            <span class="meta-chip">正式環境掛在 /customer/</span>
+            <span class="meta-chip">掃碼即用</span>
           </div>
         </div>
       </header>
@@ -890,9 +1016,9 @@
           <h3 style="font-size:1rem;margin-bottom:0.75rem;color:var(--muted)">客人端流程</h3>
           <ul class="feature-list">
             <li>掃描桌上 QR（由後台「桌位管理」產生）</li>
-            <li>開啟 <code>/order?t=桌位token</code> 瀏覽菜單</li>
-            <li>加入購物車、確認品項</li>
-            <li>送出 <strong>guest order</strong>（桌邊訂單）</li>
+            <li>瀏覽階層菜單，有選項的品項會跳出選項面板（甜度、加料等）</li>
+            <li>可選擇<strong>登入會員</strong>（手機驗證碼），購物車顯示預估累點</li>
+            <li>加入購物車、確認品項後送出桌邊訂單</li>
             <li>可於訂單狀態頁查看是否已被廚房接單</li>
           </ul>
 
@@ -967,7 +1093,7 @@
           <span class="flow-num">2</span>
           <div>
             <strong>桌邊點餐 · 客人下單</strong>
-            <p>客人掃碼選餐、送出 guest order。系統記錄桌位 token 與品項，狀態為「已送出」。</p>
+            <p>客人掃碼選餐、送出桌邊訂單。系統記錄桌號與品項，狀態為「已送出」。</p>
           </div>
         </div>
         <div class="flow-connector"></div>
@@ -999,10 +1125,10 @@
   </main>
 
   <footer>
-    <p>點餐趣 Enterprise POS · 文件位於 <code>pos_doc/</code></p>
-    <p style="margin-top:0.5rem">
-      詳細操作見 <a href="../操作手冊.md">操作手冊.md</a> ·
-      圖文版 <a href="產品說明書.md">產品說明書.md</a>
+    <p>點餐趣 · 餐飲 POS 解決方案</p>
+    <p style="margin-top:0.5rem;color:var(--muted);font-size:0.88rem">
+      正式站點 <a href="https://pos.myvnc.com/">pos.myvnc.com</a> ·
+      最新更新見上方 <a href="#changelog">版本歷程</a>
     </p>
   </footer>
 

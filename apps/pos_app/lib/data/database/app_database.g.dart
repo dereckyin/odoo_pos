@@ -2228,6 +2228,1704 @@ class ProductBarcodesCompanion extends UpdateCompanion<ProductBarcodeRow> {
   }
 }
 
+class $OptionGroupsTable extends OptionGroups
+    with TableInfo<$OptionGroupsTable, OptionGroupRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OptionGroupsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _selectionTypeMeta =
+      const VerificationMeta('selectionType');
+  @override
+  late final GeneratedColumn<String> selectionType = GeneratedColumn<String>(
+      'selection_type', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('single'));
+  static const VerificationMeta _isRequiredMeta =
+      const VerificationMeta('isRequired');
+  @override
+  late final GeneratedColumn<bool> isRequired = GeneratedColumn<bool>(
+      'is_required', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_required" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _minSelectionsMeta =
+      const VerificationMeta('minSelections');
+  @override
+  late final GeneratedColumn<int> minSelections = GeneratedColumn<int>(
+      'min_selections', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _maxSelectionsMeta =
+      const VerificationMeta('maxSelections');
+  @override
+  late final GeneratedColumn<int> maxSelections = GeneratedColumn<int>(
+      'max_selections', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _sortOrderMeta =
+      const VerificationMeta('sortOrder');
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+      'sort_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        name,
+        selectionType,
+        isRequired,
+        minSelections,
+        maxSelections,
+        sortOrder,
+        updatedAt,
+        deletedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'option_groups';
+  @override
+  VerificationContext validateIntegrity(Insertable<OptionGroupRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('selection_type')) {
+      context.handle(
+          _selectionTypeMeta,
+          selectionType.isAcceptableOrUnknown(
+              data['selection_type']!, _selectionTypeMeta));
+    }
+    if (data.containsKey('is_required')) {
+      context.handle(
+          _isRequiredMeta,
+          isRequired.isAcceptableOrUnknown(
+              data['is_required']!, _isRequiredMeta));
+    }
+    if (data.containsKey('min_selections')) {
+      context.handle(
+          _minSelectionsMeta,
+          minSelections.isAcceptableOrUnknown(
+              data['min_selections']!, _minSelectionsMeta));
+    }
+    if (data.containsKey('max_selections')) {
+      context.handle(
+          _maxSelectionsMeta,
+          maxSelections.isAcceptableOrUnknown(
+              data['max_selections']!, _maxSelectionsMeta));
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  OptionGroupRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OptionGroupRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      selectionType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}selection_type'])!,
+      isRequired: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_required'])!,
+      minSelections: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}min_selections'])!,
+      maxSelections: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}max_selections']),
+      sortOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}sort_order'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
+    );
+  }
+
+  @override
+  $OptionGroupsTable createAlias(String alias) {
+    return $OptionGroupsTable(attachedDatabase, alias);
+  }
+}
+
+class OptionGroupRow extends DataClass implements Insertable<OptionGroupRow> {
+  final String id;
+  final String name;
+  final String selectionType;
+  final bool isRequired;
+  final int minSelections;
+  final int? maxSelections;
+  final int sortOrder;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  const OptionGroupRow(
+      {required this.id,
+      required this.name,
+      required this.selectionType,
+      required this.isRequired,
+      required this.minSelections,
+      this.maxSelections,
+      required this.sortOrder,
+      required this.updatedAt,
+      this.deletedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['selection_type'] = Variable<String>(selectionType);
+    map['is_required'] = Variable<bool>(isRequired);
+    map['min_selections'] = Variable<int>(minSelections);
+    if (!nullToAbsent || maxSelections != null) {
+      map['max_selections'] = Variable<int>(maxSelections);
+    }
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    return map;
+  }
+
+  OptionGroupsCompanion toCompanion(bool nullToAbsent) {
+    return OptionGroupsCompanion(
+      id: Value(id),
+      name: Value(name),
+      selectionType: Value(selectionType),
+      isRequired: Value(isRequired),
+      minSelections: Value(minSelections),
+      maxSelections: maxSelections == null && nullToAbsent
+          ? const Value.absent()
+          : Value(maxSelections),
+      sortOrder: Value(sortOrder),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+    );
+  }
+
+  factory OptionGroupRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OptionGroupRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      selectionType: serializer.fromJson<String>(json['selectionType']),
+      isRequired: serializer.fromJson<bool>(json['isRequired']),
+      minSelections: serializer.fromJson<int>(json['minSelections']),
+      maxSelections: serializer.fromJson<int?>(json['maxSelections']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'selectionType': serializer.toJson<String>(selectionType),
+      'isRequired': serializer.toJson<bool>(isRequired),
+      'minSelections': serializer.toJson<int>(minSelections),
+      'maxSelections': serializer.toJson<int?>(maxSelections),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+    };
+  }
+
+  OptionGroupRow copyWith(
+          {String? id,
+          String? name,
+          String? selectionType,
+          bool? isRequired,
+          int? minSelections,
+          Value<int?> maxSelections = const Value.absent(),
+          int? sortOrder,
+          DateTime? updatedAt,
+          Value<DateTime?> deletedAt = const Value.absent()}) =>
+      OptionGroupRow(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        selectionType: selectionType ?? this.selectionType,
+        isRequired: isRequired ?? this.isRequired,
+        minSelections: minSelections ?? this.minSelections,
+        maxSelections:
+            maxSelections.present ? maxSelections.value : this.maxSelections,
+        sortOrder: sortOrder ?? this.sortOrder,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+      );
+  OptionGroupRow copyWithCompanion(OptionGroupsCompanion data) {
+    return OptionGroupRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      selectionType: data.selectionType.present
+          ? data.selectionType.value
+          : this.selectionType,
+      isRequired:
+          data.isRequired.present ? data.isRequired.value : this.isRequired,
+      minSelections: data.minSelections.present
+          ? data.minSelections.value
+          : this.minSelections,
+      maxSelections: data.maxSelections.present
+          ? data.maxSelections.value
+          : this.maxSelections,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OptionGroupRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('selectionType: $selectionType, ')
+          ..write('isRequired: $isRequired, ')
+          ..write('minSelections: $minSelections, ')
+          ..write('maxSelections: $maxSelections, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, selectionType, isRequired,
+      minSelections, maxSelections, sortOrder, updatedAt, deletedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OptionGroupRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.selectionType == this.selectionType &&
+          other.isRequired == this.isRequired &&
+          other.minSelections == this.minSelections &&
+          other.maxSelections == this.maxSelections &&
+          other.sortOrder == this.sortOrder &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt);
+}
+
+class OptionGroupsCompanion extends UpdateCompanion<OptionGroupRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> selectionType;
+  final Value<bool> isRequired;
+  final Value<int> minSelections;
+  final Value<int?> maxSelections;
+  final Value<int> sortOrder;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<int> rowid;
+  const OptionGroupsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.selectionType = const Value.absent(),
+    this.isRequired = const Value.absent(),
+    this.minSelections = const Value.absent(),
+    this.maxSelections = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OptionGroupsCompanion.insert({
+    required String id,
+    required String name,
+    this.selectionType = const Value.absent(),
+    this.isRequired = const Value.absent(),
+    this.minSelections = const Value.absent(),
+    this.maxSelections = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        name = Value(name),
+        updatedAt = Value(updatedAt);
+  static Insertable<OptionGroupRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? selectionType,
+    Expression<bool>? isRequired,
+    Expression<int>? minSelections,
+    Expression<int>? maxSelections,
+    Expression<int>? sortOrder,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (selectionType != null) 'selection_type': selectionType,
+      if (isRequired != null) 'is_required': isRequired,
+      if (minSelections != null) 'min_selections': minSelections,
+      if (maxSelections != null) 'max_selections': maxSelections,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OptionGroupsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? name,
+      Value<String>? selectionType,
+      Value<bool>? isRequired,
+      Value<int>? minSelections,
+      Value<int?>? maxSelections,
+      Value<int>? sortOrder,
+      Value<DateTime>? updatedAt,
+      Value<DateTime?>? deletedAt,
+      Value<int>? rowid}) {
+    return OptionGroupsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      selectionType: selectionType ?? this.selectionType,
+      isRequired: isRequired ?? this.isRequired,
+      minSelections: minSelections ?? this.minSelections,
+      maxSelections: maxSelections ?? this.maxSelections,
+      sortOrder: sortOrder ?? this.sortOrder,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (selectionType.present) {
+      map['selection_type'] = Variable<String>(selectionType.value);
+    }
+    if (isRequired.present) {
+      map['is_required'] = Variable<bool>(isRequired.value);
+    }
+    if (minSelections.present) {
+      map['min_selections'] = Variable<int>(minSelections.value);
+    }
+    if (maxSelections.present) {
+      map['max_selections'] = Variable<int>(maxSelections.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OptionGroupsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('selectionType: $selectionType, ')
+          ..write('isRequired: $isRequired, ')
+          ..write('minSelections: $minSelections, ')
+          ..write('maxSelections: $maxSelections, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $OptionChoicesTable extends OptionChoices
+    with TableInfo<$OptionChoicesTable, OptionChoiceRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OptionChoicesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _optionGroupIdMeta =
+      const VerificationMeta('optionGroupId');
+  @override
+  late final GeneratedColumn<String> optionGroupId = GeneratedColumn<String>(
+      'option_group_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES option_groups (id)'));
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _priceDeltaCentsMeta =
+      const VerificationMeta('priceDeltaCents');
+  @override
+  late final GeneratedColumn<int> priceDeltaCents = GeneratedColumn<int>(
+      'price_delta_cents', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _isDefaultMeta =
+      const VerificationMeta('isDefault');
+  @override
+  late final GeneratedColumn<bool> isDefault = GeneratedColumn<bool>(
+      'is_default', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_default" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _sortOrderMeta =
+      const VerificationMeta('sortOrder');
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+      'sort_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _isActiveMeta =
+      const VerificationMeta('isActive');
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+      'is_active', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        optionGroupId,
+        name,
+        priceDeltaCents,
+        isDefault,
+        sortOrder,
+        isActive,
+        updatedAt,
+        deletedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'option_choices';
+  @override
+  VerificationContext validateIntegrity(Insertable<OptionChoiceRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('option_group_id')) {
+      context.handle(
+          _optionGroupIdMeta,
+          optionGroupId.isAcceptableOrUnknown(
+              data['option_group_id']!, _optionGroupIdMeta));
+    } else if (isInserting) {
+      context.missing(_optionGroupIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('price_delta_cents')) {
+      context.handle(
+          _priceDeltaCentsMeta,
+          priceDeltaCents.isAcceptableOrUnknown(
+              data['price_delta_cents']!, _priceDeltaCentsMeta));
+    }
+    if (data.containsKey('is_default')) {
+      context.handle(_isDefaultMeta,
+          isDefault.isAcceptableOrUnknown(data['is_default']!, _isDefaultMeta));
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(_isActiveMeta,
+          isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  OptionChoiceRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OptionChoiceRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      optionGroupId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}option_group_id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      priceDeltaCents: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}price_delta_cents'])!,
+      isDefault: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_default'])!,
+      sortOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}sort_order'])!,
+      isActive: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
+    );
+  }
+
+  @override
+  $OptionChoicesTable createAlias(String alias) {
+    return $OptionChoicesTable(attachedDatabase, alias);
+  }
+}
+
+class OptionChoiceRow extends DataClass implements Insertable<OptionChoiceRow> {
+  final String id;
+  final String optionGroupId;
+  final String name;
+  final int priceDeltaCents;
+  final bool isDefault;
+  final int sortOrder;
+  final bool isActive;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  const OptionChoiceRow(
+      {required this.id,
+      required this.optionGroupId,
+      required this.name,
+      required this.priceDeltaCents,
+      required this.isDefault,
+      required this.sortOrder,
+      required this.isActive,
+      required this.updatedAt,
+      this.deletedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['option_group_id'] = Variable<String>(optionGroupId);
+    map['name'] = Variable<String>(name);
+    map['price_delta_cents'] = Variable<int>(priceDeltaCents);
+    map['is_default'] = Variable<bool>(isDefault);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['is_active'] = Variable<bool>(isActive);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    return map;
+  }
+
+  OptionChoicesCompanion toCompanion(bool nullToAbsent) {
+    return OptionChoicesCompanion(
+      id: Value(id),
+      optionGroupId: Value(optionGroupId),
+      name: Value(name),
+      priceDeltaCents: Value(priceDeltaCents),
+      isDefault: Value(isDefault),
+      sortOrder: Value(sortOrder),
+      isActive: Value(isActive),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+    );
+  }
+
+  factory OptionChoiceRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OptionChoiceRow(
+      id: serializer.fromJson<String>(json['id']),
+      optionGroupId: serializer.fromJson<String>(json['optionGroupId']),
+      name: serializer.fromJson<String>(json['name']),
+      priceDeltaCents: serializer.fromJson<int>(json['priceDeltaCents']),
+      isDefault: serializer.fromJson<bool>(json['isDefault']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'optionGroupId': serializer.toJson<String>(optionGroupId),
+      'name': serializer.toJson<String>(name),
+      'priceDeltaCents': serializer.toJson<int>(priceDeltaCents),
+      'isDefault': serializer.toJson<bool>(isDefault),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'isActive': serializer.toJson<bool>(isActive),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+    };
+  }
+
+  OptionChoiceRow copyWith(
+          {String? id,
+          String? optionGroupId,
+          String? name,
+          int? priceDeltaCents,
+          bool? isDefault,
+          int? sortOrder,
+          bool? isActive,
+          DateTime? updatedAt,
+          Value<DateTime?> deletedAt = const Value.absent()}) =>
+      OptionChoiceRow(
+        id: id ?? this.id,
+        optionGroupId: optionGroupId ?? this.optionGroupId,
+        name: name ?? this.name,
+        priceDeltaCents: priceDeltaCents ?? this.priceDeltaCents,
+        isDefault: isDefault ?? this.isDefault,
+        sortOrder: sortOrder ?? this.sortOrder,
+        isActive: isActive ?? this.isActive,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+      );
+  OptionChoiceRow copyWithCompanion(OptionChoicesCompanion data) {
+    return OptionChoiceRow(
+      id: data.id.present ? data.id.value : this.id,
+      optionGroupId: data.optionGroupId.present
+          ? data.optionGroupId.value
+          : this.optionGroupId,
+      name: data.name.present ? data.name.value : this.name,
+      priceDeltaCents: data.priceDeltaCents.present
+          ? data.priceDeltaCents.value
+          : this.priceDeltaCents,
+      isDefault: data.isDefault.present ? data.isDefault.value : this.isDefault,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OptionChoiceRow(')
+          ..write('id: $id, ')
+          ..write('optionGroupId: $optionGroupId, ')
+          ..write('name: $name, ')
+          ..write('priceDeltaCents: $priceDeltaCents, ')
+          ..write('isDefault: $isDefault, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isActive: $isActive, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, optionGroupId, name, priceDeltaCents,
+      isDefault, sortOrder, isActive, updatedAt, deletedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OptionChoiceRow &&
+          other.id == this.id &&
+          other.optionGroupId == this.optionGroupId &&
+          other.name == this.name &&
+          other.priceDeltaCents == this.priceDeltaCents &&
+          other.isDefault == this.isDefault &&
+          other.sortOrder == this.sortOrder &&
+          other.isActive == this.isActive &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt);
+}
+
+class OptionChoicesCompanion extends UpdateCompanion<OptionChoiceRow> {
+  final Value<String> id;
+  final Value<String> optionGroupId;
+  final Value<String> name;
+  final Value<int> priceDeltaCents;
+  final Value<bool> isDefault;
+  final Value<int> sortOrder;
+  final Value<bool> isActive;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<int> rowid;
+  const OptionChoicesCompanion({
+    this.id = const Value.absent(),
+    this.optionGroupId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.priceDeltaCents = const Value.absent(),
+    this.isDefault = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OptionChoicesCompanion.insert({
+    required String id,
+    required String optionGroupId,
+    required String name,
+    this.priceDeltaCents = const Value.absent(),
+    this.isDefault = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isActive = const Value.absent(),
+    required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        optionGroupId = Value(optionGroupId),
+        name = Value(name),
+        updatedAt = Value(updatedAt);
+  static Insertable<OptionChoiceRow> custom({
+    Expression<String>? id,
+    Expression<String>? optionGroupId,
+    Expression<String>? name,
+    Expression<int>? priceDeltaCents,
+    Expression<bool>? isDefault,
+    Expression<int>? sortOrder,
+    Expression<bool>? isActive,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (optionGroupId != null) 'option_group_id': optionGroupId,
+      if (name != null) 'name': name,
+      if (priceDeltaCents != null) 'price_delta_cents': priceDeltaCents,
+      if (isDefault != null) 'is_default': isDefault,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (isActive != null) 'is_active': isActive,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OptionChoicesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? optionGroupId,
+      Value<String>? name,
+      Value<int>? priceDeltaCents,
+      Value<bool>? isDefault,
+      Value<int>? sortOrder,
+      Value<bool>? isActive,
+      Value<DateTime>? updatedAt,
+      Value<DateTime?>? deletedAt,
+      Value<int>? rowid}) {
+    return OptionChoicesCompanion(
+      id: id ?? this.id,
+      optionGroupId: optionGroupId ?? this.optionGroupId,
+      name: name ?? this.name,
+      priceDeltaCents: priceDeltaCents ?? this.priceDeltaCents,
+      isDefault: isDefault ?? this.isDefault,
+      sortOrder: sortOrder ?? this.sortOrder,
+      isActive: isActive ?? this.isActive,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (optionGroupId.present) {
+      map['option_group_id'] = Variable<String>(optionGroupId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (priceDeltaCents.present) {
+      map['price_delta_cents'] = Variable<int>(priceDeltaCents.value);
+    }
+    if (isDefault.present) {
+      map['is_default'] = Variable<bool>(isDefault.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OptionChoicesCompanion(')
+          ..write('id: $id, ')
+          ..write('optionGroupId: $optionGroupId, ')
+          ..write('name: $name, ')
+          ..write('priceDeltaCents: $priceDeltaCents, ')
+          ..write('isDefault: $isDefault, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isActive: $isActive, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ProductOptionGroupsTable extends ProductOptionGroups
+    with TableInfo<$ProductOptionGroupsTable, ProductOptionGroupRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProductOptionGroupsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _productIdMeta =
+      const VerificationMeta('productId');
+  @override
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+      'product_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES products (id)'));
+  static const VerificationMeta _optionGroupIdMeta =
+      const VerificationMeta('optionGroupId');
+  @override
+  late final GeneratedColumn<String> optionGroupId = GeneratedColumn<String>(
+      'option_group_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES option_groups (id)'));
+  static const VerificationMeta _sortOrderMeta =
+      const VerificationMeta('sortOrder');
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+      'sort_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _isRequiredMeta =
+      const VerificationMeta('isRequired');
+  @override
+  late final GeneratedColumn<bool> isRequired = GeneratedColumn<bool>(
+      'is_required', aliasedName, true,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("is_required" IN (0, 1))'));
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, productId, optionGroupId, sortOrder, isRequired, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'product_option_groups';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<ProductOptionGroupRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(_productIdMeta,
+          productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta));
+    } else if (isInserting) {
+      context.missing(_productIdMeta);
+    }
+    if (data.containsKey('option_group_id')) {
+      context.handle(
+          _optionGroupIdMeta,
+          optionGroupId.isAcceptableOrUnknown(
+              data['option_group_id']!, _optionGroupIdMeta));
+    } else if (isInserting) {
+      context.missing(_optionGroupIdMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
+    }
+    if (data.containsKey('is_required')) {
+      context.handle(
+          _isRequiredMeta,
+          isRequired.isAcceptableOrUnknown(
+              data['is_required']!, _isRequiredMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ProductOptionGroupRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProductOptionGroupRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      productId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}product_id'])!,
+      optionGroupId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}option_group_id'])!,
+      sortOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}sort_order'])!,
+      isRequired: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_required']),
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $ProductOptionGroupsTable createAlias(String alias) {
+    return $ProductOptionGroupsTable(attachedDatabase, alias);
+  }
+}
+
+class ProductOptionGroupRow extends DataClass
+    implements Insertable<ProductOptionGroupRow> {
+  final String id;
+  final String productId;
+  final String optionGroupId;
+  final int sortOrder;
+  final bool? isRequired;
+  final DateTime updatedAt;
+  const ProductOptionGroupRow(
+      {required this.id,
+      required this.productId,
+      required this.optionGroupId,
+      required this.sortOrder,
+      this.isRequired,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['product_id'] = Variable<String>(productId);
+    map['option_group_id'] = Variable<String>(optionGroupId);
+    map['sort_order'] = Variable<int>(sortOrder);
+    if (!nullToAbsent || isRequired != null) {
+      map['is_required'] = Variable<bool>(isRequired);
+    }
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ProductOptionGroupsCompanion toCompanion(bool nullToAbsent) {
+    return ProductOptionGroupsCompanion(
+      id: Value(id),
+      productId: Value(productId),
+      optionGroupId: Value(optionGroupId),
+      sortOrder: Value(sortOrder),
+      isRequired: isRequired == null && nullToAbsent
+          ? const Value.absent()
+          : Value(isRequired),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ProductOptionGroupRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProductOptionGroupRow(
+      id: serializer.fromJson<String>(json['id']),
+      productId: serializer.fromJson<String>(json['productId']),
+      optionGroupId: serializer.fromJson<String>(json['optionGroupId']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      isRequired: serializer.fromJson<bool?>(json['isRequired']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'productId': serializer.toJson<String>(productId),
+      'optionGroupId': serializer.toJson<String>(optionGroupId),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'isRequired': serializer.toJson<bool?>(isRequired),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ProductOptionGroupRow copyWith(
+          {String? id,
+          String? productId,
+          String? optionGroupId,
+          int? sortOrder,
+          Value<bool?> isRequired = const Value.absent(),
+          DateTime? updatedAt}) =>
+      ProductOptionGroupRow(
+        id: id ?? this.id,
+        productId: productId ?? this.productId,
+        optionGroupId: optionGroupId ?? this.optionGroupId,
+        sortOrder: sortOrder ?? this.sortOrder,
+        isRequired: isRequired.present ? isRequired.value : this.isRequired,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  ProductOptionGroupRow copyWithCompanion(ProductOptionGroupsCompanion data) {
+    return ProductOptionGroupRow(
+      id: data.id.present ? data.id.value : this.id,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      optionGroupId: data.optionGroupId.present
+          ? data.optionGroupId.value
+          : this.optionGroupId,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      isRequired:
+          data.isRequired.present ? data.isRequired.value : this.isRequired,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductOptionGroupRow(')
+          ..write('id: $id, ')
+          ..write('productId: $productId, ')
+          ..write('optionGroupId: $optionGroupId, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isRequired: $isRequired, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id, productId, optionGroupId, sortOrder, isRequired, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProductOptionGroupRow &&
+          other.id == this.id &&
+          other.productId == this.productId &&
+          other.optionGroupId == this.optionGroupId &&
+          other.sortOrder == this.sortOrder &&
+          other.isRequired == this.isRequired &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ProductOptionGroupsCompanion
+    extends UpdateCompanion<ProductOptionGroupRow> {
+  final Value<String> id;
+  final Value<String> productId;
+  final Value<String> optionGroupId;
+  final Value<int> sortOrder;
+  final Value<bool?> isRequired;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ProductOptionGroupsCompanion({
+    this.id = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.optionGroupId = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isRequired = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProductOptionGroupsCompanion.insert({
+    required String id,
+    required String productId,
+    required String optionGroupId,
+    this.sortOrder = const Value.absent(),
+    this.isRequired = const Value.absent(),
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        productId = Value(productId),
+        optionGroupId = Value(optionGroupId),
+        updatedAt = Value(updatedAt);
+  static Insertable<ProductOptionGroupRow> custom({
+    Expression<String>? id,
+    Expression<String>? productId,
+    Expression<String>? optionGroupId,
+    Expression<int>? sortOrder,
+    Expression<bool>? isRequired,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (productId != null) 'product_id': productId,
+      if (optionGroupId != null) 'option_group_id': optionGroupId,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (isRequired != null) 'is_required': isRequired,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProductOptionGroupsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? productId,
+      Value<String>? optionGroupId,
+      Value<int>? sortOrder,
+      Value<bool?>? isRequired,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return ProductOptionGroupsCompanion(
+      id: id ?? this.id,
+      productId: productId ?? this.productId,
+      optionGroupId: optionGroupId ?? this.optionGroupId,
+      sortOrder: sortOrder ?? this.sortOrder,
+      isRequired: isRequired ?? this.isRequired,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (optionGroupId.present) {
+      map['option_group_id'] = Variable<String>(optionGroupId.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (isRequired.present) {
+      map['is_required'] = Variable<bool>(isRequired.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductOptionGroupsCompanion(')
+          ..write('id: $id, ')
+          ..write('productId: $productId, ')
+          ..write('optionGroupId: $optionGroupId, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isRequired: $isRequired, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ProductOptionChoiceOverridesTable extends ProductOptionChoiceOverrides
+    with
+        TableInfo<$ProductOptionChoiceOverridesTable,
+            ProductOptionChoiceOverrideRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProductOptionChoiceOverridesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _productIdMeta =
+      const VerificationMeta('productId');
+  @override
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+      'product_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES products (id)'));
+  static const VerificationMeta _optionChoiceIdMeta =
+      const VerificationMeta('optionChoiceId');
+  @override
+  late final GeneratedColumn<String> optionChoiceId = GeneratedColumn<String>(
+      'option_choice_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('REFERENCES option_choices (id)'));
+  static const VerificationMeta _priceDeltaCentsMeta =
+      const VerificationMeta('priceDeltaCents');
+  @override
+  late final GeneratedColumn<int> priceDeltaCents = GeneratedColumn<int>(
+      'price_delta_cents', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _isHiddenMeta =
+      const VerificationMeta('isHidden');
+  @override
+  late final GeneratedColumn<bool> isHidden = GeneratedColumn<bool>(
+      'is_hidden', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_hidden" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, productId, optionChoiceId, priceDeltaCents, isHidden, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'product_option_choice_overrides';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<ProductOptionChoiceOverrideRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(_productIdMeta,
+          productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta));
+    } else if (isInserting) {
+      context.missing(_productIdMeta);
+    }
+    if (data.containsKey('option_choice_id')) {
+      context.handle(
+          _optionChoiceIdMeta,
+          optionChoiceId.isAcceptableOrUnknown(
+              data['option_choice_id']!, _optionChoiceIdMeta));
+    } else if (isInserting) {
+      context.missing(_optionChoiceIdMeta);
+    }
+    if (data.containsKey('price_delta_cents')) {
+      context.handle(
+          _priceDeltaCentsMeta,
+          priceDeltaCents.isAcceptableOrUnknown(
+              data['price_delta_cents']!, _priceDeltaCentsMeta));
+    }
+    if (data.containsKey('is_hidden')) {
+      context.handle(_isHiddenMeta,
+          isHidden.isAcceptableOrUnknown(data['is_hidden']!, _isHiddenMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ProductOptionChoiceOverrideRow map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProductOptionChoiceOverrideRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      productId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}product_id'])!,
+      optionChoiceId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}option_choice_id'])!,
+      priceDeltaCents: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}price_delta_cents']),
+      isHidden: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_hidden'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $ProductOptionChoiceOverridesTable createAlias(String alias) {
+    return $ProductOptionChoiceOverridesTable(attachedDatabase, alias);
+  }
+}
+
+class ProductOptionChoiceOverrideRow extends DataClass
+    implements Insertable<ProductOptionChoiceOverrideRow> {
+  final String id;
+  final String productId;
+  final String optionChoiceId;
+  final int? priceDeltaCents;
+  final bool isHidden;
+  final DateTime updatedAt;
+  const ProductOptionChoiceOverrideRow(
+      {required this.id,
+      required this.productId,
+      required this.optionChoiceId,
+      this.priceDeltaCents,
+      required this.isHidden,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['product_id'] = Variable<String>(productId);
+    map['option_choice_id'] = Variable<String>(optionChoiceId);
+    if (!nullToAbsent || priceDeltaCents != null) {
+      map['price_delta_cents'] = Variable<int>(priceDeltaCents);
+    }
+    map['is_hidden'] = Variable<bool>(isHidden);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ProductOptionChoiceOverridesCompanion toCompanion(bool nullToAbsent) {
+    return ProductOptionChoiceOverridesCompanion(
+      id: Value(id),
+      productId: Value(productId),
+      optionChoiceId: Value(optionChoiceId),
+      priceDeltaCents: priceDeltaCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(priceDeltaCents),
+      isHidden: Value(isHidden),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ProductOptionChoiceOverrideRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProductOptionChoiceOverrideRow(
+      id: serializer.fromJson<String>(json['id']),
+      productId: serializer.fromJson<String>(json['productId']),
+      optionChoiceId: serializer.fromJson<String>(json['optionChoiceId']),
+      priceDeltaCents: serializer.fromJson<int?>(json['priceDeltaCents']),
+      isHidden: serializer.fromJson<bool>(json['isHidden']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'productId': serializer.toJson<String>(productId),
+      'optionChoiceId': serializer.toJson<String>(optionChoiceId),
+      'priceDeltaCents': serializer.toJson<int?>(priceDeltaCents),
+      'isHidden': serializer.toJson<bool>(isHidden),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ProductOptionChoiceOverrideRow copyWith(
+          {String? id,
+          String? productId,
+          String? optionChoiceId,
+          Value<int?> priceDeltaCents = const Value.absent(),
+          bool? isHidden,
+          DateTime? updatedAt}) =>
+      ProductOptionChoiceOverrideRow(
+        id: id ?? this.id,
+        productId: productId ?? this.productId,
+        optionChoiceId: optionChoiceId ?? this.optionChoiceId,
+        priceDeltaCents: priceDeltaCents.present
+            ? priceDeltaCents.value
+            : this.priceDeltaCents,
+        isHidden: isHidden ?? this.isHidden,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  ProductOptionChoiceOverrideRow copyWithCompanion(
+      ProductOptionChoiceOverridesCompanion data) {
+    return ProductOptionChoiceOverrideRow(
+      id: data.id.present ? data.id.value : this.id,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      optionChoiceId: data.optionChoiceId.present
+          ? data.optionChoiceId.value
+          : this.optionChoiceId,
+      priceDeltaCents: data.priceDeltaCents.present
+          ? data.priceDeltaCents.value
+          : this.priceDeltaCents,
+      isHidden: data.isHidden.present ? data.isHidden.value : this.isHidden,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductOptionChoiceOverrideRow(')
+          ..write('id: $id, ')
+          ..write('productId: $productId, ')
+          ..write('optionChoiceId: $optionChoiceId, ')
+          ..write('priceDeltaCents: $priceDeltaCents, ')
+          ..write('isHidden: $isHidden, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id, productId, optionChoiceId, priceDeltaCents, isHidden, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProductOptionChoiceOverrideRow &&
+          other.id == this.id &&
+          other.productId == this.productId &&
+          other.optionChoiceId == this.optionChoiceId &&
+          other.priceDeltaCents == this.priceDeltaCents &&
+          other.isHidden == this.isHidden &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ProductOptionChoiceOverridesCompanion
+    extends UpdateCompanion<ProductOptionChoiceOverrideRow> {
+  final Value<String> id;
+  final Value<String> productId;
+  final Value<String> optionChoiceId;
+  final Value<int?> priceDeltaCents;
+  final Value<bool> isHidden;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ProductOptionChoiceOverridesCompanion({
+    this.id = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.optionChoiceId = const Value.absent(),
+    this.priceDeltaCents = const Value.absent(),
+    this.isHidden = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProductOptionChoiceOverridesCompanion.insert({
+    required String id,
+    required String productId,
+    required String optionChoiceId,
+    this.priceDeltaCents = const Value.absent(),
+    this.isHidden = const Value.absent(),
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        productId = Value(productId),
+        optionChoiceId = Value(optionChoiceId),
+        updatedAt = Value(updatedAt);
+  static Insertable<ProductOptionChoiceOverrideRow> custom({
+    Expression<String>? id,
+    Expression<String>? productId,
+    Expression<String>? optionChoiceId,
+    Expression<int>? priceDeltaCents,
+    Expression<bool>? isHidden,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (productId != null) 'product_id': productId,
+      if (optionChoiceId != null) 'option_choice_id': optionChoiceId,
+      if (priceDeltaCents != null) 'price_delta_cents': priceDeltaCents,
+      if (isHidden != null) 'is_hidden': isHidden,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProductOptionChoiceOverridesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? productId,
+      Value<String>? optionChoiceId,
+      Value<int?>? priceDeltaCents,
+      Value<bool>? isHidden,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return ProductOptionChoiceOverridesCompanion(
+      id: id ?? this.id,
+      productId: productId ?? this.productId,
+      optionChoiceId: optionChoiceId ?? this.optionChoiceId,
+      priceDeltaCents: priceDeltaCents ?? this.priceDeltaCents,
+      isHidden: isHidden ?? this.isHidden,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (optionChoiceId.present) {
+      map['option_choice_id'] = Variable<String>(optionChoiceId.value);
+    }
+    if (priceDeltaCents.present) {
+      map['price_delta_cents'] = Variable<int>(priceDeltaCents.value);
+    }
+    if (isHidden.present) {
+      map['is_hidden'] = Variable<bool>(isHidden.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductOptionChoiceOverridesCompanion(')
+          ..write('id: $id, ')
+          ..write('productId: $productId, ')
+          ..write('optionChoiceId: $optionChoiceId, ')
+          ..write('priceDeltaCents: $priceDeltaCents, ')
+          ..write('isHidden: $isHidden, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $MemberLevelsTable extends MemberLevels
     with TableInfo<$MemberLevelsTable, MemberLevelRow> {
   @override
@@ -5060,6 +6758,12 @@ class $OrderLinesTable extends OrderLines
   late final GeneratedColumn<String> note = GeneratedColumn<String>(
       'note', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _optionsJsonMeta =
+      const VerificationMeta('optionsJson');
+  @override
+  late final GeneratedColumn<String> optionsJson = GeneratedColumn<String>(
+      'options_json', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -5072,7 +6776,8 @@ class $OrderLinesTable extends OrderLines
         lineDiscountCents,
         lineTotalCents,
         taxRate,
-        note
+        note,
+        optionsJson
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5151,6 +6856,12 @@ class $OrderLinesTable extends OrderLines
       context.handle(
           _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
     }
+    if (data.containsKey('options_json')) {
+      context.handle(
+          _optionsJsonMeta,
+          optionsJson.isAcceptableOrUnknown(
+              data['options_json']!, _optionsJsonMeta));
+    }
     return context;
   }
 
@@ -5182,6 +6893,8 @@ class $OrderLinesTable extends OrderLines
           .read(DriftSqlType.double, data['${effectivePrefix}tax_rate'])!,
       note: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}note']),
+      optionsJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}options_json']),
     );
   }
 
@@ -5203,6 +6916,7 @@ class OrderLineRow extends DataClass implements Insertable<OrderLineRow> {
   final int lineTotalCents;
   final double taxRate;
   final String? note;
+  final String? optionsJson;
   const OrderLineRow(
       {required this.id,
       required this.orderId,
@@ -5214,7 +6928,8 @@ class OrderLineRow extends DataClass implements Insertable<OrderLineRow> {
       required this.lineDiscountCents,
       required this.lineTotalCents,
       required this.taxRate,
-      this.note});
+      this.note,
+      this.optionsJson});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -5230,6 +6945,9 @@ class OrderLineRow extends DataClass implements Insertable<OrderLineRow> {
     map['tax_rate'] = Variable<double>(taxRate);
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
+    }
+    if (!nullToAbsent || optionsJson != null) {
+      map['options_json'] = Variable<String>(optionsJson);
     }
     return map;
   }
@@ -5247,6 +6965,9 @@ class OrderLineRow extends DataClass implements Insertable<OrderLineRow> {
       lineTotalCents: Value(lineTotalCents),
       taxRate: Value(taxRate),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      optionsJson: optionsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(optionsJson),
     );
   }
 
@@ -5265,6 +6986,7 @@ class OrderLineRow extends DataClass implements Insertable<OrderLineRow> {
       lineTotalCents: serializer.fromJson<int>(json['lineTotalCents']),
       taxRate: serializer.fromJson<double>(json['taxRate']),
       note: serializer.fromJson<String?>(json['note']),
+      optionsJson: serializer.fromJson<String?>(json['optionsJson']),
     );
   }
   @override
@@ -5282,6 +7004,7 @@ class OrderLineRow extends DataClass implements Insertable<OrderLineRow> {
       'lineTotalCents': serializer.toJson<int>(lineTotalCents),
       'taxRate': serializer.toJson<double>(taxRate),
       'note': serializer.toJson<String?>(note),
+      'optionsJson': serializer.toJson<String?>(optionsJson),
     };
   }
 
@@ -5296,7 +7019,8 @@ class OrderLineRow extends DataClass implements Insertable<OrderLineRow> {
           int? lineDiscountCents,
           int? lineTotalCents,
           double? taxRate,
-          Value<String?> note = const Value.absent()}) =>
+          Value<String?> note = const Value.absent(),
+          Value<String?> optionsJson = const Value.absent()}) =>
       OrderLineRow(
         id: id ?? this.id,
         orderId: orderId ?? this.orderId,
@@ -5309,6 +7033,7 @@ class OrderLineRow extends DataClass implements Insertable<OrderLineRow> {
         lineTotalCents: lineTotalCents ?? this.lineTotalCents,
         taxRate: taxRate ?? this.taxRate,
         note: note.present ? note.value : this.note,
+        optionsJson: optionsJson.present ? optionsJson.value : this.optionsJson,
       );
   OrderLineRow copyWithCompanion(OrderLinesCompanion data) {
     return OrderLineRow(
@@ -5330,6 +7055,8 @@ class OrderLineRow extends DataClass implements Insertable<OrderLineRow> {
           : this.lineTotalCents,
       taxRate: data.taxRate.present ? data.taxRate.value : this.taxRate,
       note: data.note.present ? data.note.value : this.note,
+      optionsJson:
+          data.optionsJson.present ? data.optionsJson.value : this.optionsJson,
     );
   }
 
@@ -5346,14 +7073,26 @@ class OrderLineRow extends DataClass implements Insertable<OrderLineRow> {
           ..write('lineDiscountCents: $lineDiscountCents, ')
           ..write('lineTotalCents: $lineTotalCents, ')
           ..write('taxRate: $taxRate, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('optionsJson: $optionsJson')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, orderId, productId, productName, sku, qty,
-      unitPriceCents, lineDiscountCents, lineTotalCents, taxRate, note);
+  int get hashCode => Object.hash(
+      id,
+      orderId,
+      productId,
+      productName,
+      sku,
+      qty,
+      unitPriceCents,
+      lineDiscountCents,
+      lineTotalCents,
+      taxRate,
+      note,
+      optionsJson);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5368,7 +7107,8 @@ class OrderLineRow extends DataClass implements Insertable<OrderLineRow> {
           other.lineDiscountCents == this.lineDiscountCents &&
           other.lineTotalCents == this.lineTotalCents &&
           other.taxRate == this.taxRate &&
-          other.note == this.note);
+          other.note == this.note &&
+          other.optionsJson == this.optionsJson);
 }
 
 class OrderLinesCompanion extends UpdateCompanion<OrderLineRow> {
@@ -5383,6 +7123,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLineRow> {
   final Value<int> lineTotalCents;
   final Value<double> taxRate;
   final Value<String?> note;
+  final Value<String?> optionsJson;
   final Value<int> rowid;
   const OrderLinesCompanion({
     this.id = const Value.absent(),
@@ -5396,6 +7137,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLineRow> {
     this.lineTotalCents = const Value.absent(),
     this.taxRate = const Value.absent(),
     this.note = const Value.absent(),
+    this.optionsJson = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   OrderLinesCompanion.insert({
@@ -5410,6 +7152,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLineRow> {
     required int lineTotalCents,
     this.taxRate = const Value.absent(),
     this.note = const Value.absent(),
+    this.optionsJson = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         orderId = Value(orderId),
@@ -5431,6 +7174,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLineRow> {
     Expression<int>? lineTotalCents,
     Expression<double>? taxRate,
     Expression<String>? note,
+    Expression<String>? optionsJson,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5445,6 +7189,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLineRow> {
       if (lineTotalCents != null) 'line_total_cents': lineTotalCents,
       if (taxRate != null) 'tax_rate': taxRate,
       if (note != null) 'note': note,
+      if (optionsJson != null) 'options_json': optionsJson,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5461,6 +7206,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLineRow> {
       Value<int>? lineTotalCents,
       Value<double>? taxRate,
       Value<String?>? note,
+      Value<String?>? optionsJson,
       Value<int>? rowid}) {
     return OrderLinesCompanion(
       id: id ?? this.id,
@@ -5474,6 +7220,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLineRow> {
       lineTotalCents: lineTotalCents ?? this.lineTotalCents,
       taxRate: taxRate ?? this.taxRate,
       note: note ?? this.note,
+      optionsJson: optionsJson ?? this.optionsJson,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5514,6 +7261,9 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLineRow> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (optionsJson.present) {
+      map['options_json'] = Variable<String>(optionsJson.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5534,6 +7284,7 @@ class OrderLinesCompanion extends UpdateCompanion<OrderLineRow> {
           ..write('lineTotalCents: $lineTotalCents, ')
           ..write('taxRate: $taxRate, ')
           ..write('note: $note, ')
+          ..write('optionsJson: $optionsJson, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -11296,6 +13047,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ProductsTable products = $ProductsTable(this);
   late final $ProductBarcodesTable productBarcodes =
       $ProductBarcodesTable(this);
+  late final $OptionGroupsTable optionGroups = $OptionGroupsTable(this);
+  late final $OptionChoicesTable optionChoices = $OptionChoicesTable(this);
+  late final $ProductOptionGroupsTable productOptionGroups =
+      $ProductOptionGroupsTable(this);
+  late final $ProductOptionChoiceOverridesTable productOptionChoiceOverrides =
+      $ProductOptionChoiceOverridesTable(this);
   late final $MemberLevelsTable memberLevels = $MemberLevelsTable(this);
   late final $MembersTable members = $MembersTable(this);
   late final $CouponsTable coupons = $CouponsTable(this);
@@ -11328,6 +13085,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         categories,
         products,
         productBarcodes,
+        optionGroups,
+        optionChoices,
+        productOptionGroups,
+        productOptionChoiceOverrides,
         memberLevels,
         members,
         coupons,
@@ -12221,6 +13982,43 @@ final class $$ProductsTableReferences
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
+
+  static MultiTypedResultKey<$ProductOptionGroupsTable,
+      List<ProductOptionGroupRow>> _productOptionGroupsRefsTable(
+          _$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.productOptionGroups,
+          aliasName: $_aliasNameGenerator(
+              db.products.id, db.productOptionGroups.productId));
+
+  $$ProductOptionGroupsTableProcessedTableManager get productOptionGroupsRefs {
+    final manager =
+        $$ProductOptionGroupsTableTableManager($_db, $_db.productOptionGroups)
+            .filter((f) => f.productId.id($_item.id));
+
+    final cache =
+        $_typedResult.readTableOrNull(_productOptionGroupsRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$ProductOptionChoiceOverridesTable,
+          List<ProductOptionChoiceOverrideRow>>
+      _productOptionChoiceOverridesRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.productOptionChoiceOverrides,
+              aliasName: $_aliasNameGenerator(
+                  db.products.id, db.productOptionChoiceOverrides.productId));
+
+  $$ProductOptionChoiceOverridesTableProcessedTableManager
+      get productOptionChoiceOverridesRefs {
+    final manager = $$ProductOptionChoiceOverridesTableTableManager(
+            $_db, $_db.productOptionChoiceOverrides)
+        .filter((f) => f.productId.id($_item.id));
+
+    final cache = $_typedResult
+        .readTableOrNull(_productOptionChoiceOverridesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
 }
 
 class $$ProductsTableFilterComposer
@@ -12300,6 +14098,51 @@ class $$ProductsTableFilterComposer
               $removeJoinBuilderFromRootComposer:
                   $removeJoinBuilderFromRootComposer,
             ));
+    return f(composer);
+  }
+
+  Expression<bool> productOptionGroupsRefs(
+      Expression<bool> Function($$ProductOptionGroupsTableFilterComposer f) f) {
+    final $$ProductOptionGroupsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.productOptionGroups,
+        getReferencedColumn: (t) => t.productId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ProductOptionGroupsTableFilterComposer(
+              $db: $db,
+              $table: $db.productOptionGroups,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> productOptionChoiceOverridesRefs(
+      Expression<bool> Function(
+              $$ProductOptionChoiceOverridesTableFilterComposer f)
+          f) {
+    final $$ProductOptionChoiceOverridesTableFilterComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.productOptionChoiceOverrides,
+            getReferencedColumn: (t) => t.productId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$ProductOptionChoiceOverridesTableFilterComposer(
+                  $db: $db,
+                  $table: $db.productOptionChoiceOverrides,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
     return f(composer);
   }
 }
@@ -12441,6 +14284,53 @@ class $$ProductsTableAnnotationComposer
             ));
     return f(composer);
   }
+
+  Expression<T> productOptionGroupsRefs<T extends Object>(
+      Expression<T> Function($$ProductOptionGroupsTableAnnotationComposer a)
+          f) {
+    final $$ProductOptionGroupsTableAnnotationComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.productOptionGroups,
+            getReferencedColumn: (t) => t.productId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$ProductOptionGroupsTableAnnotationComposer(
+                  $db: $db,
+                  $table: $db.productOptionGroups,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return f(composer);
+  }
+
+  Expression<T> productOptionChoiceOverridesRefs<T extends Object>(
+      Expression<T> Function(
+              $$ProductOptionChoiceOverridesTableAnnotationComposer a)
+          f) {
+    final $$ProductOptionChoiceOverridesTableAnnotationComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.productOptionChoiceOverrides,
+            getReferencedColumn: (t) => t.productId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$ProductOptionChoiceOverridesTableAnnotationComposer(
+                  $db: $db,
+                  $table: $db.productOptionChoiceOverrides,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return f(composer);
+  }
 }
 
 class $$ProductsTableTableManager extends RootTableManager<
@@ -12454,7 +14344,10 @@ class $$ProductsTableTableManager extends RootTableManager<
     $$ProductsTableUpdateCompanionBuilder,
     (ProductRow, $$ProductsTableReferences),
     ProductRow,
-    PrefetchHooks Function({bool productBarcodesRefs})> {
+    PrefetchHooks Function(
+        {bool productBarcodesRefs,
+        bool productOptionGroupsRefs,
+        bool productOptionChoiceOverridesRefs})> {
   $$ProductsTableTableManager(_$AppDatabase db, $ProductsTable table)
       : super(TableManagerState(
           db: db,
@@ -12545,11 +14438,17 @@ class $$ProductsTableTableManager extends RootTableManager<
               .map((e) =>
                   (e.readTable(table), $$ProductsTableReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({productBarcodesRefs = false}) {
+          prefetchHooksCallback: (
+              {productBarcodesRefs = false,
+              productOptionGroupsRefs = false,
+              productOptionChoiceOverridesRefs = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [
-                if (productBarcodesRefs) db.productBarcodes
+                if (productBarcodesRefs) db.productBarcodes,
+                if (productOptionGroupsRefs) db.productOptionGroups,
+                if (productOptionChoiceOverridesRefs)
+                  db.productOptionChoiceOverrides
               ],
               addJoins: null,
               getPrefetchedDataCallback: (items) async {
@@ -12562,6 +14461,30 @@ class $$ProductsTableTableManager extends RootTableManager<
                         managerFromTypedResult: (p0) =>
                             $$ProductsTableReferences(db, table, p0)
                                 .productBarcodesRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.productId == item.id),
+                        typedResults: items),
+                  if (productOptionGroupsRefs)
+                    await $_getPrefetchedData(
+                        currentTable: table,
+                        referencedTable: $$ProductsTableReferences
+                            ._productOptionGroupsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$ProductsTableReferences(db, table, p0)
+                                .productOptionGroupsRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.productId == item.id),
+                        typedResults: items),
+                  if (productOptionChoiceOverridesRefs)
+                    await $_getPrefetchedData(
+                        currentTable: table,
+                        referencedTable: $$ProductsTableReferences
+                            ._productOptionChoiceOverridesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$ProductsTableReferences(db, table, p0)
+                                .productOptionChoiceOverridesRefs,
                         referencedItemsForCurrentItem:
                             (item, referencedItems) => referencedItems
                                 .where((e) => e.productId == item.id),
@@ -12584,7 +14507,10 @@ typedef $$ProductsTableProcessedTableManager = ProcessedTableManager<
     $$ProductsTableUpdateCompanionBuilder,
     (ProductRow, $$ProductsTableReferences),
     ProductRow,
-    PrefetchHooks Function({bool productBarcodesRefs})>;
+    PrefetchHooks Function(
+        {bool productBarcodesRefs,
+        bool productOptionGroupsRefs,
+        bool productOptionChoiceOverridesRefs})>;
 typedef $$ProductBarcodesTableCreateCompanionBuilder = ProductBarcodesCompanion
     Function({
   required String productId,
@@ -12816,6 +14742,1583 @@ typedef $$ProductBarcodesTableProcessedTableManager = ProcessedTableManager<
     (ProductBarcodeRow, $$ProductBarcodesTableReferences),
     ProductBarcodeRow,
     PrefetchHooks Function({bool productId})>;
+typedef $$OptionGroupsTableCreateCompanionBuilder = OptionGroupsCompanion
+    Function({
+  required String id,
+  required String name,
+  Value<String> selectionType,
+  Value<bool> isRequired,
+  Value<int> minSelections,
+  Value<int?> maxSelections,
+  Value<int> sortOrder,
+  required DateTime updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<int> rowid,
+});
+typedef $$OptionGroupsTableUpdateCompanionBuilder = OptionGroupsCompanion
+    Function({
+  Value<String> id,
+  Value<String> name,
+  Value<String> selectionType,
+  Value<bool> isRequired,
+  Value<int> minSelections,
+  Value<int?> maxSelections,
+  Value<int> sortOrder,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<int> rowid,
+});
+
+final class $$OptionGroupsTableReferences
+    extends BaseReferences<_$AppDatabase, $OptionGroupsTable, OptionGroupRow> {
+  $$OptionGroupsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$OptionChoicesTable, List<OptionChoiceRow>>
+      _optionChoicesRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.optionChoices,
+              aliasName: $_aliasNameGenerator(
+                  db.optionGroups.id, db.optionChoices.optionGroupId));
+
+  $$OptionChoicesTableProcessedTableManager get optionChoicesRefs {
+    final manager = $$OptionChoicesTableTableManager($_db, $_db.optionChoices)
+        .filter((f) => f.optionGroupId.id($_item.id));
+
+    final cache = $_typedResult.readTableOrNull(_optionChoicesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$ProductOptionGroupsTable,
+      List<ProductOptionGroupRow>> _productOptionGroupsRefsTable(
+          _$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.productOptionGroups,
+          aliasName: $_aliasNameGenerator(
+              db.optionGroups.id, db.productOptionGroups.optionGroupId));
+
+  $$ProductOptionGroupsTableProcessedTableManager get productOptionGroupsRefs {
+    final manager =
+        $$ProductOptionGroupsTableTableManager($_db, $_db.productOptionGroups)
+            .filter((f) => f.optionGroupId.id($_item.id));
+
+    final cache =
+        $_typedResult.readTableOrNull(_productOptionGroupsRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$OptionGroupsTableFilterComposer
+    extends Composer<_$AppDatabase, $OptionGroupsTable> {
+  $$OptionGroupsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get selectionType => $composableBuilder(
+      column: $table.selectionType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isRequired => $composableBuilder(
+      column: $table.isRequired, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get minSelections => $composableBuilder(
+      column: $table.minSelections, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get maxSelections => $composableBuilder(
+      column: $table.maxSelections, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  Expression<bool> optionChoicesRefs(
+      Expression<bool> Function($$OptionChoicesTableFilterComposer f) f) {
+    final $$OptionChoicesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.optionChoices,
+        getReferencedColumn: (t) => t.optionGroupId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OptionChoicesTableFilterComposer(
+              $db: $db,
+              $table: $db.optionChoices,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<bool> productOptionGroupsRefs(
+      Expression<bool> Function($$ProductOptionGroupsTableFilterComposer f) f) {
+    final $$ProductOptionGroupsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.productOptionGroups,
+        getReferencedColumn: (t) => t.optionGroupId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ProductOptionGroupsTableFilterComposer(
+              $db: $db,
+              $table: $db.productOptionGroups,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$OptionGroupsTableOrderingComposer
+    extends Composer<_$AppDatabase, $OptionGroupsTable> {
+  $$OptionGroupsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get selectionType => $composableBuilder(
+      column: $table.selectionType,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isRequired => $composableBuilder(
+      column: $table.isRequired, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get minSelections => $composableBuilder(
+      column: $table.minSelections,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get maxSelections => $composableBuilder(
+      column: $table.maxSelections,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$OptionGroupsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OptionGroupsTable> {
+  $$OptionGroupsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get selectionType => $composableBuilder(
+      column: $table.selectionType, builder: (column) => column);
+
+  GeneratedColumn<bool> get isRequired => $composableBuilder(
+      column: $table.isRequired, builder: (column) => column);
+
+  GeneratedColumn<int> get minSelections => $composableBuilder(
+      column: $table.minSelections, builder: (column) => column);
+
+  GeneratedColumn<int> get maxSelections => $composableBuilder(
+      column: $table.maxSelections, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  Expression<T> optionChoicesRefs<T extends Object>(
+      Expression<T> Function($$OptionChoicesTableAnnotationComposer a) f) {
+    final $$OptionChoicesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.optionChoices,
+        getReferencedColumn: (t) => t.optionGroupId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OptionChoicesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.optionChoices,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+
+  Expression<T> productOptionGroupsRefs<T extends Object>(
+      Expression<T> Function($$ProductOptionGroupsTableAnnotationComposer a)
+          f) {
+    final $$ProductOptionGroupsTableAnnotationComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.productOptionGroups,
+            getReferencedColumn: (t) => t.optionGroupId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$ProductOptionGroupsTableAnnotationComposer(
+                  $db: $db,
+                  $table: $db.productOptionGroups,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return f(composer);
+  }
+}
+
+class $$OptionGroupsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $OptionGroupsTable,
+    OptionGroupRow,
+    $$OptionGroupsTableFilterComposer,
+    $$OptionGroupsTableOrderingComposer,
+    $$OptionGroupsTableAnnotationComposer,
+    $$OptionGroupsTableCreateCompanionBuilder,
+    $$OptionGroupsTableUpdateCompanionBuilder,
+    (OptionGroupRow, $$OptionGroupsTableReferences),
+    OptionGroupRow,
+    PrefetchHooks Function(
+        {bool optionChoicesRefs, bool productOptionGroupsRefs})> {
+  $$OptionGroupsTableTableManager(_$AppDatabase db, $OptionGroupsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OptionGroupsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OptionGroupsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OptionGroupsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<String> selectionType = const Value.absent(),
+            Value<bool> isRequired = const Value.absent(),
+            Value<int> minSelections = const Value.absent(),
+            Value<int?> maxSelections = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              OptionGroupsCompanion(
+            id: id,
+            name: name,
+            selectionType: selectionType,
+            isRequired: isRequired,
+            minSelections: minSelections,
+            maxSelections: maxSelections,
+            sortOrder: sortOrder,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String name,
+            Value<String> selectionType = const Value.absent(),
+            Value<bool> isRequired = const Value.absent(),
+            Value<int> minSelections = const Value.absent(),
+            Value<int?> maxSelections = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+            required DateTime updatedAt,
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              OptionGroupsCompanion.insert(
+            id: id,
+            name: name,
+            selectionType: selectionType,
+            isRequired: isRequired,
+            minSelections: minSelections,
+            maxSelections: maxSelections,
+            sortOrder: sortOrder,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$OptionGroupsTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: (
+              {optionChoicesRefs = false, productOptionGroupsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (optionChoicesRefs) db.optionChoices,
+                if (productOptionGroupsRefs) db.productOptionGroups
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (optionChoicesRefs)
+                    await $_getPrefetchedData(
+                        currentTable: table,
+                        referencedTable: $$OptionGroupsTableReferences
+                            ._optionChoicesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$OptionGroupsTableReferences(db, table, p0)
+                                .optionChoicesRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.optionGroupId == item.id),
+                        typedResults: items),
+                  if (productOptionGroupsRefs)
+                    await $_getPrefetchedData(
+                        currentTable: table,
+                        referencedTable: $$OptionGroupsTableReferences
+                            ._productOptionGroupsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$OptionGroupsTableReferences(db, table, p0)
+                                .productOptionGroupsRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.optionGroupId == item.id),
+                        typedResults: items)
+                ];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$OptionGroupsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $OptionGroupsTable,
+    OptionGroupRow,
+    $$OptionGroupsTableFilterComposer,
+    $$OptionGroupsTableOrderingComposer,
+    $$OptionGroupsTableAnnotationComposer,
+    $$OptionGroupsTableCreateCompanionBuilder,
+    $$OptionGroupsTableUpdateCompanionBuilder,
+    (OptionGroupRow, $$OptionGroupsTableReferences),
+    OptionGroupRow,
+    PrefetchHooks Function(
+        {bool optionChoicesRefs, bool productOptionGroupsRefs})>;
+typedef $$OptionChoicesTableCreateCompanionBuilder = OptionChoicesCompanion
+    Function({
+  required String id,
+  required String optionGroupId,
+  required String name,
+  Value<int> priceDeltaCents,
+  Value<bool> isDefault,
+  Value<int> sortOrder,
+  Value<bool> isActive,
+  required DateTime updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<int> rowid,
+});
+typedef $$OptionChoicesTableUpdateCompanionBuilder = OptionChoicesCompanion
+    Function({
+  Value<String> id,
+  Value<String> optionGroupId,
+  Value<String> name,
+  Value<int> priceDeltaCents,
+  Value<bool> isDefault,
+  Value<int> sortOrder,
+  Value<bool> isActive,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<int> rowid,
+});
+
+final class $$OptionChoicesTableReferences extends BaseReferences<_$AppDatabase,
+    $OptionChoicesTable, OptionChoiceRow> {
+  $$OptionChoicesTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static $OptionGroupsTable _optionGroupIdTable(_$AppDatabase db) =>
+      db.optionGroups.createAlias($_aliasNameGenerator(
+          db.optionChoices.optionGroupId, db.optionGroups.id));
+
+  $$OptionGroupsTableProcessedTableManager? get optionGroupId {
+    if ($_item.optionGroupId == null) return null;
+    final manager = $$OptionGroupsTableTableManager($_db, $_db.optionGroups)
+        .filter((f) => f.id($_item.optionGroupId!));
+    final item = $_typedResult.readTableOrNull(_optionGroupIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static MultiTypedResultKey<$ProductOptionChoiceOverridesTable,
+          List<ProductOptionChoiceOverrideRow>>
+      _productOptionChoiceOverridesRefsTable(_$AppDatabase db) =>
+          MultiTypedResultKey.fromTable(db.productOptionChoiceOverrides,
+              aliasName: $_aliasNameGenerator(db.optionChoices.id,
+                  db.productOptionChoiceOverrides.optionChoiceId));
+
+  $$ProductOptionChoiceOverridesTableProcessedTableManager
+      get productOptionChoiceOverridesRefs {
+    final manager = $$ProductOptionChoiceOverridesTableTableManager(
+            $_db, $_db.productOptionChoiceOverrides)
+        .filter((f) => f.optionChoiceId.id($_item.id));
+
+    final cache = $_typedResult
+        .readTableOrNull(_productOptionChoiceOverridesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$OptionChoicesTableFilterComposer
+    extends Composer<_$AppDatabase, $OptionChoicesTable> {
+  $$OptionChoicesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get priceDeltaCents => $composableBuilder(
+      column: $table.priceDeltaCents,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDefault => $composableBuilder(
+      column: $table.isDefault, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  $$OptionGroupsTableFilterComposer get optionGroupId {
+    final $$OptionGroupsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.optionGroupId,
+        referencedTable: $db.optionGroups,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OptionGroupsTableFilterComposer(
+              $db: $db,
+              $table: $db.optionGroups,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  Expression<bool> productOptionChoiceOverridesRefs(
+      Expression<bool> Function(
+              $$ProductOptionChoiceOverridesTableFilterComposer f)
+          f) {
+    final $$ProductOptionChoiceOverridesTableFilterComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.productOptionChoiceOverrides,
+            getReferencedColumn: (t) => t.optionChoiceId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$ProductOptionChoiceOverridesTableFilterComposer(
+                  $db: $db,
+                  $table: $db.productOptionChoiceOverrides,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return f(composer);
+  }
+}
+
+class $$OptionChoicesTableOrderingComposer
+    extends Composer<_$AppDatabase, $OptionChoicesTable> {
+  $$OptionChoicesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get priceDeltaCents => $composableBuilder(
+      column: $table.priceDeltaCents,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDefault => $composableBuilder(
+      column: $table.isDefault, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  $$OptionGroupsTableOrderingComposer get optionGroupId {
+    final $$OptionGroupsTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.optionGroupId,
+        referencedTable: $db.optionGroups,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OptionGroupsTableOrderingComposer(
+              $db: $db,
+              $table: $db.optionGroups,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$OptionChoicesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OptionChoicesTable> {
+  $$OptionChoicesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get priceDeltaCents => $composableBuilder(
+      column: $table.priceDeltaCents, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDefault =>
+      $composableBuilder(column: $table.isDefault, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  $$OptionGroupsTableAnnotationComposer get optionGroupId {
+    final $$OptionGroupsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.optionGroupId,
+        referencedTable: $db.optionGroups,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OptionGroupsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.optionGroups,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  Expression<T> productOptionChoiceOverridesRefs<T extends Object>(
+      Expression<T> Function(
+              $$ProductOptionChoiceOverridesTableAnnotationComposer a)
+          f) {
+    final $$ProductOptionChoiceOverridesTableAnnotationComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.productOptionChoiceOverrides,
+            getReferencedColumn: (t) => t.optionChoiceId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$ProductOptionChoiceOverridesTableAnnotationComposer(
+                  $db: $db,
+                  $table: $db.productOptionChoiceOverrides,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return f(composer);
+  }
+}
+
+class $$OptionChoicesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $OptionChoicesTable,
+    OptionChoiceRow,
+    $$OptionChoicesTableFilterComposer,
+    $$OptionChoicesTableOrderingComposer,
+    $$OptionChoicesTableAnnotationComposer,
+    $$OptionChoicesTableCreateCompanionBuilder,
+    $$OptionChoicesTableUpdateCompanionBuilder,
+    (OptionChoiceRow, $$OptionChoicesTableReferences),
+    OptionChoiceRow,
+    PrefetchHooks Function(
+        {bool optionGroupId, bool productOptionChoiceOverridesRefs})> {
+  $$OptionChoicesTableTableManager(_$AppDatabase db, $OptionChoicesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OptionChoicesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OptionChoicesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OptionChoicesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> optionGroupId = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<int> priceDeltaCents = const Value.absent(),
+            Value<bool> isDefault = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              OptionChoicesCompanion(
+            id: id,
+            optionGroupId: optionGroupId,
+            name: name,
+            priceDeltaCents: priceDeltaCents,
+            isDefault: isDefault,
+            sortOrder: sortOrder,
+            isActive: isActive,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String optionGroupId,
+            required String name,
+            Value<int> priceDeltaCents = const Value.absent(),
+            Value<bool> isDefault = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
+            required DateTime updatedAt,
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              OptionChoicesCompanion.insert(
+            id: id,
+            optionGroupId: optionGroupId,
+            name: name,
+            priceDeltaCents: priceDeltaCents,
+            isDefault: isDefault,
+            sortOrder: sortOrder,
+            isActive: isActive,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$OptionChoicesTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: (
+              {optionGroupId = false,
+              productOptionChoiceOverridesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (productOptionChoiceOverridesRefs)
+                  db.productOptionChoiceOverrides
+              ],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (optionGroupId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.optionGroupId,
+                    referencedTable:
+                        $$OptionChoicesTableReferences._optionGroupIdTable(db),
+                    referencedColumn: $$OptionChoicesTableReferences
+                        ._optionGroupIdTable(db)
+                        .id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (productOptionChoiceOverridesRefs)
+                    await $_getPrefetchedData(
+                        currentTable: table,
+                        referencedTable: $$OptionChoicesTableReferences
+                            ._productOptionChoiceOverridesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$OptionChoicesTableReferences(db, table, p0)
+                                .productOptionChoiceOverridesRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.optionChoiceId == item.id),
+                        typedResults: items)
+                ];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$OptionChoicesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $OptionChoicesTable,
+    OptionChoiceRow,
+    $$OptionChoicesTableFilterComposer,
+    $$OptionChoicesTableOrderingComposer,
+    $$OptionChoicesTableAnnotationComposer,
+    $$OptionChoicesTableCreateCompanionBuilder,
+    $$OptionChoicesTableUpdateCompanionBuilder,
+    (OptionChoiceRow, $$OptionChoicesTableReferences),
+    OptionChoiceRow,
+    PrefetchHooks Function(
+        {bool optionGroupId, bool productOptionChoiceOverridesRefs})>;
+typedef $$ProductOptionGroupsTableCreateCompanionBuilder
+    = ProductOptionGroupsCompanion Function({
+  required String id,
+  required String productId,
+  required String optionGroupId,
+  Value<int> sortOrder,
+  Value<bool?> isRequired,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$ProductOptionGroupsTableUpdateCompanionBuilder
+    = ProductOptionGroupsCompanion Function({
+  Value<String> id,
+  Value<String> productId,
+  Value<String> optionGroupId,
+  Value<int> sortOrder,
+  Value<bool?> isRequired,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+final class $$ProductOptionGroupsTableReferences extends BaseReferences<
+    _$AppDatabase, $ProductOptionGroupsTable, ProductOptionGroupRow> {
+  $$ProductOptionGroupsTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static $ProductsTable _productIdTable(_$AppDatabase db) =>
+      db.products.createAlias($_aliasNameGenerator(
+          db.productOptionGroups.productId, db.products.id));
+
+  $$ProductsTableProcessedTableManager? get productId {
+    if ($_item.productId == null) return null;
+    final manager = $$ProductsTableTableManager($_db, $_db.products)
+        .filter((f) => f.id($_item.productId!));
+    final item = $_typedResult.readTableOrNull(_productIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $OptionGroupsTable _optionGroupIdTable(_$AppDatabase db) =>
+      db.optionGroups.createAlias($_aliasNameGenerator(
+          db.productOptionGroups.optionGroupId, db.optionGroups.id));
+
+  $$OptionGroupsTableProcessedTableManager? get optionGroupId {
+    if ($_item.optionGroupId == null) return null;
+    final manager = $$OptionGroupsTableTableManager($_db, $_db.optionGroups)
+        .filter((f) => f.id($_item.optionGroupId!));
+    final item = $_typedResult.readTableOrNull(_optionGroupIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$ProductOptionGroupsTableFilterComposer
+    extends Composer<_$AppDatabase, $ProductOptionGroupsTable> {
+  $$ProductOptionGroupsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isRequired => $composableBuilder(
+      column: $table.isRequired, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  $$ProductsTableFilterComposer get productId {
+    final $$ProductsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.productId,
+        referencedTable: $db.products,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ProductsTableFilterComposer(
+              $db: $db,
+              $table: $db.products,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$OptionGroupsTableFilterComposer get optionGroupId {
+    final $$OptionGroupsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.optionGroupId,
+        referencedTable: $db.optionGroups,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OptionGroupsTableFilterComposer(
+              $db: $db,
+              $table: $db.optionGroups,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$ProductOptionGroupsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProductOptionGroupsTable> {
+  $$ProductOptionGroupsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isRequired => $composableBuilder(
+      column: $table.isRequired, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  $$ProductsTableOrderingComposer get productId {
+    final $$ProductsTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.productId,
+        referencedTable: $db.products,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ProductsTableOrderingComposer(
+              $db: $db,
+              $table: $db.products,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$OptionGroupsTableOrderingComposer get optionGroupId {
+    final $$OptionGroupsTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.optionGroupId,
+        referencedTable: $db.optionGroups,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OptionGroupsTableOrderingComposer(
+              $db: $db,
+              $table: $db.optionGroups,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$ProductOptionGroupsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProductOptionGroupsTable> {
+  $$ProductOptionGroupsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get isRequired => $composableBuilder(
+      column: $table.isRequired, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$ProductsTableAnnotationComposer get productId {
+    final $$ProductsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.productId,
+        referencedTable: $db.products,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ProductsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.products,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$OptionGroupsTableAnnotationComposer get optionGroupId {
+    final $$OptionGroupsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.optionGroupId,
+        referencedTable: $db.optionGroups,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OptionGroupsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.optionGroups,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$ProductOptionGroupsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ProductOptionGroupsTable,
+    ProductOptionGroupRow,
+    $$ProductOptionGroupsTableFilterComposer,
+    $$ProductOptionGroupsTableOrderingComposer,
+    $$ProductOptionGroupsTableAnnotationComposer,
+    $$ProductOptionGroupsTableCreateCompanionBuilder,
+    $$ProductOptionGroupsTableUpdateCompanionBuilder,
+    (ProductOptionGroupRow, $$ProductOptionGroupsTableReferences),
+    ProductOptionGroupRow,
+    PrefetchHooks Function({bool productId, bool optionGroupId})> {
+  $$ProductOptionGroupsTableTableManager(
+      _$AppDatabase db, $ProductOptionGroupsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProductOptionGroupsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProductOptionGroupsTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProductOptionGroupsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> productId = const Value.absent(),
+            Value<String> optionGroupId = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+            Value<bool?> isRequired = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ProductOptionGroupsCompanion(
+            id: id,
+            productId: productId,
+            optionGroupId: optionGroupId,
+            sortOrder: sortOrder,
+            isRequired: isRequired,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String productId,
+            required String optionGroupId,
+            Value<int> sortOrder = const Value.absent(),
+            Value<bool?> isRequired = const Value.absent(),
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ProductOptionGroupsCompanion.insert(
+            id: id,
+            productId: productId,
+            optionGroupId: optionGroupId,
+            sortOrder: sortOrder,
+            isRequired: isRequired,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$ProductOptionGroupsTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({productId = false, optionGroupId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (productId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.productId,
+                    referencedTable: $$ProductOptionGroupsTableReferences
+                        ._productIdTable(db),
+                    referencedColumn: $$ProductOptionGroupsTableReferences
+                        ._productIdTable(db)
+                        .id,
+                  ) as T;
+                }
+                if (optionGroupId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.optionGroupId,
+                    referencedTable: $$ProductOptionGroupsTableReferences
+                        ._optionGroupIdTable(db),
+                    referencedColumn: $$ProductOptionGroupsTableReferences
+                        ._optionGroupIdTable(db)
+                        .id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$ProductOptionGroupsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $ProductOptionGroupsTable,
+    ProductOptionGroupRow,
+    $$ProductOptionGroupsTableFilterComposer,
+    $$ProductOptionGroupsTableOrderingComposer,
+    $$ProductOptionGroupsTableAnnotationComposer,
+    $$ProductOptionGroupsTableCreateCompanionBuilder,
+    $$ProductOptionGroupsTableUpdateCompanionBuilder,
+    (ProductOptionGroupRow, $$ProductOptionGroupsTableReferences),
+    ProductOptionGroupRow,
+    PrefetchHooks Function({bool productId, bool optionGroupId})>;
+typedef $$ProductOptionChoiceOverridesTableCreateCompanionBuilder
+    = ProductOptionChoiceOverridesCompanion Function({
+  required String id,
+  required String productId,
+  required String optionChoiceId,
+  Value<int?> priceDeltaCents,
+  Value<bool> isHidden,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$ProductOptionChoiceOverridesTableUpdateCompanionBuilder
+    = ProductOptionChoiceOverridesCompanion Function({
+  Value<String> id,
+  Value<String> productId,
+  Value<String> optionChoiceId,
+  Value<int?> priceDeltaCents,
+  Value<bool> isHidden,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+final class $$ProductOptionChoiceOverridesTableReferences
+    extends BaseReferences<_$AppDatabase, $ProductOptionChoiceOverridesTable,
+        ProductOptionChoiceOverrideRow> {
+  $$ProductOptionChoiceOverridesTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static $ProductsTable _productIdTable(_$AppDatabase db) =>
+      db.products.createAlias($_aliasNameGenerator(
+          db.productOptionChoiceOverrides.productId, db.products.id));
+
+  $$ProductsTableProcessedTableManager? get productId {
+    if ($_item.productId == null) return null;
+    final manager = $$ProductsTableTableManager($_db, $_db.products)
+        .filter((f) => f.id($_item.productId!));
+    final item = $_typedResult.readTableOrNull(_productIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $OptionChoicesTable _optionChoiceIdTable(_$AppDatabase db) =>
+      db.optionChoices.createAlias($_aliasNameGenerator(
+          db.productOptionChoiceOverrides.optionChoiceId, db.optionChoices.id));
+
+  $$OptionChoicesTableProcessedTableManager? get optionChoiceId {
+    if ($_item.optionChoiceId == null) return null;
+    final manager = $$OptionChoicesTableTableManager($_db, $_db.optionChoices)
+        .filter((f) => f.id($_item.optionChoiceId!));
+    final item = $_typedResult.readTableOrNull(_optionChoiceIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$ProductOptionChoiceOverridesTableFilterComposer
+    extends Composer<_$AppDatabase, $ProductOptionChoiceOverridesTable> {
+  $$ProductOptionChoiceOverridesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get priceDeltaCents => $composableBuilder(
+      column: $table.priceDeltaCents,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isHidden => $composableBuilder(
+      column: $table.isHidden, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  $$ProductsTableFilterComposer get productId {
+    final $$ProductsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.productId,
+        referencedTable: $db.products,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ProductsTableFilterComposer(
+              $db: $db,
+              $table: $db.products,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$OptionChoicesTableFilterComposer get optionChoiceId {
+    final $$OptionChoicesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.optionChoiceId,
+        referencedTable: $db.optionChoices,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OptionChoicesTableFilterComposer(
+              $db: $db,
+              $table: $db.optionChoices,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$ProductOptionChoiceOverridesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProductOptionChoiceOverridesTable> {
+  $$ProductOptionChoiceOverridesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get priceDeltaCents => $composableBuilder(
+      column: $table.priceDeltaCents,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isHidden => $composableBuilder(
+      column: $table.isHidden, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  $$ProductsTableOrderingComposer get productId {
+    final $$ProductsTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.productId,
+        referencedTable: $db.products,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ProductsTableOrderingComposer(
+              $db: $db,
+              $table: $db.products,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$OptionChoicesTableOrderingComposer get optionChoiceId {
+    final $$OptionChoicesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.optionChoiceId,
+        referencedTable: $db.optionChoices,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OptionChoicesTableOrderingComposer(
+              $db: $db,
+              $table: $db.optionChoices,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$ProductOptionChoiceOverridesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProductOptionChoiceOverridesTable> {
+  $$ProductOptionChoiceOverridesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get priceDeltaCents => $composableBuilder(
+      column: $table.priceDeltaCents, builder: (column) => column);
+
+  GeneratedColumn<bool> get isHidden =>
+      $composableBuilder(column: $table.isHidden, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$ProductsTableAnnotationComposer get productId {
+    final $$ProductsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.productId,
+        referencedTable: $db.products,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$ProductsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.products,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  $$OptionChoicesTableAnnotationComposer get optionChoiceId {
+    final $$OptionChoicesTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.optionChoiceId,
+        referencedTable: $db.optionChoices,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$OptionChoicesTableAnnotationComposer(
+              $db: $db,
+              $table: $db.optionChoices,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$ProductOptionChoiceOverridesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ProductOptionChoiceOverridesTable,
+    ProductOptionChoiceOverrideRow,
+    $$ProductOptionChoiceOverridesTableFilterComposer,
+    $$ProductOptionChoiceOverridesTableOrderingComposer,
+    $$ProductOptionChoiceOverridesTableAnnotationComposer,
+    $$ProductOptionChoiceOverridesTableCreateCompanionBuilder,
+    $$ProductOptionChoiceOverridesTableUpdateCompanionBuilder,
+    (
+      ProductOptionChoiceOverrideRow,
+      $$ProductOptionChoiceOverridesTableReferences
+    ),
+    ProductOptionChoiceOverrideRow,
+    PrefetchHooks Function({bool productId, bool optionChoiceId})> {
+  $$ProductOptionChoiceOverridesTableTableManager(
+      _$AppDatabase db, $ProductOptionChoiceOverridesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProductOptionChoiceOverridesTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProductOptionChoiceOverridesTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProductOptionChoiceOverridesTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> productId = const Value.absent(),
+            Value<String> optionChoiceId = const Value.absent(),
+            Value<int?> priceDeltaCents = const Value.absent(),
+            Value<bool> isHidden = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ProductOptionChoiceOverridesCompanion(
+            id: id,
+            productId: productId,
+            optionChoiceId: optionChoiceId,
+            priceDeltaCents: priceDeltaCents,
+            isHidden: isHidden,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String productId,
+            required String optionChoiceId,
+            Value<int?> priceDeltaCents = const Value.absent(),
+            Value<bool> isHidden = const Value.absent(),
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ProductOptionChoiceOverridesCompanion.insert(
+            id: id,
+            productId: productId,
+            optionChoiceId: optionChoiceId,
+            priceDeltaCents: priceDeltaCents,
+            isHidden: isHidden,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$ProductOptionChoiceOverridesTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({productId = false, optionChoiceId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (productId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.productId,
+                    referencedTable:
+                        $$ProductOptionChoiceOverridesTableReferences
+                            ._productIdTable(db),
+                    referencedColumn:
+                        $$ProductOptionChoiceOverridesTableReferences
+                            ._productIdTable(db)
+                            .id,
+                  ) as T;
+                }
+                if (optionChoiceId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.optionChoiceId,
+                    referencedTable:
+                        $$ProductOptionChoiceOverridesTableReferences
+                            ._optionChoiceIdTable(db),
+                    referencedColumn:
+                        $$ProductOptionChoiceOverridesTableReferences
+                            ._optionChoiceIdTable(db)
+                            .id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$ProductOptionChoiceOverridesTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $ProductOptionChoiceOverridesTable,
+        ProductOptionChoiceOverrideRow,
+        $$ProductOptionChoiceOverridesTableFilterComposer,
+        $$ProductOptionChoiceOverridesTableOrderingComposer,
+        $$ProductOptionChoiceOverridesTableAnnotationComposer,
+        $$ProductOptionChoiceOverridesTableCreateCompanionBuilder,
+        $$ProductOptionChoiceOverridesTableUpdateCompanionBuilder,
+        (
+          ProductOptionChoiceOverrideRow,
+          $$ProductOptionChoiceOverridesTableReferences
+        ),
+        ProductOptionChoiceOverrideRow,
+        PrefetchHooks Function({bool productId, bool optionChoiceId})>;
 typedef $$MemberLevelsTableCreateCompanionBuilder = MemberLevelsCompanion
     Function({
   required String id,
@@ -14133,6 +17636,7 @@ typedef $$OrderLinesTableCreateCompanionBuilder = OrderLinesCompanion Function({
   required int lineTotalCents,
   Value<double> taxRate,
   Value<String?> note,
+  Value<String?> optionsJson,
   Value<int> rowid,
 });
 typedef $$OrderLinesTableUpdateCompanionBuilder = OrderLinesCompanion Function({
@@ -14147,6 +17651,7 @@ typedef $$OrderLinesTableUpdateCompanionBuilder = OrderLinesCompanion Function({
   Value<int> lineTotalCents,
   Value<double> taxRate,
   Value<String?> note,
+  Value<String?> optionsJson,
   Value<int> rowid,
 });
 
@@ -14194,6 +17699,9 @@ class $$OrderLinesTableFilterComposer
 
   ColumnFilters<String> get note => $composableBuilder(
       column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get optionsJson => $composableBuilder(
+      column: $table.optionsJson, builder: (column) => ColumnFilters(column));
 }
 
 class $$OrderLinesTableOrderingComposer
@@ -14240,6 +17748,9 @@ class $$OrderLinesTableOrderingComposer
 
   ColumnOrderings<String> get note => $composableBuilder(
       column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get optionsJson => $composableBuilder(
+      column: $table.optionsJson, builder: (column) => ColumnOrderings(column));
 }
 
 class $$OrderLinesTableAnnotationComposer
@@ -14283,6 +17794,9 @@ class $$OrderLinesTableAnnotationComposer
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get optionsJson => $composableBuilder(
+      column: $table.optionsJson, builder: (column) => column);
 }
 
 class $$OrderLinesTableTableManager extends RootTableManager<
@@ -14322,6 +17836,7 @@ class $$OrderLinesTableTableManager extends RootTableManager<
             Value<int> lineTotalCents = const Value.absent(),
             Value<double> taxRate = const Value.absent(),
             Value<String?> note = const Value.absent(),
+            Value<String?> optionsJson = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               OrderLinesCompanion(
@@ -14336,6 +17851,7 @@ class $$OrderLinesTableTableManager extends RootTableManager<
             lineTotalCents: lineTotalCents,
             taxRate: taxRate,
             note: note,
+            optionsJson: optionsJson,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -14350,6 +17866,7 @@ class $$OrderLinesTableTableManager extends RootTableManager<
             required int lineTotalCents,
             Value<double> taxRate = const Value.absent(),
             Value<String?> note = const Value.absent(),
+            Value<String?> optionsJson = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               OrderLinesCompanion.insert(
@@ -14364,6 +17881,7 @@ class $$OrderLinesTableTableManager extends RootTableManager<
             lineTotalCents: lineTotalCents,
             taxRate: taxRate,
             note: note,
+            optionsJson: optionsJson,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -17236,6 +20754,16 @@ class $AppDatabaseManager {
       $$ProductsTableTableManager(_db, _db.products);
   $$ProductBarcodesTableTableManager get productBarcodes =>
       $$ProductBarcodesTableTableManager(_db, _db.productBarcodes);
+  $$OptionGroupsTableTableManager get optionGroups =>
+      $$OptionGroupsTableTableManager(_db, _db.optionGroups);
+  $$OptionChoicesTableTableManager get optionChoices =>
+      $$OptionChoicesTableTableManager(_db, _db.optionChoices);
+  $$ProductOptionGroupsTableTableManager get productOptionGroups =>
+      $$ProductOptionGroupsTableTableManager(_db, _db.productOptionGroups);
+  $$ProductOptionChoiceOverridesTableTableManager
+      get productOptionChoiceOverrides =>
+          $$ProductOptionChoiceOverridesTableTableManager(
+              _db, _db.productOptionChoiceOverrides);
   $$MemberLevelsTableTableManager get memberLevels =>
       $$MemberLevelsTableTableManager(_db, _db.memberLevels);
   $$MembersTableTableManager get members =>

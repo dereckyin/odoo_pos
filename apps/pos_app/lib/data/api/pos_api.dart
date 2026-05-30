@@ -101,6 +101,14 @@ class PosApi {
     return DeltaPage.fromJson(_asMap(r.data), MemberLevelDto.fromJson);
   }
 
+  Future<DeltaPage<CouponDto>> syncCoupons(DateTime since, {int limit = 500}) async {
+    final r = await _dio.get('/sync/coupons', queryParameters: {
+      'since': since.toUtc().toIso8601String(),
+      'limit': limit,
+    });
+    return DeltaPage.fromJson(_asMap(r.data), CouponDto.fromJson);
+  }
+
   Future<DeltaPage<PromotionDto>> syncPromotions(DateTime since, {int limit = 500}) async {
     final r = await _dio.get('/sync/promotions', queryParameters: {
       'since': since.toUtc().toIso8601String(),
@@ -120,6 +128,36 @@ class PosApi {
       if (storeId != null) 'store_id': storeId,
     });
     return DeltaPage.fromJson(_asMap(r.data), InventoryLevelDto.fromJson);
+  }
+
+  Future<DeltaPage<OptionGroupDto>> syncOptionGroups(DateTime since, {int limit = 500}) async {
+    final r = await _dio.get('/sync/option-groups', queryParameters: {
+      'since': since.toUtc().toIso8601String(),
+      'limit': limit,
+    });
+    return DeltaPage.fromJson(_asMap(r.data), OptionGroupDto.fromJson);
+  }
+
+  Future<DeltaPage<ProductOptionLinkDto>> syncProductOptionLinks(
+    DateTime since, {
+    int limit = 1000,
+  }) async {
+    final r = await _dio.get('/sync/product-option-links', queryParameters: {
+      'since': since.toUtc().toIso8601String(),
+      'limit': limit,
+    });
+    return DeltaPage.fromJson(_asMap(r.data), ProductOptionLinkDto.fromJson);
+  }
+
+  Future<DeltaPage<ProductOptionOverrideDto>> syncProductOptionOverrides(
+    DateTime since, {
+    int limit = 1000,
+  }) async {
+    final r = await _dio.get('/sync/product-option-overrides', queryParameters: {
+      'since': since.toUtc().toIso8601String(),
+      'limit': limit,
+    });
+    return DeltaPage.fromJson(_asMap(r.data), ProductOptionOverrideDto.fromJson);
   }
 
   // ---- Orders / Refunds ----

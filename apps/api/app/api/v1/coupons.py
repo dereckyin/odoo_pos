@@ -48,7 +48,9 @@ async def redeem_coupon(
     c = (
         await db.execute(
             select(Coupon).where(
-                Coupon.tenant_id == scope.tenant_id, Coupon.code == code
+                Coupon.tenant_id == scope.tenant_id,
+                Coupon.code == code,
+                Coupon.deleted_at.is_(None),
             )
         )
     ).scalar_one_or_none()
@@ -57,7 +59,10 @@ async def redeem_coupon(
     ensure_same_tenant(scope, c)
     if c.used_at:
         raise HTTPException(status.HTTP_409_CONFLICT, "coupon already used")
-    c.used_at = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc)
+    if c.expires_at and c.expires_at < now:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "coupon expired")
+    c.used_at = now
     c.used_in_order_id = order_id
     await audit(db, scope, action="coupon_redeem", resource_type="coupon",
                 resource_id=c.id, extra={"order_id": order_id}, flush=False)

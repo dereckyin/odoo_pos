@@ -87,8 +87,12 @@ class DeltaPuller {
     await Future.wait([
       _pull('products', failures, _pullProducts),
       _pull('categories', failures, _pullCategories),
+      _pull('option_groups', failures, _pullOptionGroups),
+      _pull('product_option_links', failures, _pullProductOptionLinks),
+      _pull('product_option_overrides', failures, _pullProductOptionOverrides),
       _pull('members', failures, _pullMembers),
       _pull('member_levels', failures, _pullMemberLevels),
+      _pull('coupons', failures, _pullCoupons),
       _pull('promotions', failures, _pullPromotions),
       _pull('inventory_levels', failures, () => _pullInventory(storeId: sid)),
     ]);
@@ -204,6 +208,108 @@ class DeltaPuller {
     await _writeSince('categories', page.nextSince);
   }
 
+  Future<void> _pullOptionGroups() async {
+    final since = await _readSince('option_groups');
+    final page = await api.syncOptionGroups(since);
+    if (page.items.isNotEmpty) {
+      await db.batch((b) {
+        for (final g in page.items) {
+          b.insert(
+            db.optionGroups,
+            OptionGroupsCompanion(
+              id: Value(g.id),
+              name: Value(g.name),
+              selectionType: Value(g.selectionType),
+              isRequired: Value(g.isRequired),
+              minSelections: Value(g.minSelections),
+              maxSelections: Value(g.maxSelections),
+              sortOrder: Value(g.sortOrder),
+              updatedAt: Value(g.updatedAt),
+              deletedAt: Value(g.deletedAt),
+            ),
+            mode: InsertMode.insertOrReplace,
+          );
+          b.deleteWhere(db.optionChoices, (t) => t.optionGroupId.equals(g.id));
+          for (final c in g.choices) {
+            b.insert(
+              db.optionChoices,
+              OptionChoicesCompanion(
+                id: Value(c.id),
+                optionGroupId: Value(c.optionGroupId),
+                name: Value(c.name),
+                priceDeltaCents: Value(c.priceDeltaCents),
+                isDefault: Value(c.isDefault),
+                sortOrder: Value(c.sortOrder),
+                isActive: Value(c.isActive),
+                updatedAt: Value(c.updatedAt),
+                deletedAt: Value(c.deletedAt),
+              ),
+              mode: InsertMode.insertOrReplace,
+            );
+          }
+        }
+      });
+    }
+    await _writeSince('option_groups', page.nextSince);
+    if (page.items.length >= 500) {
+      await _pullOptionGroups();
+    }
+  }
+
+  Future<void> _pullProductOptionLinks() async {
+    final since = await _readSince('product_option_links');
+    final page = await api.syncProductOptionLinks(since);
+    if (page.items.isNotEmpty) {
+      await db.batch((b) {
+        for (final link in page.items) {
+          b.insert(
+            db.productOptionGroups,
+            ProductOptionGroupsCompanion(
+              id: Value(link.id),
+              productId: Value(link.productId),
+              optionGroupId: Value(link.optionGroupId),
+              sortOrder: Value(link.sortOrder),
+              isRequired: Value(link.isRequired),
+              updatedAt: Value(link.updatedAt),
+            ),
+            mode: InsertMode.insertOrReplace,
+          );
+        }
+      });
+    }
+    await _writeSince('product_option_links', page.nextSince);
+    if (page.items.length >= 1000) {
+      await _pullProductOptionLinks();
+    }
+  }
+
+  Future<void> _pullProductOptionOverrides() async {
+    final since = await _readSince('product_option_overrides');
+    final page = await api.syncProductOptionOverrides(since);
+    if (page.items.isNotEmpty) {
+      await db.batch((b) {
+        for (final ov in page.items) {
+          b.insert(
+            db.productOptionChoiceOverrides,
+            ProductOptionChoiceOverridesCompanion(
+              id: Value(ov.id),
+              productId: Value(ov.productId),
+              optionChoiceId: Value(ov.optionChoiceId),
+              priceDeltaCents: Value(ov.priceDeltaCents),
+              isHidden: Value(ov.isHidden),
+              updatedAt: Value(ov.updatedAt),
+            ),
+            mode: InsertMode.insertOrReplace,
+          );
+        }
+      });
+    }
+    await _writeSince('product_option_overrides', page.nextSince);
+    if (page.items.length >= 1000) {
+      await _pullProductOptionOverrides();
+    }
+  }
+
   Future<void> _pullMembers() async {
     final since = await _readSince('members');
     final page = await api.syncMembers(since);
@@ -260,6 +366,33 @@ class DeltaPuller {
       });
     }
     await _writeSince('member_levels', page.nextSince);
+  }
+
+  Future<void> _pullCoupons() async {
+    final since = await _readSince('coupons');
+    final page = await api.syncCoupons(since);
+    if (page.items.isNotEmpty) {
+      await db.batch((b) {
+        for (final c in page.items) {
+          b.insert(
+            db.coupons,
+            CouponsCompanion(
+              id: Value(c.id),
+              code: Value(c.code),
+              type: Value(c.type),
+              value: Value(c.value),
+              memberId: Value(c.memberId),
+              minSpendCents: Value(c.minSpendCents),
+              expiresAt: Value(c.expiresAt),
+              usedAt: Value(c.usedAt),
+              updatedAt: Value(c.updatedAt),
+            ),
+            mode: InsertMode.insertOrReplace,
+          );
+        }
+      });
+    }
+    await _writeSince('coupons', page.nextSince);
   }
 
   Future<void> _pullPromotions() async {

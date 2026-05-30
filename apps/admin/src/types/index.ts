@@ -64,6 +64,128 @@ export interface TenantRead {
   created_at: string
 }
 
+export interface MemberLevelCreate {
+  name: string
+  discount_rate?: number
+  min_spend?: number
+  min_points?: number
+  color?: string | null
+  sort_order?: number
+}
+
+export type MemberLevelUpdate = Partial<MemberLevelCreate>
+
+export interface LoyaltySettings {
+  earn_enabled: boolean
+  redeem_enabled: boolean
+  point_value_cents: number
+  max_redeem_pct: number
+  point_expiry_days: number
+  auto_level: boolean
+}
+
+export interface LoyaltyRuleRead {
+  id: string
+  tenant_id: string
+  name: string
+  rule_type: string
+  spend_cents: number
+  points_awarded: number
+  category_ids: string[]
+  level_multiplier: number
+  is_active: boolean
+  sort_order: number
+  valid_from: string | null
+  valid_to: string | null
+}
+
+export interface LoyaltyRuleCreate {
+  name: string
+  rule_type?: string
+  spend_cents?: number
+  points_awarded?: number
+  category_ids?: string[]
+  level_multiplier?: number
+  is_active?: boolean
+  sort_order?: number
+}
+
+export type LoyaltyRuleUpdate = Partial<LoyaltyRuleCreate>
+
+export interface MemberOverview {
+  total_members: number
+  new_members_30d: number
+  active_30d: number
+  dormant_90d: number
+  member_revenue_pct: number
+  member_order_count: number
+  total_order_count: number
+}
+
+export interface LevelStat {
+  level_id: string | null
+  level_name: string
+  count: number
+  total_spent_cents: number
+  avg_spent_cents: number
+}
+
+export interface RfmCell {
+  recency_bucket: string
+  frequency_bucket: string
+  count: number
+  revenue_cents: number
+}
+
+export interface CohortRow {
+  cohort_month: string
+  month_offset: number
+  active_members: number
+  revenue_cents: number
+}
+
+export interface ChurnMember {
+  member_id: string
+  name: string
+  phone: string
+  last_visit_at: string | null
+  total_spent_cents: number
+  points: number
+}
+
+export interface AllianceNetworkRead {
+  id: string
+  name: string
+  code: string
+  description: string | null
+  status: string
+}
+
+export interface AllianceTenantRead {
+  id: string
+  alliance_id: string
+  tenant_id: string
+  data_scope: string
+  status: string
+  joined_at: string
+}
+
+export interface AllianceDashboard {
+  alliance_id: string
+  active_members: number
+  total_points: number
+  tenant_count: number
+  cross_brand_links: number
+}
+
+export interface WebhookSubscriptionRead {
+  id: string
+  tenant_id: string
+  url: string
+  events: string[]
+  is_active: boolean
+}
+
 export interface SubscriptionPlanRead {
   id: string
   code: string
@@ -76,6 +198,7 @@ export interface SubscriptionPlanRead {
   max_products: number
   is_active: boolean
   description: string | null
+  features?: Record<string, unknown>
 }
 
 export interface CategoryRead {
@@ -89,6 +212,14 @@ export interface CategoryRead {
   hide_from_pos_browse: boolean
   updated_at: string
   deleted_at: string | null
+  depth?: number
+  path_names?: string[]
+  path_label?: string
+  has_children?: boolean
+}
+
+export interface CategoryTreeNode extends CategoryRead {
+  children: CategoryTreeNode[]
 }
 
 export interface CategoryCreate {
@@ -141,6 +272,99 @@ export interface ProductCreate {
 }
 
 export type ProductUpdate = Partial<ProductCreate>
+
+export interface SelectedOptionSnapshot {
+  group_id: string
+  group_name: string
+  choice_id: string
+  choice_name: string
+  price_delta_cents: number
+}
+
+export interface OptionChoiceRead {
+  id: string
+  option_group_id: string
+  name: string
+  price_delta_cents: number
+  is_default: boolean
+  sort_order: number
+  is_active: boolean
+  updated_at: string
+  deleted_at: string | null
+}
+
+export interface OptionChoiceCreate {
+  name: string
+  price_delta_cents?: number
+  is_default?: boolean
+  sort_order?: number
+  is_active?: boolean
+}
+
+export type OptionChoiceUpdate = Partial<OptionChoiceCreate>
+
+export interface OptionGroupRead {
+  id: string
+  tenant_id: string
+  name: string
+  selection_type: 'single' | 'multi'
+  is_required: boolean
+  min_selections: number
+  max_selections: number | null
+  sort_order: number
+  choices: OptionChoiceRead[]
+  updated_at: string
+  deleted_at: string | null
+}
+
+export interface OptionGroupCreate {
+  name: string
+  selection_type?: 'single' | 'multi'
+  is_required?: boolean
+  min_selections?: number
+  max_selections?: number | null
+  sort_order?: number
+}
+
+export type OptionGroupUpdate = Partial<OptionGroupCreate>
+
+export interface ProductOptionGroupLink {
+  option_group_id: string
+  sort_order?: number
+  is_required?: boolean | null
+}
+
+export interface ProductOptionGroupsSet {
+  groups: ProductOptionGroupLink[]
+}
+
+export interface ProductOptionChoiceOverrideItem {
+  option_choice_id: string
+  price_delta_cents?: number | null
+  is_hidden?: boolean
+}
+
+export interface ProductOptionOverridesSet {
+  overrides: ProductOptionChoiceOverrideItem[]
+}
+
+export interface ProductOptionLinkRead {
+  id: string
+  product_id: string
+  option_group_id: string
+  sort_order: number
+  is_required: boolean | null
+  updated_at: string
+}
+
+export interface ProductOptionChoiceOverrideRead {
+  id: string
+  product_id: string
+  option_choice_id: string
+  price_delta_cents: number | null
+  is_hidden: boolean
+  updated_at: string
+}
 
 export interface PromotionRead {
   id: string
@@ -264,6 +488,10 @@ export interface StoreRead {
   tax_id: string | null
   address: string | null
   phone: string | null
+  latitude?: number | null
+  longitude?: number | null
+  geocoded_at?: string | null
+  geocode_label?: string | null
   updated_at: string
 }
 
@@ -324,6 +552,7 @@ export interface OrderLineRead {
   line_total_cents: number
   tax_rate: number
   note: string | null
+  options_json?: SelectedOptionSnapshot[] | null
 }
 
 export interface PaymentRead {
@@ -338,6 +567,7 @@ export interface PaymentRead {
 
 export interface OrderRead {
   id: string
+  order_no: string | null
   tenant_id: string
   store_id: string
   terminal_id: string
@@ -352,10 +582,26 @@ export interface OrderRead {
   invoice_number: string | null
   invoice_carrier: string | null
   note: string | null
+  source_guest_order_id?: string | null
   created_at: string
   client_created_at: string | null
   lines: OrderLineRead[]
   payments: PaymentRead[]
+}
+
+export interface OrderListItem extends OrderRead {
+  store_name?: string | null
+  cashier_name?: string | null
+  member_name?: string | null
+  payment_methods?: string[]
+  source?: string
+}
+
+export interface OrderListResponse {
+  items: OrderListItem[]
+  total: number
+  offset: number
+  limit: number
 }
 
 export interface UserRead {
@@ -430,6 +676,7 @@ export interface GuestOrderLineRead {
   unit_price_cents: number
   line_total_cents: number
   note: string | null
+  options_json?: SelectedOptionSnapshot[] | null
   created_at: string
 }
 

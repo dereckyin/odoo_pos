@@ -29,6 +29,7 @@ class GuestOrder(Base, UUIDPrimaryKey, Timestamped):
 
     customer_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     party_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    member_id: Mapped[str | None] = mapped_column(ForeignKey("members.id"), nullable=True, index=True)
 
     estimated_subtotal_cents: Mapped[int] = mapped_column(Integer, default=0)
 
@@ -62,5 +63,6 @@ class GuestOrderLine(Base, UUIDPrimaryKey, Timestamped):
     unit_price_cents: Mapped[int] = mapped_column(Integer, nullable=False)
     line_total_cents: Mapped[int] = mapped_column(Integer, nullable=False)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    options_json: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
     order: Mapped[GuestOrder] = relationship(back_populates="lines")

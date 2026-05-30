@@ -2,12 +2,26 @@
   <div>
     <a-page-header title="分類管理">
       <template #extra>
-        <a-button type="primary" @click="openModal()">新增分類</a-button>
+        <a-button type="primary" @click="openModal()">新增頂層分類</a-button>
       </template>
     </a-page-header>
 
-    <a-table :columns="columns" :data-source="categories" :loading="loading" row-key="id" :pagination="false">
+    <a-table
+      :columns="columns"
+      :data-source="treeData"
+      :loading="loading"
+      row-key="id"
+      :pagination="false"
+      :default-expand-all-rows="true"
+    >
       <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'name'">
+          <span>{{ record.name }}</span>
+          <a-tag v-if="record.depth === 2" color="blue" style="margin-left: 8px">第3層</a-tag>
+        </template>
+        <template v-if="column.key === 'path'">
+          <span style="color: #888">{{ record.path_label || record.name }}</span>
+        </template>
         <template v-if="column.key === 'color'">
           <div v-if="record.color" :style="{ width: '24px', height: '24px', borderRadius: '4px', background: record.color }" />
           <span v-else>-</span>
@@ -20,6 +34,13 @@
         </template>
         <template v-if="column.key === 'actions'">
           <a-space>
+            <a-button
+              size="small"
+              :disabled="(record.depth ?? 0) >= 2"
+              @click="openModal(undefined, record.id)"
+            >
+              新增子分類
+            </a-button>
             <a-button size="small" @click="openModal(record)">編輯</a-button>
             <a-popconfirm title="確定要刪除？" @confirm="handleDelete(record.id)">
               <a-button size="small" danger>刪除</a-button>
@@ -29,17 +50,21 @@
       </template>
     </a-table>
 
-    <a-modal v-model:open="modalOpen" :title="editingId ? '編輯分類' : '新增分類'" @ok="handleSave" :confirm-loading="saving">
+    <a-modal v-model:open="modalOpen" :title="modalTitle" @ok="handleSave" :confirm-loading="saving">
       <a-form :model="form" layout="vertical">
         <a-form-item label="名稱" :rules="[{ required: true }]">
           <a-input v-model:value="form.name" />
         </a-form-item>
         <a-form-item label="上層分類">
-          <a-select v-model:value="form.parent_id" allow-clear placeholder="無（頂層）">
-            <a-select-option v-for="c in categories.filter(c => c.id !== editingId)" :key="c.id" :value="c.id">
-              {{ c.name }}
-            </a-select-option>
-          </a-select>
+          <a-tree-select
+            v-model:value="form.parent_id"
+            allow-clear
+            placeholder="無（頂層）"
+            tree-default-expand-all
+            :tree-data="parentTreeOptions"
+            :field-names="{ label: 'path_label', value: 'id', children: 'children' }"
+            style="width: 100%"
+          />
         </a-form-item>
         <a-form-item label="排序">
           <a-input-number v-model:value="form.sort_order" :min="0" style="width: 120px" />
@@ -63,16 +88,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { listCategories, createCategory, updateCategory, deleteCategory } from '@/api/products'
-import type { CategoryRead } from '@/types'
+import {
+  listCategoriesTree,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} from '@/api/products'
+import type { CategoryRead, CategoryTreeNode } from '@/types'
 
-const categories = ref<CategoryRead[]>([])
+const treeData = ref<CategoryTreeNode[]>([])
+const flatCategories = ref<CategoryRead[]>([])
 const loading = ref(false)
 const modalOpen = ref(false)
 const saving = ref(false)
 const editingId = ref<string | null>(null)
+const presetParentId = ref<string | null>(null)
 
 const form = reactive({
   name: '',
@@ -85,25 +117,54 @@ const form = reactive({
 })
 
 const columns = [
-  { title: '名稱', dataIndex: 'name', key: 'name' },
+  { title: '名稱', key: 'name' },
+  { title: '完整路徑', key: 'path' },
   { title: '排序', dataIndex: 'sort_order', key: 'sort_order', width: 80 },
   { title: '顏色', key: 'color', width: 80 },
   { title: 'QR隱藏', key: 'hp', width: 72 },
   { title: 'POS全部隱藏', key: 'hb', width: 100 },
-  { title: '操作', key: 'actions', width: 160 },
+  { title: '操作', key: 'actions', width: 280 },
 ]
+
+const modalTitle = computed(() => {
+  if (editingId.value) return '編輯分類'
+  if (presetParentId.value) return '新增子分類'
+  return '新增頂層分類'
+})
+
+function flattenTree(nodes: CategoryTreeNode[], out: CategoryRead[] = []) {
+  for (const n of nodes) {
+    out.push(n)
+    if (n.children?.length) flattenTree(n.children, out)
+  }
+  return out
+}
+
+function filterParentOptions(nodes: CategoryTreeNode[], excludeId: string | null): CategoryTreeNode[] {
+  return nodes
+    .filter((n) => n.id !== excludeId && (n.depth ?? 0) < 2)
+    .map((n) => ({
+      ...n,
+      path_label: n.path_label || n.name,
+      children: n.children?.length ? filterParentOptions(n.children, excludeId) : [],
+    }))
+}
+
+const parentTreeOptions = computed(() => filterParentOptions(treeData.value, editingId.value))
 
 async function fetchData() {
   loading.value = true
   try {
-    const { data } = await listCategories()
-    categories.value = data
+    const { data } = await listCategoriesTree()
+    treeData.value = data
+    flatCategories.value = flattenTree(data)
   } finally {
     loading.value = false
   }
 }
 
-function openModal(record?: CategoryRead) {
+function openModal(record?: CategoryRead, parentId?: string) {
+  presetParentId.value = parentId ?? null
   if (record) {
     editingId.value = record.id
     form.name = record.name
@@ -116,7 +177,7 @@ function openModal(record?: CategoryRead) {
   } else {
     editingId.value = null
     form.name = ''
-    form.parent_id = null
+    form.parent_id = parentId ?? null
     form.sort_order = 0
     form.color = null
     form.icon = null
@@ -146,9 +207,13 @@ async function handleSave() {
 }
 
 async function handleDelete(id: string) {
-  await deleteCategory(id)
-  message.success('已刪除')
-  fetchData()
+  try {
+    await deleteCategory(id)
+    message.success('已刪除')
+    fetchData()
+  } catch (e: any) {
+    message.error(e.response?.data?.detail || '刪除失敗')
+  }
 }
 
 onMounted(fetchData)

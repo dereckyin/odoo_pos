@@ -8,6 +8,9 @@ class Category {
     this.icon,
     this.hideFromPublicOrdering = false,
     this.hideFromPosBrowse = false,
+    this.depth = 0,
+    this.pathLabel = '',
+    this.hasChildren = false,
   });
 
   final String id;
@@ -18,4 +21,7 @@ class Category {
   final String? icon;
   final bool hideFromPublicOrdering;
   final bool hideFromPosBrowse;
+  final int depth;
+  final String pathLabel;
+  final bool hasChildren;
 }

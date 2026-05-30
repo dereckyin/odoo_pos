@@ -24,3 +24,7 @@ export function deleteStore(id: string) {
 export function listTerminals(storeId: string) {
   return client.get<TerminalRead[]>(`/stores/${storeId}/terminals`)
 }
+
+export function geocodeStore(storeId: string) {
+  return client.post<StoreRead>(`/stores/${storeId}/geocode`)
+}

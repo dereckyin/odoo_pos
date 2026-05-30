@@ -116,3 +116,15 @@ export interface AuditLogQuery {
 export function listAuditLogs(params: AuditLogQuery = {}) {
   return client.get<AuditLogRead[]>('/tenant/audit-logs', { params })
 }
+
+export interface TenantGeneralSettings {
+  timezone: string
+}
+
+export function getGeneralSettings() {
+  return client.get<TenantGeneralSettings>('/tenant/general-settings')
+}
+
+export function updateGeneralSettings(payload: Partial<TenantGeneralSettings>) {
+  return client.patch<TenantGeneralSettings>('/tenant/general-settings', payload)
+}

@@ -1,12 +1,16 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_core/pos_core.dart';
 import 'package:pos_domain/pos_domain.dart' as dom;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'escpos_service.dart';
+import 'printer_samples.dart';
+
+PaperSize paperSizeFromMm(int mm) => mm <= 58 ? PaperSize.mm58 : PaperSize.mm80;
 
 class PrinterPreferences {
   PrinterPreferences({
@@ -84,7 +88,6 @@ final kitchenPrinterPrefsProvider =
 final printerServiceProvider = Provider<PrinterService>((ref) {
   return PrinterService(
     ref: ref,
-    builder: EscPosReceiptBuilder(),
     driver: TcpPrinterDriver(),
     logger: AppLogger.named('printer'),
   );
@@ -93,7 +96,6 @@ final printerServiceProvider = Provider<PrinterService>((ref) {
 final kitchenPrinterServiceProvider = Provider<KitchenPrinterService>((ref) {
   return KitchenPrinterService(
     ref: ref,
-    builder: EscPosKitchenBuilder(),
     driver: TcpPrinterDriver(),
     logger: AppLogger.named('kitchen-printer'),
   );
@@ -102,24 +104,45 @@ final kitchenPrinterServiceProvider = Provider<KitchenPrinterService>((ref) {
 class PrinterService {
   PrinterService({
     required this.ref,
-    required this.builder,
     required this.driver,
     required this.logger,
   });
 
   final Ref ref;
-  final EscPosReceiptBuilder builder;
   final TcpPrinterDriver driver;
   final AppLogger logger;
+
+  EscPosReceiptBuilder _receiptBuilder(PrinterPreferences prefs) =>
+      EscPosReceiptBuilder(paperWidth: paperSizeFromMm(prefs.paperWidth));
 
   Future<void> printReceipt(dom.Order order, {dom.Invoice? invoice, String? hostOverride}) async {
     final prefs = ref.read(printerPrefsProvider);
     if (!prefs.enabled && hostOverride == null) return;
-    final bytes = Uint8List.fromList(await builder.build(order, invoice: invoice));
+    final bytes = Uint8List.fromList(
+      await _receiptBuilder(prefs).build(order, invoice: invoice),
+    );
     try {
       await driver.printRaw(hostOverride ?? prefs.host, bytes, port: prefs.port);
     } catch (e, st) {
       logger.warn('print failed', e, st);
+      rethrow;
+    }
+  }
+
+  /// Sends a sample receipt using [host] / [port] (ignores `enabled`; for setup).
+  Future<void> printTestReceipt({
+    required String host,
+    required int port,
+    required int paperWidth,
+  }) async {
+    final prefs = PrinterPreferences(host: host, port: port, paperWidth: paperWidth, enabled: true);
+    final bytes = Uint8List.fromList(
+      await _receiptBuilder(prefs).build(PrinterSamples.sampleReceiptOrder(), storeName: '點餐趣 測試列印'),
+    );
+    try {
+      await driver.printRaw(host, bytes, port: port);
+    } catch (e, st) {
+      logger.warn('test receipt print failed', e, st);
       rethrow;
     }
   }
@@ -129,15 +152,16 @@ class PrinterService {
 class KitchenPrinterService {
   KitchenPrinterService({
     required this.ref,
-    required this.builder,
     required this.driver,
     required this.logger,
   });
 
   final Ref ref;
-  final EscPosKitchenBuilder builder;
   final TcpPrinterDriver driver;
   final AppLogger logger;
+
+  EscPosKitchenBuilder _kitchenBuilder(PrinterPreferences prefs) =>
+      EscPosKitchenBuilder(paperWidth: paperSizeFromMm(prefs.paperWidth));
 
   /// Prints [ticket] to the configured kitchen printer. Returns ``true``
   /// when the printer is **disabled** in preferences (silent no-op so the
@@ -147,12 +171,30 @@ class KitchenPrinterService {
   Future<bool> printTicket(KitchenTicket ticket) async {
     final prefs = ref.read(kitchenPrinterPrefsProvider);
     if (!prefs.enabled) return true; // silently skip
-    final bytes = Uint8List.fromList(await builder.build(ticket));
+    final bytes = Uint8List.fromList(await _kitchenBuilder(prefs).build(ticket));
     try {
       await driver.printRaw(prefs.host, bytes, port: prefs.port);
       return true;
     } catch (e, st) {
       logger.warn('kitchen print failed', e, st);
+      rethrow;
+    }
+  }
+
+  /// Sends a sample kitchen ticket using [host] / [port] (ignores `enabled`).
+  Future<void> printTestTicket({
+    required String host,
+    required int port,
+    required int paperWidth,
+  }) async {
+    final prefs = PrinterPreferences(host: host, port: port, paperWidth: paperWidth, enabled: true);
+    final bytes = Uint8List.fromList(
+      await _kitchenBuilder(prefs).build(PrinterSamples.sampleKitchenTicket()),
+    );
+    try {
+      await driver.printRaw(host, bytes, port: port);
+    } catch (e, st) {
+      logger.warn('test kitchen print failed', e, st);
       rethrow;
     }
   }

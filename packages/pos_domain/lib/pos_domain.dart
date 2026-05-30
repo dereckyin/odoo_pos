@@ -7,7 +7,9 @@ library pos_domain;
 
 // Entities
 export 'src/entities/product.dart';
+export 'src/entities/option.dart';
 export 'src/entities/category.dart';
+export 'src/entities/category_tree.dart';
 export 'src/entities/cart.dart';
 export 'src/entities/order.dart';
 export 'src/entities/payment.dart';

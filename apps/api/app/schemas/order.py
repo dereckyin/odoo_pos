@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from ._base import ORMModel
+from .option import SelectedOptionSnapshot
 
 
 class OrderLineCreate(BaseModel):
@@ -16,6 +17,7 @@ class OrderLineCreate(BaseModel):
     line_total_cents: int
     tax_rate: float = 0.05
     note: str | None = None
+    options_json: list[SelectedOptionSnapshot] | None = None
 
 
 class PaymentCreate(BaseModel):
@@ -51,6 +53,8 @@ class OrderCreate(BaseModel):
     invoice_carrier: str | None = None
     note: str | None = None
     source_guest_order_id: str | None = None
+    points_redeemed: int = 0
+    coupon_code: str | None = None
     client_created_at: datetime
     lines: list[OrderLineCreate]
     payments: list[PaymentCreate]
@@ -67,6 +71,7 @@ class OrderLineRead(ORMModel):
     line_total_cents: int
     tax_rate: float
     note: str | None
+    options_json: list[SelectedOptionSnapshot] | None = None
 
 
 class PaymentRead(ORMModel):
@@ -81,6 +86,7 @@ class PaymentRead(ORMModel):
 
 class OrderRead(ORMModel):
     id: str
+    order_no: str | None = None
     tenant_id: str
     store_id: str
     terminal_id: str
@@ -92,6 +98,8 @@ class OrderRead(ORMModel):
     tax_cents: int
     total_cents: int
     refunded_cents: int
+    points_redeemed: int = 0
+    coupon_code: str | None = None
     invoice_number: str | None
     invoice_carrier: str | None
     note: str | None
@@ -100,6 +108,21 @@ class OrderRead(ORMModel):
     client_created_at: datetime | None
     lines: list[OrderLineRead]
     payments: list[PaymentRead]
+
+
+class OrderListItem(OrderRead):
+    store_name: str | None = None
+    cashier_name: str | None = None
+    member_name: str | None = None
+    payment_methods: list[str] = []
+    source: str = "pos"
+
+
+class OrderListResponse(BaseModel):
+    items: list[OrderListItem]
+    total: int
+    offset: int
+    limit: int
 
 
 class RefundLineCreate(BaseModel):

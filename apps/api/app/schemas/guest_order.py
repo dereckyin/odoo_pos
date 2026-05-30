@@ -3,12 +3,14 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from ._base import ORMModel
+from .option import SelectedOptionSnapshot
 
 
 class GuestOrderLineCreate(BaseModel):
     product_id: str
     qty: float = Field(gt=0)
     note: str | None = None
+    options: list[SelectedOptionSnapshot] | None = None
 
 
 class GuestOrderSubmit(BaseModel):
@@ -18,6 +20,7 @@ class GuestOrderSubmit(BaseModel):
 
     customer_note: str | None = None
     party_size: int | None = Field(default=None, ge=1)
+    member_id: str | None = None
     lines: list[GuestOrderLineCreate]
 
 
@@ -30,6 +33,7 @@ class GuestOrderLineRead(ORMModel):
     unit_price_cents: int
     line_total_cents: int
     note: str | None
+    options_json: list[SelectedOptionSnapshot] | None = None
     created_at: datetime
 
 
@@ -42,6 +46,7 @@ class GuestOrderRead(ORMModel):
     status: str
     customer_note: str | None
     party_size: int | None
+    member_id: str | None = None
     estimated_subtotal_cents: int
     accepted_at: datetime | None
     ready_at: datetime | None

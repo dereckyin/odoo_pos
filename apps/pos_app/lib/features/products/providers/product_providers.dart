@@ -14,14 +14,39 @@ class ProductRepositoryImpl {
   /// Rows for the POS product grid: "全部" excludes [Product.hideFromPosBrowse] and
   /// products in categories with [Category.hideFromPosBrowse]. A specific [categoryId]
   /// lists every active product in that category (e.g. 書籍／桌遊).
+  Future<List<Category>> _loadEnrichedCategories() async {
+    final rows = await (_db.select(_db.categories)
+          ..where((c) => c.deletedAt.isNull()))
+        .get();
+    final flat = rows
+        .map((r) => Category(
+              id: r.id,
+              name: r.name,
+              parentId: r.parentId,
+              sortOrder: r.sortOrder,
+              color: r.color,
+              icon: r.icon,
+              hideFromPublicOrdering: r.hideFromPublicOrdering,
+              hideFromPosBrowse: r.hideFromPosBrowse,
+            ))
+        .toList(growable: false);
+    return enrichCategories(flat);
+  }
+
   Future<List<ProductRow>> _browseProductRows({String? categoryId, int limit = 50}) async {
     if (categoryId != null) {
-      return (_db.select(_db.products)
+      final cats = await _loadEnrichedCategories();
+      final tree = CategoryTree(cats);
+      final ids = tree.descendantIds(categoryId).toList();
+      final rows = await (_db.select(_db.products)
             ..where((p) =>
-                p.deletedAt.isNull() & p.isActive.equals(true) & p.categoryId.equals(categoryId))
+                p.deletedAt.isNull() &
+                p.isActive.equals(true) &
+                p.categoryId.isIn(ids))
             ..orderBy([(p) => OrderingTerm(expression: p.name)])
             ..limit(limit))
           .get();
+      return rows.where((p) => !tree.isHiddenByAncestor(p.categoryId)).toList();
     }
     final q = _db.select(_db.products).join([
       leftOuterJoin(_db.categories, _db.categories.id.equalsExp(_db.products.categoryId)),
@@ -56,12 +81,21 @@ class ProductRepositoryImpl {
           p.isActive.equals(true) &
           (p.name.like(like) | p.sku.like(like) | p.id.isIn(productIds)));
     if (categoryId != null) {
-      stmt.where((p) => p.categoryId.equals(categoryId));
+      final cats = await _loadEnrichedCategories();
+      final tree = CategoryTree(cats);
+      final ids = tree.descendantIds(categoryId).toList();
+      stmt.where((p) => p.categoryId.isIn(ids));
     }
     stmt
       ..orderBy([(p) => OrderingTerm(expression: p.name)])
       ..limit(limit);
     final rows = await stmt.get();
+    if (categoryId != null) {
+      final cats = await _loadEnrichedCategories();
+      final tree = CategoryTree(cats);
+      final filtered = rows.where((p) => !tree.isHiddenByAncestor(p.categoryId)).toList();
+      return _hydrate(filtered);
+    }
     return _hydrate(rows);
   }
 
@@ -103,6 +137,7 @@ class ProductRepositoryImpl {
     for (final b in barcodes) {
       byProduct.putIfAbsent(b.productId, () => []).add(b.barcode);
     }
+    final optionConfigs = await _loadOptionConfigs(ids);
     return rows
         .map((r) => Product(
               id: r.id,
@@ -120,8 +155,88 @@ class ProductRepositoryImpl {
               updatedAt: r.updatedAt,
               hideFromPublicOrdering: r.hideFromPublicOrdering,
               hideFromPosBrowse: r.hideFromPosBrowse,
+              optionConfigs: optionConfigs[r.id] ?? const [],
             ))
         .toList(growable: false);
+  }
+
+  Future<Map<String, List<ProductOptionConfig>>> _loadOptionConfigs(
+    List<String> productIds,
+  ) async {
+    if (productIds.isEmpty) return {};
+
+    final links = await (_db.select(_db.productOptionGroups)
+          ..where((l) => l.productId.isIn(productIds))
+          ..orderBy([(l) => OrderingTerm(expression: l.sortOrder)]))
+        .get();
+    if (links.isEmpty) return {};
+
+    final groupIds = links.map((l) => l.optionGroupId).toSet().toList();
+    final groups = await (_db.select(_db.optionGroups)
+          ..where((g) => g.id.isIn(groupIds) & g.deletedAt.isNull()))
+        .get();
+    final groupById = {for (final g in groups) g.id: g};
+
+    final choices = await (_db.select(_db.optionChoices)
+          ..where((c) => c.optionGroupId.isIn(groupIds) & c.deletedAt.isNull()))
+        .get();
+    final choicesByGroup = <String, List<OptionChoiceRow>>{};
+    for (final c in choices) {
+      choicesByGroup.putIfAbsent(c.optionGroupId, () => []).add(c);
+    }
+
+    final overrides = await (_db.select(_db.productOptionChoiceOverrides)
+          ..where((o) => o.productId.isIn(productIds)))
+        .get();
+    final overrideMap = <String, Map<String, ProductOptionChoiceOverrideRow>>{};
+    for (final o in overrides) {
+      overrideMap.putIfAbsent(o.productId, () => {})[o.optionChoiceId] = o;
+    }
+
+    final result = <String, List<ProductOptionConfig>>{};
+    for (final link in links) {
+      final gRow = groupById[link.optionGroupId];
+      if (gRow == null) continue;
+      final productOverrides = overrideMap[link.productId] ?? {};
+      final visibleChoices = <OptionChoice>[];
+      for (final c in choicesByGroup[gRow.id] ?? const []) {
+        if (!c.isActive) continue;
+        final ov = productOverrides[c.id];
+        if (ov?.isHidden == true) continue;
+        final price = ov?.priceDeltaCents ?? c.priceDeltaCents;
+        visibleChoices.add(OptionChoice(
+          id: c.id,
+          name: c.name,
+          priceDeltaCents: price,
+          isDefault: c.isDefault,
+          sortOrder: c.sortOrder,
+        ));
+      }
+      visibleChoices.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      if (visibleChoices.isEmpty) continue;
+
+      final group = OptionGroup(
+        id: gRow.id,
+        name: gRow.name,
+        selectionType: gRow.selectionType,
+        isRequired: link.isRequired ?? gRow.isRequired,
+        minSelections: gRow.minSelections,
+        maxSelections: gRow.maxSelections,
+        sortOrder: link.sortOrder,
+        choices: visibleChoices,
+      );
+      result.putIfAbsent(link.productId, () => []).add(
+            ProductOptionConfig(
+              group: group,
+              isRequired: group.isRequired,
+              sortOrder: link.sortOrder,
+            ),
+          );
+    }
+    for (final configs in result.values) {
+      configs.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    }
+    return result;
   }
 
   static String? _resolveImageUrl(String? url) {
@@ -156,7 +271,7 @@ class CategoryRepositoryImpl {
           ..where((c) => c.deletedAt.isNull())
           ..orderBy([(c) => OrderingTerm(expression: c.sortOrder)]))
         .get();
-    return rows
+    final flat = rows
         .map((r) => Category(
               id: r.id,
               name: r.name,
@@ -168,6 +283,7 @@ class CategoryRepositoryImpl {
               hideFromPosBrowse: r.hideFromPosBrowse,
             ))
         .toList(growable: false);
+    return enrichCategories(flat);
   }
 
   Stream<List<Category>> watchAll() {
@@ -175,18 +291,21 @@ class CategoryRepositoryImpl {
           ..where((c) => c.deletedAt.isNull())
           ..orderBy([(c) => OrderingTerm(expression: c.sortOrder)]))
         .watch()
-        .map((rows) => rows
-            .map((r) => Category(
-                  id: r.id,
-                  name: r.name,
-                  parentId: r.parentId,
-                  sortOrder: r.sortOrder,
-                  color: r.color,
-                  icon: r.icon,
-                  hideFromPublicOrdering: r.hideFromPublicOrdering,
-                  hideFromPosBrowse: r.hideFromPosBrowse,
-                ))
-            .toList(growable: false));
+        .asyncMap((rows) async {
+          final flat = rows
+              .map((r) => Category(
+                    id: r.id,
+                    name: r.name,
+                    parentId: r.parentId,
+                    sortOrder: r.sortOrder,
+                    color: r.color,
+                    icon: r.icon,
+                    hideFromPublicOrdering: r.hideFromPublicOrdering,
+                    hideFromPosBrowse: r.hideFromPosBrowse,
+                  ))
+              .toList(growable: false);
+          return enrichCategories(flat);
+        });
   }
 }
 
@@ -196,4 +315,9 @@ final categoryRepositoryProvider = Provider<CategoryRepositoryImpl>(
 
 final categoriesProvider = StreamProvider<List<Category>>((ref) {
   return ref.read(categoryRepositoryProvider).watchAll();
+});
+
+final categoryTreeProvider = Provider<CategoryTree>((ref) {
+  final cats = ref.watch(categoriesProvider).valueOrNull ?? const [];
+  return CategoryTree(cats);
 });

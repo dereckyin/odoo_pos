@@ -87,6 +87,11 @@ class GuestOrderCard extends StatelessWidget {
                               '· ${l.note}',
                               style: TextStyle(color: scheme.error, fontSize: 13),
                             ),
+                          if (l.optionsJson.isNotEmpty)
+                            Text(
+                              l.optionsJson.map((j) => j['choice_name']).join(' · '),
+                              style: TextStyle(color: scheme.primary, fontSize: 13),
+                            ),
                         ],
                       ),
                     ),

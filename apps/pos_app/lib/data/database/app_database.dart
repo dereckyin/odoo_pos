@@ -16,6 +16,10 @@ part 'app_database.g.dart';
   Categories,
   Products,
   ProductBarcodes,
+  OptionGroups,
+  OptionChoices,
+  ProductOptionGroups,
+  ProductOptionChoiceOverrides,
   MemberLevels,
   Members,
   Coupons,
@@ -41,7 +45,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -54,6 +58,13 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(categories, categories.hideFromPosBrowse);
             await m.addColumn(products, products.hideFromPublicOrdering);
             await m.addColumn(products, products.hideFromPosBrowse);
+          }
+          if (from < 3) {
+            await m.createTable(optionGroups);
+            await m.createTable(optionChoices);
+            await m.createTable(productOptionGroups);
+            await m.createTable(productOptionChoiceOverrides);
+            await m.addColumn(orderLines, orderLines.optionsJson);
           }
         },
         beforeOpen: (details) async {
@@ -72,6 +83,10 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> clearMasterData() async {
     await transaction(() async {
+      await delete(productOptionChoiceOverrides).go();
+      await delete(productOptionGroups).go();
+      await delete(optionChoices).go();
+      await delete(optionGroups).go();
       await delete(productBarcodes).go();
       await delete(products).go();
       await delete(categories).go();

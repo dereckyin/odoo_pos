@@ -39,6 +39,7 @@ class SubscriptionPlanRead(ORMModel):
     max_products: int
     is_active: bool
     description: str | None
+    features: dict = {}
 
 
 class TenantSubscriptionRead(ORMModel):
@@ -107,3 +108,11 @@ class AuditLogRead(ORMModel):
     ip: str | None
     created_at: datetime
     extra: dict | None
+
+
+class TenantGeneralSettingsRead(BaseModel):
+    timezone: str = "Asia/Taipei"
+
+
+class TenantGeneralSettingsUpdate(BaseModel):
+    timezone: str | None = Field(default=None, max_length=64)

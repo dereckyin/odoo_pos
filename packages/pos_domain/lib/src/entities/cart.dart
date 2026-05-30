@@ -2,6 +2,7 @@ import 'package:pos_core/pos_core.dart';
 import 'product.dart';
 import 'member.dart';
 import 'promotion.dart';
+import 'option.dart';
 
 enum DiscountType { none, percentage, amount }
 
@@ -44,8 +45,12 @@ class CartLine {
     Discount? lineDiscount,
     this.appliedPromotions = const [],
     this.note,
-  })  : lineDiscount = lineDiscount ?? Discount.none(),
-        unitPrice = product.price;
+    List<SelectedOption>? selectedOptions,
+    Money? unitPrice,
+  })  : selectedOptions = List.unmodifiable(selectedOptions ?? const []),
+        lineDiscount = lineDiscount ?? Discount.none(),
+        unitPrice = unitPrice ??
+            (product.price + Money(selectedOptions?.totalPriceDeltaCents ?? 0));
 
   /// Constructor that allows custom unit price (eg. price overrides on weighted goods)
   CartLine.custom({
@@ -56,7 +61,9 @@ class CartLine {
     Discount? lineDiscount,
     this.appliedPromotions = const [],
     this.note,
-  }) : lineDiscount = lineDiscount ?? Discount.none();
+    List<SelectedOption>? selectedOptions,
+  })  : selectedOptions = List.unmodifiable(selectedOptions ?? const []),
+        lineDiscount = lineDiscount ?? Discount.none();
 
   final String id;
   final Product product;
@@ -65,6 +72,9 @@ class CartLine {
   final Discount lineDiscount;
   final List<AppliedPromotion> appliedPromotions;
   final String? note;
+  final List<SelectedOption> selectedOptions;
+
+  String get mergeKey => '${product.id}|${selectedOptions.optionsSignature}';
 
   Money get gross => unitPrice * qty;
   Money get discountAmount {
@@ -83,6 +93,7 @@ class CartLine {
     List<AppliedPromotion>? appliedPromotions,
     Money? unitPrice,
     String? note,
+    List<SelectedOption>? selectedOptions,
   }) =>
       CartLine.custom(
         id: id,
@@ -92,6 +103,7 @@ class CartLine {
         lineDiscount: lineDiscount ?? this.lineDiscount,
         appliedPromotions: appliedPromotions ?? this.appliedPromotions,
         note: note ?? this.note,
+        selectedOptions: selectedOptions ?? this.selectedOptions,
       );
 }
 

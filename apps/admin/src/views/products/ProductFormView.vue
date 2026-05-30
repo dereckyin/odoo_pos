@@ -25,9 +25,15 @@
         </a-form-item>
 
         <a-form-item label="分類">
-          <a-select v-model:value="form.category_id" placeholder="選擇分類" allow-clear style="width: 280px">
-            <a-select-option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</a-select-option>
-          </a-select>
+          <a-tree-select
+            v-model:value="form.category_id"
+            allow-clear
+            placeholder="選擇分類"
+            tree-default-expand-all
+            :tree-data="categoryTreeOptions"
+            :field-names="{ label: 'path_label', value: 'id', children: 'children' }"
+            style="width: 100%"
+          />
         </a-form-item>
 
         <a-form-item label="計重商品">
@@ -74,6 +80,20 @@
           <a-button type="dashed" @click="barcodes.push('')">+ 新增條碼</a-button>
         </a-form-item>
 
+        <a-form-item label="品項選項">
+          <a-select
+            v-model:value="selectedOptionGroupIds"
+            mode="multiple"
+            placeholder="從選項庫選擇（甜度、冰塊、加料…）"
+            style="width: 100%"
+            :options="optionGroupOptions"
+          />
+          <div style="color: #888; font-size: 12px; margin-top: 4px">
+            先在「選項庫」建立選項群組，再綁定到此商品。POS／QR 點餐時會跳出選項面板。
+            <router-link :to="{ name: 'option-groups' }">管理選項庫</router-link>
+          </div>
+        </a-form-item>
+
         <a-form-item label="描述">
           <a-textarea v-model:value="form.description" :rows="3" />
         </a-form-item>
@@ -94,8 +114,9 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { formatApiError } from '@/api/formatApiError'
-import { getProduct, createProduct, updateProduct, listCategories, uploadImage } from '@/api/products'
-import type { CategoryRead, ProductCreate, ProductUpdate } from '@/types'
+import { getProduct, createProduct, updateProduct, listCategoriesTree, uploadImage } from '@/api/products'
+import { listOptionGroups, getProductOptionGroups, setProductOptionGroups } from '@/api/options'
+import type { CategoryTreeNode, ProductCreate, ProductUpdate, OptionGroupRead } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -103,8 +124,22 @@ const isEdit = computed(() => !!route.params.id)
 const loading = ref(false)
 const submitting = ref(false)
 const uploading = ref(false)
-const categories = ref<CategoryRead[]>([])
+const categoryTreeOptions = ref<CategoryTreeNode[]>([])
+
+function decorateTree(nodes: CategoryTreeNode[]): CategoryTreeNode[] {
+  return nodes.map((n) => ({
+    ...n,
+    path_label: n.path_label || n.name,
+    children: n.children?.length ? decorateTree(n.children) : [],
+  }))
+}
 const barcodes = ref<string[]>([])
+const optionGroups = ref<OptionGroupRead[]>([])
+const selectedOptionGroupIds = ref<string[]>([])
+
+const optionGroupOptions = computed(() =>
+  optionGroups.value.map((g) => ({ label: g.name, value: g.id })),
+)
 
 const form = reactive({
   name: '',
@@ -180,11 +215,26 @@ async function handleSubmit() {
 
     if (isEdit.value) {
       const payload: ProductUpdate = { ...base }
-      await updateProduct(route.params.id as string, payload)
+      const productId = route.params.id as string
+      await updateProduct(productId, payload)
+      await setProductOptionGroups(productId, {
+        groups: selectedOptionGroupIds.value.map((id, idx) => ({
+          option_group_id: id,
+          sort_order: idx,
+        })),
+      })
       message.success('已更新')
     } else {
       const payload: ProductCreate = { ...base }
-      await createProduct(payload)
+      const { data: created } = await createProduct(payload)
+      if (selectedOptionGroupIds.value.length) {
+        await setProductOptionGroups(created.id, {
+          groups: selectedOptionGroupIds.value.map((id, idx) => ({
+            option_group_id: id,
+            sort_order: idx,
+          })),
+        })
+      }
       message.success('已建立')
     }
     router.push({ name: 'products' })
@@ -196,13 +246,18 @@ async function handleSubmit() {
 }
 
 onMounted(async () => {
-  const { data: cats } = await listCategories()
-  categories.value = cats
+  const [{ data: tree }, { data: ogs }] = await Promise.all([listCategoriesTree(), listOptionGroups()])
+  categoryTreeOptions.value = decorateTree(tree)
+  optionGroups.value = ogs
 
   if (isEdit.value) {
     loading.value = true
     try {
-      const { data } = await getProduct(route.params.id as string)
+      const productId = route.params.id as string
+      const [{ data }, { data: links }] = await Promise.all([
+        getProduct(productId),
+        getProductOptionGroups(productId),
+      ])
       form.name = data.name
       form.sku = data.sku
       form.tax_rate = data.tax_rate
@@ -217,6 +272,9 @@ onMounted(async () => {
       priceDisplay.value = data.price_cents
       costDisplay.value = data.cost_cents
       barcodes.value = [...data.barcodes]
+      selectedOptionGroupIds.value = links
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((l) => l.option_group_id)
     } finally {
       loading.value = false
     }

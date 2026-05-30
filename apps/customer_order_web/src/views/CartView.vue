@@ -7,23 +7,26 @@
     </header>
 
     <main class="cart-list" v-if="cart.lines.length > 0">
-      <div v-for="line in cart.lines" :key="line.product.id" class="line">
+      <div v-for="line in cart.lines" :key="line.lineKey" class="line">
         <div class="line-head">
           <div class="name">{{ line.product.name }}</div>
-          <div class="price">${{ Math.round(line.product.price_cents) }}</div>
+          <div class="price">${{ Math.round(cart.unitPriceCents(line.product, line.selectedOptions)) }}</div>
+        </div>
+        <div v-if="line.selectedOptions.length" class="options">
+          {{ line.selectedOptions.map((o) => o.choice_name).join(' · ') }}
         </div>
         <div class="qty-row">
-          <button @click="dec(line.product.id, line.qty)">−</button>
+          <button @click="dec(line.lineKey, line.qty)">−</button>
           <span class="qty">{{ line.qty }}</span>
-          <button @click="inc(line.product.id, line.qty)">+</button>
+          <button @click="inc(line.lineKey, line.qty)">+</button>
           <span class="line-total">小計 ${{
-            Math.round(line.product.price_cents * line.qty)
+            Math.round(cart.unitPriceCents(line.product, line.selectedOptions) * line.qty)
           }}</span>
         </div>
         <input
           v-model="line.note"
           class="note-input"
-          placeholder="餐點備註（如：少冰、不要香菜）"
+          placeholder="其他備註（選填）"
         />
       </div>
 
@@ -47,10 +50,26 @@
         />
       </div>
 
+      <div class="block member-block">
+        <div class="member-row">
+          <label>會員</label>
+          <button v-if="!memberStore.isLoggedIn" type="button" class="member-btn" @click="loginOpen = true">登入累點</button>
+          <div v-else class="member-info">
+            <span>{{ memberStore.member!.name }}（{{ memberStore.member!.points }} 點）</span>
+            <button type="button" class="link-btn" @click="memberStore.logout()">登出</button>
+          </div>
+        </div>
+        <p v-if="memberStore.isLoggedIn" class="earn-hint">
+          預估本次累點 {{ memberStore.estimatedEarnPoints(cart.subtotalCents) }} 點（櫃台結帳後入帳）
+        </p>
+      </div>
+
       <p class="payment-hint">送出後請至櫃台結帳。</p>
     </main>
 
     <main v-else class="empty"><p>購物車是空的</p></main>
+
+    <MemberLoginModal :open="loginOpen" :table-token="tableToken" @close="loginOpen = false" />
 
     <footer v-if="cart.lines.length > 0" class="submit-bar">
       <div class="total">
@@ -65,27 +84,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { submitOrder } from '@/api'
 import { tableTokenFromRoute } from '@/tableToken'
 import { useCartStore } from '@/stores/cart'
+import { useMemberStore } from '@/stores/member'
+import MemberLoginModal from '@/components/MemberLoginModal.vue'
 
 const router = useRouter()
 const route = useRoute()
 const cart = useCartStore()
+const memberStore = useMemberStore()
 const submitting = ref(false)
+const loginOpen = ref(false)
+const tableToken = computed(() => tableTokenFromRoute(route) || '')
+
+onMounted(() => memberStore.restore())
 
 function goBack() {
   const t = tableTokenFromRoute(route)
   router.push({ path: '/order', query: t ? { t } : {} })
 }
 
-function inc(productId: string, q: number) {
-  cart.setQty(productId, q + 1)
+function inc(lineKey: string, q: number) {
+  cart.setQty(lineKey, q + 1)
 }
-function dec(productId: string, q: number) {
-  cart.setQty(productId, q - 1)
+function dec(lineKey: string, q: number) {
+  cart.setQty(lineKey, q - 1)
 }
 
 async function submit() {
@@ -99,10 +125,12 @@ async function submit() {
     const { data } = await submitOrder(t, {
       customer_note: cart.customerNote || null,
       party_size: cart.partySize ?? null,
+      member_id: memberStore.member?.id ?? null,
       lines: cart.lines.map((l) => ({
         product_id: l.product.id,
         qty: l.qty,
         note: l.note || null,
+        options: l.selectedOptions.length ? l.selectedOptions : null,
       })),
     })
     cart.clear()
@@ -164,6 +192,11 @@ async function submit() {
 .line-head .price {
   color: #ff6b35;
 }
+.options {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 6px;
+}
 .qty-row {
   display: flex;
   gap: 8px;
@@ -218,6 +251,12 @@ async function submit() {
   font-size: 13px;
   margin: 16px 0;
 }
+.member-block { background: #fff8f4; padding: 12px; border-radius: 10px; }
+.member-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.member-btn { background: #ff6b35; color: #fff; border: 0; padding: 6px 12px; border-radius: 8px; }
+.member-info { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.link-btn { background: none; border: none; color: #888; font-size: 13px; }
+.earn-hint { font-size: 12px; color: #c45c3e; margin: 8px 0 0; }
 .empty {
   flex: 1;
   display: flex;

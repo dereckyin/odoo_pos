@@ -13,6 +13,10 @@ class StoreRead(ORMModel):
     tax_id: str | None
     address: str | None
     phone: str | None
+    latitude: float | None = None
+    longitude: float | None = None
+    geocoded_at: datetime | None = None
+    geocode_label: str | None = None
     updated_at: datetime
 
 

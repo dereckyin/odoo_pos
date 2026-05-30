@@ -31,6 +31,10 @@ export function listCategories() {
   return client.get<CategoryRead[]>('/categories')
 }
 
+export function listCategoriesTree() {
+  return client.get<import('@/types').CategoryTreeNode[]>('/categories/tree')
+}
+
 export function createCategory(data: CategoryCreate) {
   return client.post<CategoryRead>('/categories', data)
 }

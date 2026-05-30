@@ -150,3 +150,50 @@ async def assert_within_monthly_orders(db: AsyncSession, tenant_id: str) -> None
             status.HTTP_402_PAYMENT_REQUIRED,
             f"plan '{plan.code}' monthly order quota exceeded ({plan.max_orders_per_month}).",
         )
+
+
+def plan_features(plan: SubscriptionPlan | None) -> dict:
+    if plan is None:
+        return {}
+    return plan.features or {}
+
+
+async def get_tenant_features(db: AsyncSession, tenant_id: str) -> dict:
+    plan = await get_active_plan(db, tenant_id)
+    return plan_features(plan)
+
+
+async def assert_plan_feature(
+    db: AsyncSession, tenant_id: str, feature: str, *, truthy: bool = True
+) -> dict:
+    feats = await get_tenant_features(db, tenant_id)
+    val = feats.get(feature)
+    ok = bool(val) if truthy else val is not None
+    if not ok:
+        raise HTTPException(
+            status.HTTP_402_PAYMENT_REQUIRED,
+            f"plan upgrade required for feature '{feature}'",
+        )
+    return feats
+
+
+async def assert_member_limit(db: AsyncSession, tenant_id: str) -> None:
+    from ..models import Member
+
+    feats = await get_tenant_features(db, tenant_id)
+    cap = int(feats.get("max_members") or 0)
+    if cap <= 0:
+        return
+    count = (
+        await db.execute(
+            select(func.count(Member.id)).where(
+                Member.tenant_id == tenant_id, Member.deleted_at.is_(None)
+            )
+        )
+    ).scalar() or 0
+    if count >= cap:
+        raise HTTPException(
+            status.HTTP_402_PAYMENT_REQUIRED,
+            f"member limit ({cap}) reached; upgrade plan to add more.",
+        )
+

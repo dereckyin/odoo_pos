@@ -17,6 +17,17 @@ class CategoryRead(ORMModel):
     hide_from_pos_browse: bool = False
     updated_at: datetime
     deleted_at: datetime | None
+    depth: int = 0
+    path_names: list[str] = []
+    path_label: str = ""
+    has_children: bool = False
+
+
+class CategoryTreeNode(CategoryRead):
+    children: list["CategoryTreeNode"] = []
+
+
+CategoryTreeNode.model_rebuild()
 
 
 class CategoryCreate(BaseModel):

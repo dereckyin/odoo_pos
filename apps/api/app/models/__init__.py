@@ -18,8 +18,24 @@ from .user import (
     User,
 )
 from .product import Category, Product, ProductBarcode
+from .option import (
+    OptionChoice,
+    OptionGroup,
+    ProductOptionChoiceOverride,
+    ProductOptionGroup,
+)
 from .member import Member, MemberLevel, Coupon, PointTransaction
-from .order import Order, OrderLine, Payment, Refund, RefundLine
+from .loyalty import LoyaltyRule
+from .member_metrics import MemberMetricsDaily
+from .alliance import (
+    AllianceMember,
+    AllianceNetwork,
+    AlliancePointLedger,
+    AllianceTenant,
+    TenantMemberLink,
+)
+from .webhook import WebhookDelivery, WebhookSubscription
+from .order import Order, OrderLine, OrderSequence, Payment, Refund, RefundLine
 from .inventory import (
     InventoryLevel,
     InventoryMovement,
@@ -55,11 +71,25 @@ __all__ = [
     "Category",
     "Product",
     "ProductBarcode",
+    "OptionGroup",
+    "OptionChoice",
+    "ProductOptionGroup",
+    "ProductOptionChoiceOverride",
     "Member",
     "MemberLevel",
     "Coupon",
     "PointTransaction",
+    "LoyaltyRule",
+    "MemberMetricsDaily",
+    "AllianceNetwork",
+    "AllianceMember",
+    "AllianceTenant",
+    "TenantMemberLink",
+    "AlliancePointLedger",
+    "WebhookSubscription",
+    "WebhookDelivery",
     "Order",
+    "OrderSequence",
     "OrderLine",
     "Payment",
     "Refund",
