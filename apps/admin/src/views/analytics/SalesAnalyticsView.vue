@@ -154,7 +154,7 @@ async function loadAll() {
     addons.value = ad.data
     discountStats.value = ds.data
     insights.value = ins.data
-    trend.value = daily.data.map((d) => ({ date: d.date, revenue: d.revenue_cents / 100 }))
+    trend.value = daily.data.map((d) => ({ date: d.date, revenue: d.revenue_cents }))
   } finally {
     loading.value = false
   }
@@ -165,7 +165,7 @@ const categoryOption = computed(() => ({
   series: [{
     type: 'pie',
     radius: '60%',
-    data: categories.value.map((c) => ({ name: c.category_name, value: c.revenue_cents / 100 })),
+    data: categories.value.map((c) => ({ name: c.category_name, value: c.revenue_cents })),
   }],
 }))
 
@@ -180,7 +180,7 @@ const weekdayOption = computed(() => ({
   tooltip: { trigger: 'axis' },
   xAxis: { type: 'category', data: weekday.value.map((w) => w.weekday_label) },
   yAxis: { type: 'value' },
-  series: [{ type: 'line', smooth: true, data: weekday.value.map((w) => w.revenue_cents / 100) }],
+  series: [{ type: 'line', smooth: true, data: weekday.value.map((w) => w.revenue_cents) }],
 }))
 
 onMounted(async () => {

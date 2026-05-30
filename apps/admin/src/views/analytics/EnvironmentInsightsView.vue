@@ -139,7 +139,7 @@ const scatterOption = computed(() => {
     yAxis: { type: 'value', name: '營收 (元)' },
     series: [{
       type: 'scatter',
-      data: pts.map((d) => [d.temp_c, d.revenue_cents / 100, d.date, d.rainy]),
+      data: pts.map((d) => [d.temp_c, d.revenue_cents, d.date, d.rainy]),
     }],
   }
 })

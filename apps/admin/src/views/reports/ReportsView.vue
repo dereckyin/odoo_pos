@@ -184,8 +184,8 @@ const dailyChartOption = computed(() => ({
   xAxis: { type: 'category', data: daily.value.map((d) => d.date) },
   yAxis: { type: 'value' },
   series: [
-    { name: '營收', type: 'line', smooth: true, data: daily.value.map((d) => d.revenue_cents / 100) },
-    { name: '淨營收', type: 'line', smooth: true, data: daily.value.map((d) => d.net_cents / 100) },
+    { name: '營收', type: 'line', smooth: true, data: daily.value.map((d) => d.revenue_cents) },
+    { name: '淨營收', type: 'line', smooth: true, data: daily.value.map((d) => d.net_cents) },
   ],
 }))
 
@@ -197,7 +197,7 @@ const paymentChartOption = computed(() => ({
       radius: '65%',
       data: payments.value.map((p) => ({
         name: p.method,
-        value: p.amount_cents / 100,
+        value: p.amount_cents,
       })),
     },
   ],
@@ -228,7 +228,7 @@ const topProductsOption = computed(() => ({
   series: [
     {
       type: 'bar',
-      data: topProducts.value.map((p) => p.total_revenue_cents / 100).reverse(),
+      data: topProducts.value.map((p) => p.total_revenue_cents).reverse(),
     },
   ],
 }))
