@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from io import StringIO
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import Response
 from sqlalchemy import or_, select
 from sqlalchemy.orm import selectinload
 
@@ -19,6 +20,7 @@ from ...core.usage import assert_can_add_product
 from ...models import Product, ProductBarcode
 from ...schemas.product import ProductCreate, ProductRead, ProductUpdate
 from ...services.category_tree import build_category_maps, descendant_ids, load_tenant_categories
+from ...services.product_import import import_products_from_csv, render_import_template_csv
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -91,6 +93,39 @@ async def create_product(
     return ProductRead.from_orm_with_barcodes(p)
 
 
+@router.get("/import-csv/template")
+async def download_import_csv_template(scope: TenantAdminDep) -> Response:
+    """Download UTF-8 BOM CSV template with sample rows."""
+    content = render_import_template_csv()
+    return Response(
+        content=content.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="product-import-sample.csv"'},
+    )
+
+
+@router.post("/import-csv", status_code=201)
+async def import_products_csv(
+    db: DbSession,
+    scope: TenantAdminDep,
+    file: UploadFile = File(...),
+) -> dict:
+    """CSV columns: sku,name,price_cents,category_path,barcode,is_weighted,unit"""
+    raw = (await file.read()).decode("utf-8-sig")
+    reader = csv.DictReader(StringIO(raw))
+    result = await import_products_from_csv(db, scope.tenant_id, list(reader))
+    await audit(
+        db,
+        scope,
+        action="product_import_csv",
+        resource_type="product",
+        extra=result.to_dict(),
+        flush=False,
+    )
+    await db.commit()
+    return result.to_dict()
+
+
 @router.get("/{pid}", response_model=ProductRead)
 async def get_product(pid: str, db: DbSession, scope: TenantScope) -> ProductRead:
     p = (
@@ -143,53 +178,3 @@ async def delete_product(pid: str, db: DbSession, scope: StoreAdminDep) -> None:
     await audit(db, scope, action="product_delete", resource_type="product",
                 resource_id=pid, flush=False)
     await db.commit()
-
-
-@router.post("/import-csv", status_code=201)
-async def import_products_csv(
-    db: DbSession,
-    scope: TenantAdminDep,
-    file: UploadFile = File(...),
-) -> dict:
-    """CSV columns: sku,name,price_cents,category_id,barcode,is_weighted,unit"""
-    raw = (await file.read()).decode("utf-8-sig")
-    reader = csv.DictReader(StringIO(raw))
-    created = 0
-    updated = 0
-    for row in reader:
-        sku = (row.get("sku") or "").strip()
-        if not sku:
-            continue
-        existing = (
-            await db.execute(
-                select(Product).where(
-                    Product.tenant_id == scope.tenant_id, Product.sku == sku
-                )
-            )
-        ).scalar_one_or_none()
-        defaults = dict(
-            sku=sku,
-            name=(row.get("name") or sku).strip(),
-            price_cents=int(row.get("price_cents") or 0),
-            category_id=row.get("category_id") or None,
-            is_weighted=str(row.get("is_weighted") or "").lower() in ("1", "true", "yes"),
-            unit=row.get("unit") or "個",
-            is_active=True,
-        )
-        if existing:
-            for k, v in defaults.items():
-                setattr(existing, k, v)
-            p = existing
-            updated += 1
-        else:
-            p = Product(tenant_id=scope.tenant_id, **defaults)
-            db.add(p)
-            created += 1
-        await db.flush()
-        bc = (row.get("barcode") or "").strip()
-        if bc:
-            await _ensure_barcodes(db, p, [bc], scope.tenant_id)
-    await audit(db, scope, action="product_import_csv", resource_type="product",
-                extra={"created": created, "updated": updated}, flush=False)
-    await db.commit()
-    return {"created": created, "updated": updated}
