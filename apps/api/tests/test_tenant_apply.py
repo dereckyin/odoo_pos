@@ -115,6 +115,7 @@ async def test_duplicate_application_email_rejected(app, client):
         },
     )
     assert r.status_code == 201
+    app_id = r.json()["application_id"]
     r = await client.post(
         "/public/applications",
         json={
@@ -124,3 +125,14 @@ async def test_duplicate_application_email_rejected(app, client):
         },
     )
     assert r.status_code == 409
+    detail = r.json()["detail"]
+    assert detail["application_id"] == app_id
+    assert detail["status"] == "pending"
+
+    r = await client.post(
+        "/public/applications/resume",
+        json={"contact_email": "dup@example.com"},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["application_id"] == app_id
+    assert r.json()["status"] == "pending"

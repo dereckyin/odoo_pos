@@ -128,3 +128,13 @@ export function getGeneralSettings() {
 export function updateGeneralSettings(payload: Partial<TenantGeneralSettings>) {
   return client.patch<TenantGeneralSettings>('/tenant/general-settings', payload)
 }
+
+export interface TenantModulesRead {
+  online_ordering: boolean
+  marketplace: boolean
+  business_intelligence: boolean
+}
+
+export function getModules() {
+  return client.get<TenantModulesRead>('/tenant/modules')
+}

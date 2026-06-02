@@ -1,7 +1,7 @@
 """Member analytics endpoints (plan-gated)."""
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy import func, select
 
@@ -9,8 +9,13 @@ from ...core.deps import DbSession, TenantScope, apply_tenant
 from ...core.usage import assert_plan_feature, get_tenant_features
 from ...models import Member, MemberLevel, Order
 from ...services.reporting import SALE_STATUSES, net_revenue_expr
+from ...services.tenant_modules import require_business_intelligence
 
-router = APIRouter(prefix="/analytics/members", tags=["analytics"])
+router = APIRouter(
+    prefix="/analytics/members",
+    tags=["analytics"],
+    dependencies=[Depends(require_business_intelligence)],
+)
 
 
 class MemberOverview(BaseModel):

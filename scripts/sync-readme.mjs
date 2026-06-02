@@ -5,6 +5,7 @@
  */
 import fs from 'fs'
 import path from 'path'
+import { execSync } from 'child_process'
 import { fileURLToPath } from 'url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -19,10 +20,41 @@ function loadVersion() {
   return JSON.parse(fs.readFileSync(versionPath, 'utf8'))
 }
 
-function applyVersion(html, version) {
-  return html
+function formatMb(bytes) {
+  if (!bytes || bytes <= 0) return '—'
+  const mb = bytes / (1024 * 1024)
+  return mb >= 10 ? String(Math.round(mb)) : mb.toFixed(1)
+}
+
+function applyVersion(html, version, extras = {}) {
+  let out = html
     .replaceAll('__APP_VERSION__', version.displayVersion)
     .replaceAll('__APP_VERSION_FULL__', version.version)
+  for (const [key, value] of Object.entries(extras)) {
+    out = out.replaceAll(key, value)
+  }
+  return out
+}
+
+function zipWindowsRelease(destZip) {
+  const releaseDir = path.join(root, 'apps/pos_app/build/windows/x64/runner/Release')
+  if (!fs.existsSync(releaseDir)) return null
+  const exe = path.join(releaseDir, 'pos_app.exe')
+  if (!fs.existsSync(exe)) return null
+
+  fs.mkdirSync(path.dirname(destZip), { recursive: true })
+  if (fs.existsSync(destZip)) fs.unlinkSync(destZip)
+
+  const q = (p) => `'${String(p).replace(/'/g, "''")}'`
+  if (process.platform === 'win32') {
+    execSync(
+      `powershell -NoProfile -Command "Compress-Archive -Path (${q(releaseDir + '/*')}) -DestinationPath ${q(destZip)} -Force"`,
+      { stdio: 'inherit' },
+    )
+  } else {
+    execSync(`cd ${q(releaseDir)} && zip -qr ${q(destZip)} .`, { stdio: 'inherit', shell: true })
+  }
+  return fs.statSync(destZip).size
 }
 
 if (!fs.existsSync(srcDir)) {
@@ -43,8 +75,19 @@ if (!fs.existsSync(htmlSrc)) {
 }
 
 const version = loadVersion()
+const extras = { __WINDOWS_ZIP_MB__: '—', __APK_MB__: '76' }
+
+const winZip = path.join(dstDir, 'pos-release-windows.zip')
+const winBytes = zipWindowsRelease(winZip)
+if (winBytes) {
+  extras.__WINDOWS_ZIP_MB__ = formatMb(winBytes)
+  console.log(`Included pos-release-windows.zip (${extras.__WINDOWS_ZIP_MB__} MB)`)
+} else {
+  console.warn('WARN: Windows Release build not found — run `flutter build windows` in apps/pos_app')
+}
+
 let html = fs.readFileSync(htmlSrc, 'utf8')
-html = applyVersion(html, version)
+html = applyVersion(html, version, extras)
 fs.writeFileSync(path.join(dstDir, 'index.html'), html)
 
 for (const name of fs.readdirSync(srcDir)) {
@@ -55,8 +98,13 @@ for (const name of fs.readdirSync(srcDir)) {
 
 const apk = path.join(root, 'apps/pos_app/build/app/outputs/flutter-apk/app-release.apk')
 if (fs.existsSync(apk)) {
-  fs.copyFileSync(apk, path.join(dstDir, 'pos-release.apk'))
-  console.log('Included pos-release.apk in readme bundle')
+  const apkDst = path.join(dstDir, 'pos-release.apk')
+  fs.copyFileSync(apk, apkDst)
+  extras.__APK_MB__ = formatMb(fs.statSync(apkDst).size)
+  let indexHtml = fs.readFileSync(path.join(dstDir, 'index.html'), 'utf8')
+  indexHtml = applyVersion(indexHtml, version, extras)
+  fs.writeFileSync(path.join(dstDir, 'index.html'), indexHtml)
+  console.log(`Included pos-release.apk (${extras.__APK_MB__} MB)`)
 } else {
   console.warn('WARN: app-release.apk not found — run `flutter build apk` to refresh download link')
 }

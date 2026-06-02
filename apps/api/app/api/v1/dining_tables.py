@@ -7,7 +7,7 @@ effectively invalidates any previously printed QR for that table.
 import secrets
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 
 from ...core.audit import audit
@@ -25,8 +25,13 @@ from ...schemas.dining_table import (
     DiningTableTokenResponse,
     DiningTableUpdate,
 )
+from ...services.tenant_modules import require_online_ordering
 
-router = APIRouter(prefix="/admin/tables", tags=["admin-tables"])
+router = APIRouter(
+    prefix="/admin/tables",
+    tags=["admin-tables"],
+    dependencies=[Depends(require_online_ordering)],
+)
 
 
 def _new_token() -> str:

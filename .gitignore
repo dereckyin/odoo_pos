@@ -56,8 +56,9 @@ deploy/.env.api
 node_modules/
 dist/
 
-# Readme APK — build locally and scp to server; do not commit
+# Readme release binaries — build via sync-readme / deploy; do not commit
 apps/admin/public/readme/*.apk
+apps/admin/public/readme/*.zip
 *.tsbuildinfo
 
 # Uploads

@@ -1,7 +1,7 @@
 """Tenant admin endpoints for marketplace listing management."""
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 
 from ...core.deps import DbSession, TenantScope, apply_tenant, ensure_same_tenant
@@ -14,8 +14,13 @@ from ...schemas.marketplace import (
 )
 from ...services.marketplace import ensure_unique_slug, slugify
 from ...services.marketplace_category import load_marketplace_taxonomy
+from ...services.tenant_modules import require_marketplace
 
-router = APIRouter(prefix="/marketplace", tags=["marketplace-admin"])
+router = APIRouter(
+    prefix="/marketplace",
+    tags=["marketplace-admin"],
+    dependencies=[Depends(require_marketplace)],
+)
 
 
 def _to_read(row: MarketplaceListing) -> MarketplaceListingRead:

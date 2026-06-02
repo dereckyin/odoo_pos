@@ -47,3 +47,21 @@ export function verifyApplication(application_id: string, code: string) {
 export function getApplicationStatus(application_id: string) {
   return client.get<TenantApplicationRead>(`/public/applications/${application_id}`)
 }
+
+export interface TenantApplyResumeResponse {
+  application_id: string
+  contact_email: string
+  status: string
+  company_name: string
+  message: string
+}
+
+export function resumeApplication(contact_email: string) {
+  return client.post<TenantApplyResumeResponse>('/public/applications/resume', {
+    contact_email,
+  })
+}
+
+export function resendApplicationOtp(application_id: string) {
+  return client.post(`/public/applications/${application_id}/resend-otp`)
+}

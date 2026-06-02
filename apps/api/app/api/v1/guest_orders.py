@@ -7,7 +7,7 @@ State machine:
 """
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -25,8 +25,13 @@ from ...schemas.guest_order import (
     GuestOrderRead,
     MergeRequest,
 )
+from ...services.tenant_modules import require_guest_order_admin
 
-router = APIRouter(prefix="/guest-orders", tags=["guest-orders"])
+router = APIRouter(
+    prefix="/guest-orders",
+    tags=["guest-orders"],
+    dependencies=[Depends(require_guest_order_admin)],
+)
 
 
 def _to_read(g: GuestOrder) -> GuestOrderRead:

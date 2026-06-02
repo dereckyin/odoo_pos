@@ -10,6 +10,7 @@ from ...core.ratelimit import per_ip
 from ...integrations.payments.provider import get_payment_provider
 from ...models import GuestOrder, MarketplaceListing, Store
 from ...schemas.marketplace import PaymentInitiateResponse
+from ...services.tenant_modules import assert_tenant_module, MODULE_MARKETPLACE
 from .public_marketplace import _order_access_token
 
 router = APIRouter(prefix="/public/marketplace/payments", tags=["public-marketplace-payments"])
@@ -33,6 +34,7 @@ async def initiate_payment(
     ).scalar_one_or_none()
     if not g or _order_access_token(g) != access_token:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
+    await assert_tenant_module(db, g.tenant_id, MODULE_MARKETPLACE)
     if g.payment_method != "online":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "order is not online payment")
     if g.payment_status == "paid":

@@ -140,6 +140,19 @@
       gap: 0.5rem;
     }
 
+    .download-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+    }
+
+    .btn-download--windows {
+      background: linear-gradient(135deg, #4a7fd4 0%, #2d5fad 100%);
+      color: #f0f7ff;
+      border-color: rgba(255, 255, 255, 0.28);
+    }
+
     .btn-download {
       display: inline-flex;
       align-items: center;
@@ -1100,8 +1113,8 @@
     <div class="hero-inner">
       <h1>點餐趣 · 系統三大模組</h1>
       <p>
-        一套雲端 POS 解決方案，由<strong>收銀 App</strong>、<strong>管理後台</strong>與<strong>桌邊點餐</strong>協同運作，
-        資料集中在雲端，讓現場賣得順、總部管得住。
+        一套雲端 POS 解決方案，由<strong>收銀 App</strong>（Android 平板／<strong>Windows 櫃台電腦</strong>）、
+        <strong>管理後台</strong>與<strong>桌邊點餐</strong>協同運作，資料集中在雲端，讓現場賣得順、總部管得住。
       </p>
       <div class="pill-row">
         <span class="pill pill--pos"><span class="dot"></span>收銀 App</span>
@@ -1110,11 +1123,16 @@
       </div>
       <p class="version-line">目前版本 <span class="version-badge">__APP_VERSION__</span></p>
       <div class="download-banner">
-        <a class="btn-download" href="/readme/pos-release.apk" download="點餐趣-pos.apk">
-          <span aria-hidden="true">📲</span> 下載 Android 收銀 App
-        </a>
-        <span class="download-meta">APK · 約 76 MB · 適用 Android 平板／手機</span>
-        <p class="download-note">安裝後請由店長完成「終端註冊」，再以收銀帳號登入。</p>
+        <div class="download-actions">
+          <a class="btn-download" href="/readme/pos-release.apk" download="點餐趣-pos.apk">
+            <span aria-hidden="true">📲</span> 下載 Android 版
+          </a>
+          <a class="btn-download btn-download--windows" href="/readme/pos-release-windows.zip" download="點餐趣-pos-windows.zip">
+            <span aria-hidden="true">🖥️</span> 下載 Windows 版
+          </a>
+        </div>
+        <span class="download-meta">Android APK · 約 __APK_MB__ MB · Windows 壓縮包 · 約 __WINDOWS_ZIP_MB__ MB</span>
+        <p class="download-note">安裝後請由店長完成「終端註冊」，再以收銀帳號登入。Windows 版解壓後執行 <code>pos_app.exe</code>。</p>
       </div>
     </div>
   </header>
@@ -1263,7 +1281,7 @@
         <h3><span class="ver">v1.0</span> 品牌與正式環境</h3>
         <ul>
           <li><strong>品牌定名「點餐趣」</strong> — 收銀 App、後台、說明頁統一視覺</li>
-          <li><strong>正式站點</strong> — pos.myvnc.com 提供後台、桌邊點餐、APK 下載與本說明頁</li>
+          <li><strong>正式站點</strong> — pos.myvnc.com 提供後台、桌邊點餐、Android／Windows 收銀 App 下載與本說明頁</li>
           <li><strong>離線優先收銀</strong> — 斷網先記帳，恢復後背景同步</li>
           <li><strong>促銷引擎</strong> — 滿額折、第 N 件、買送、會員等級限定、優先順序與疊加</li>
         </ul>
@@ -1271,16 +1289,29 @@
     </section>
 
     <section id="download" class="card card--download">
-      <h2>📲 下載收銀 App（Android）</h2>
-      <p class="subtitle">現場櫃台、廚房看板建議使用平板安裝；Windows／macOS 桌面版請向服務商取得安裝包。</p>
+      <h2>📲 下載收銀 App</h2>
+      <p class="subtitle">Android 平板／手機適合移動收銀與廚房看板；Windows 10／11 64 位元適合固定櫃台電腦（macOS 版請向服務商索取）。</p>
+
+      <h3 style="font-size:1.05rem;margin:1.25rem 0 0.5rem;color:var(--pos)">Android</h3>
       <div class="download-inline">
         <a class="btn-download btn-download--secondary" href="/readme/pos-release.apk" download="點餐趣-pos.apk">
-          下載 APK（約 76 MB）
+          下載 APK（約 __APK_MB__ MB）
         </a>
         <span style="color:var(--muted);font-size:0.9rem">
           檔名：<code>點餐趣-pos.apk</code> · 需允許「安裝未知來源應用程式」
         </span>
       </div>
+
+      <h3 style="font-size:1.05rem;margin:1.5rem 0 0.5rem;color:#2d5fad">Windows</h3>
+      <div class="download-inline">
+        <a class="btn-download btn-download--windows" href="/readme/pos-release-windows.zip" download="點餐趣-pos-windows.zip">
+          下載 Windows 壓縮包（約 __WINDOWS_ZIP_MB__ MB）
+        </a>
+        <span style="color:var(--muted);font-size:0.9rem">
+          檔名：<code>點餐趣-pos-windows.zip</code> · 解壓至資料夾後執行 <code>pos_app.exe</code>
+        </span>
+      </div>
+
       <ul class="feature-list" style="margin-top:1rem">
         <li>首次開啟：店長以管理員帳號完成 <strong>終端註冊</strong></li>
         <li>日常營運：收銀／廚房員工輸入帳密登入即可</li>

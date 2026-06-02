@@ -7,6 +7,11 @@ export function formatApiError(e: unknown): string {
   const data = err?.response?.data as { detail?: unknown } | string | undefined
   const d = typeof data === 'object' && data !== null ? (data as { detail?: unknown }).detail : undefined
   if (typeof d === 'string' && d.trim()) return d
+  if (d && typeof d === 'object' && !Array.isArray(d)) {
+    const o = d as { message?: string; message_zh?: string }
+    if (typeof o.message === 'string' && o.message.trim()) return o.message
+    if (typeof o.message_zh === 'string' && o.message_zh.trim()) return o.message_zh
+  }
   if (Array.isArray(d)) {
     return d
       .map((x: { msg?: string; loc?: unknown[] }) => {

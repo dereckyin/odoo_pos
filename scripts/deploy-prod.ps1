@@ -7,6 +7,7 @@ param(
   [string]$Server = "ubuntu@pos.myvnc.com",
   [string]$Key = "$env:USERPROFILE\Documents\gcserver\talktothebooks_test.pem",
   [switch]$SkipApk,
+  [switch]$SkipWindows,
   [switch]$SkipCustomer,
   [switch]$SkipMarketplace,
   [switch]$SkipBuild
@@ -36,6 +37,15 @@ if (-not $SkipBuild) {
     Invoke-Step "Build POS Android APK (optional, for /readme download)" {
       Push-Location (Join-Path $root "apps/pos_app")
       flutter build apk --release
+      Pop-Location
+      node (Join-Path $root "scripts/sync-readme.mjs")
+    }
+  }
+
+  if (-not $SkipWindows) {
+    Invoke-Step "Build POS Windows release (for /readme download)" {
+      Push-Location (Join-Path $root "apps/pos_app")
+      flutter build windows --release
       Pop-Location
       node (Join-Path $root "scripts/sync-readme.mjs")
     }
@@ -118,3 +128,4 @@ Write-Host "  Marketplace: https://pos.myvnc.com/market/"
 Write-Host "  Readme:      https://pos.myvnc.com/readme/"
 Write-Host "  Customer:    https://pos.myvnc.com/customer/"
 Write-Host "  APK:      https://pos.myvnc.com/readme/pos-release.apk"
+Write-Host "  Windows:  https://pos.myvnc.com/readme/pos-release-windows.zip"

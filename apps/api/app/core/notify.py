@@ -1,12 +1,16 @@
 """Email / SMS notification stubs.
 
-Resend (RESEND_API_KEY) or SMTP (SMTP_HOST) send real mail; otherwise the
-stub logs at INFO so developers can copy the OTP from the console.
+Delivery priority:
+1) AWS SES (SES_ACCESS_KEY/SES_SECRET_KEY/SES_REGION/SENDER)
+2) Resend (RESEND_API_KEY)
+3) SMTP (SMTP_HOST)
+4) Stub log output (dev fallback)
 """
 from __future__ import annotations
 
 import logging
 import smtplib
+from asyncio import to_thread
 from email.message import EmailMessage
 
 import httpx
@@ -20,6 +24,14 @@ _RESEND_API_URL = "https://api.resend.com/emails"
 
 async def send_email(to: str, subject: str, body: str) -> None:
     settings = get_settings()
+    if (
+        settings.SES_ACCESS_KEY
+        and settings.SES_SECRET_KEY
+        and settings.SES_REGION
+        and settings.SENDER
+    ):
+        await _send_via_ses(to=to, subject=subject, body=body)
+        return
     if settings.RESEND_API_KEY:
         await _send_via_resend(to=to, subject=subject, body=body)
         return
@@ -68,3 +80,32 @@ async def _send_via_resend(*, to: str, subject: str, body: str) -> None:
             )
     except Exception:  # noqa: BLE001
         logger.exception("failed to send email via resend to=%s", to)
+
+
+async def _send_via_ses(*, to: str, subject: str, body: str) -> None:
+    settings = get_settings()
+    try:
+        import boto3
+    except Exception:  # noqa: BLE001
+        logger.exception("boto3 not installed; cannot send email via SES")
+        return
+
+    ses_client = boto3.client(
+        "ses",
+        region_name=settings.SES_REGION,
+        aws_access_key_id=settings.SES_ACCESS_KEY,
+        aws_secret_access_key=settings.SES_SECRET_KEY,
+    )
+    try:
+        await to_thread(
+            ses_client.send_email,
+            Source=settings.SENDER,
+            Destination={"ToAddresses": [to]},
+            Message={
+                "Subject": {"Data": subject, "Charset": "UTF-8"},
+                "Body": {"Text": {"Data": body, "Charset": "UTF-8"}},
+            },
+        )
+        logger.info("email sent via SES to=%s subject=%s", to, subject)
+    except Exception:  # noqa: BLE001
+        logger.exception("failed to send email via SES to=%s", to)

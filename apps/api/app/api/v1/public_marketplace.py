@@ -15,6 +15,7 @@ from ...models import (
     Product,
     ProductOptionGroup,
     Store,
+    Tenant,
 )
 from ...schemas.guest_order import GuestOrderLineRead
 from ...schemas.marketplace import (
@@ -45,6 +46,11 @@ from ...services.option_validation import (
     validate_line_options,
 )
 from ...services.public_menu import build_public_menu_for_tenant, product_orderable_via_public_menu
+from ...services.tenant_modules import (
+    MODULE_MARKETPLACE,
+    assert_tenant_module,
+    read_modules_from_settings,
+)
 
 router = APIRouter(prefix="/public/marketplace", tags=["public-marketplace"])
 
@@ -67,7 +73,15 @@ async def _resolve_listing(db, slug: str) -> tuple[MarketplaceListing, Store]:
     store = await db.get(Store, row.store_id)
     if not store or store.deleted_at:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "store not found")
+    await assert_tenant_module(db, row.tenant_id, MODULE_MARKETPLACE)
     return row, store
+
+
+def _marketplace_enabled_for_tenant(tenant: Tenant | None) -> bool:
+    if tenant is None:
+        return False
+    modules = read_modules_from_settings(tenant.settings)
+    return bool(modules.get(MODULE_MARKETPLACE))
 
 
 def _order_access_token(g: GuestOrder) -> str | None:
@@ -114,8 +128,9 @@ async def list_stores(
     fulfillment: str | None = Query(default=None, description="pickup|delivery|dine_in"),
 ):
     stmt = (
-        select(MarketplaceListing, Store)
+        select(MarketplaceListing, Store, Tenant)
         .join(Store, Store.id == MarketplaceListing.store_id)
+        .join(Tenant, Tenant.id == MarketplaceListing.tenant_id)
         .where(
             MarketplaceListing.status == "approved",
             Store.deleted_at.is_(None),
@@ -142,7 +157,9 @@ async def list_stores(
 
     rows = (await db.execute(stmt)).all()
     summaries: list[MarketplaceStoreSummary] = []
-    for listing, store in rows:
+    for listing, store, tenant in rows:
+        if not _marketplace_enabled_for_tenant(tenant):
+            continue
         if cuisine and cuisine not in (listing.cuisine_tags or []):
             continue
         if fulfillment == "delivery" and lat is not None and lng is not None:
@@ -243,9 +260,10 @@ async def _list_marketplace_products(
 ) -> list[MarketplaceProductCard]:
     taxonomy = await load_marketplace_taxonomy(db)
     stmt = (
-        select(Product, MarketplaceListing, Store)
+        select(Product, MarketplaceListing, Store, Tenant)
         .join(MarketplaceListing, MarketplaceListing.tenant_id == Product.tenant_id)
         .join(Store, Store.id == MarketplaceListing.store_id)
+        .join(Tenant, Tenant.id == MarketplaceListing.tenant_id)
         .where(
             MarketplaceListing.status == "approved",
             Store.deleted_at.is_(None),
@@ -272,7 +290,9 @@ async def _list_marketplace_products(
     seen: set[tuple[str, str]] = set()
     tenant_ids: set[str] = set()
 
-    for product, listing, _store in rows:
+    for product, listing, _store, tenant in rows:
+        if not _marketplace_enabled_for_tenant(tenant):
+            continue
         if cuisine and cuisine not in (listing.cuisine_tags or []):
             continue
         store_open = is_store_open(listing.business_hours)

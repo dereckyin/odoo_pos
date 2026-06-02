@@ -82,7 +82,7 @@ flutter run
 
 - 必須設定強隨機 `JWT_SECRET`，且 **`ENV=production`（或 `prod`）時** 後端會拒絕使用預設弱密鑰。
 - 必須設定 **Fernet 金鑰** `SECRETS_ENCRYPTION_KEY`（見 `apps/api/app/core/config.py` 註解產生方式），否則無法安全儲存各租戶金流／發票金鑰。
-- 建議啟用 **Redis** 供限流與（若使用）其他快取；並設定 **CAPTCHA**、**SMTP** 以支援正式申請與寄信。
+- 建議啟用 **Redis** 供限流與（若使用）其他快取；並設定 **CAPTCHA** 與 Email 提供者（**SES/Resend/SMTP**）以支援正式申請與寄信。
 
 ## 現有文件
 

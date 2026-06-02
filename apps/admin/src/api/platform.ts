@@ -61,6 +61,51 @@ export function updateTenant(id: string, payload: TenantUpdatePayload) {
   return client.patch<TenantRead>(`/platform/tenants/${id}`, payload)
 }
 
+export interface TenantDirectCreatePayload {
+  company_name: string
+  contact_name: string
+  contact_email: string
+  contact_phone?: string | null
+  tax_id?: string | null
+  plan_code: string
+  tenant_code: string
+  owner_username: string
+  address?: string | null
+  seed_default_products?: boolean
+  seed_default_promotions?: boolean
+}
+
+export interface TenantDirectCreateResponse {
+  tenant_id: string
+  tenant_code: string
+  owner_username: string
+  one_time_password: string
+}
+
+export function directCreateTenant(payload: TenantDirectCreatePayload) {
+  return client.post<TenantDirectCreateResponse>('/platform/tenants/direct-create', payload)
+}
+
+export interface TenantModulesRead {
+  online_ordering: boolean
+  marketplace: boolean
+  business_intelligence: boolean
+}
+
+export interface TenantModulesUpdate {
+  online_ordering?: boolean
+  marketplace?: boolean
+  business_intelligence?: boolean
+}
+
+export function getTenantModules(id: string) {
+  return client.get<TenantModulesRead>(`/platform/tenants/${id}/modules`)
+}
+
+export function updateTenantModules(id: string, payload: TenantModulesUpdate) {
+  return client.patch<TenantModulesRead>(`/platform/tenants/${id}/modules`, payload)
+}
+
 // ----- Plans (admin view) ---------------------------------------------------
 
 export function listPlans() {

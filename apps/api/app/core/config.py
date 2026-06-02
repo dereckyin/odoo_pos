@@ -35,8 +35,12 @@ class Settings(BaseSettings):
     CAPTCHA_PROVIDER: str = ""  # "" | "hcaptcha" | "turnstile"
     CAPTCHA_SECRET: str = ""
 
-    # Email / OTP. Stub mode (default) just logs the OTP code; production
-    # should plug Resend (RESEND_API_KEY) or SMTP in `core/notify.py`.
+    # Email / OTP. Delivery priority in `core/notify.py`:
+    # SES (SES_ACCESS_KEY/SES_SECRET_KEY/SENDER) -> Resend -> SMTP -> stub log.
+    SES_ACCESS_KEY: str = ""
+    SES_SECRET_KEY: str = ""
+    SES_REGION: str = ""
+    SENDER: str = ""
     RESEND_API_KEY: str = ""
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587

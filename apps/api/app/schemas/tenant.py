@@ -126,3 +126,15 @@ class TenantGeneralSettingsRead(BaseModel):
 
 class TenantGeneralSettingsUpdate(BaseModel):
     timezone: str | None = Field(default=None, max_length=64)
+
+
+class TenantModulesRead(BaseModel):
+    online_ordering: bool = False
+    marketplace: bool = False
+    business_intelligence: bool = False
+
+
+class TenantModulesUpdate(BaseModel):
+    online_ordering: bool | None = None
+    marketplace: bool | None = None
+    business_intelligence: bool | None = None

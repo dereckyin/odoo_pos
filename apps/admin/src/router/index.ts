@@ -1,5 +1,24 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useTenantModulesStore } from '@/stores/tenantModules'
+
+const ONLINE_ORDERING_ROUTES = new Set([
+  'guest-orders',
+  'tables',
+  'tables-print',
+])
+
+const MARKETPLACE_ROUTES = new Set([
+  'marketplace-settings',
+  'guest-orders',
+])
+
+const BUSINESS_INTELLIGENCE_ROUTES = new Set([
+  'analytics-sales',
+  'analytics-stores',
+  'analytics-context',
+  'analytics-members',
+])
 
 const merchantChildren: RouteRecordRaw[] = [
   { path: '', name: 'dashboard', component: () => import('@/views/dashboard/DashboardView.vue') },
@@ -89,7 +108,7 @@ function isMerchantRoute(to: { path: string; meta: Record<string, unknown>; name
   return to.name !== 'login' && to.name !== 'signup'
 }
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
   if (!to.meta.public && !auth.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } }
@@ -101,6 +120,37 @@ router.beforeEach((to) => {
 
   if (auth.isPlatformSuper && !auth.actingTenantId && isMerchantRoute(to)) {
     return { name: 'platform-dashboard' }
+  }
+
+  const routeName = to.name as string | undefined
+  if (
+    routeName &&
+    isMerchantRoute(to) &&
+    (
+      ONLINE_ORDERING_ROUTES.has(routeName) ||
+      MARKETPLACE_ROUTES.has(routeName) ||
+      BUSINESS_INTELLIGENCE_ROUTES.has(routeName)
+    )
+  ) {
+    const modules = useTenantModulesStore()
+    if (!modules.loaded) {
+      await modules.fetch()
+    }
+    if (routeName === 'guest-orders' && !modules.guestOrdersEnabled) {
+      return { name: 'dashboard' }
+    }
+    if (
+      (routeName === 'tables' || routeName === 'tables-print') &&
+      !modules.onlineOrdering
+    ) {
+      return { name: 'dashboard' }
+    }
+    if (routeName === 'marketplace-settings' && !modules.marketplace) {
+      return { name: 'dashboard' }
+    }
+    if (BUSINESS_INTELLIGENCE_ROUTES.has(routeName) && !modules.businessIntelligence) {
+      return { name: 'dashboard' }
+    }
   }
 })
 

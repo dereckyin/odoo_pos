@@ -15,10 +15,8 @@ from ...core.deps import (
     DbSession,
     TenantAdminDep,
 )
-from ...core.usage import (
-    get_active_plan,
-    get_usage,
-)
+from ...core.usage import get_active_plan, get_usage
+from ...services.tenant_modules import get_tenant_modules
 from ...models import (
     AuditLog,
     Tenant,
@@ -31,6 +29,7 @@ from ...schemas.tenant import (
     SubscriptionPlanRead,
     TenantGeneralSettingsRead,
     TenantGeneralSettingsUpdate,
+    TenantModulesRead,
     TenantInvoiceSettingRead,
     TenantInvoiceSettingUpsert,
     TenantPaymentSettingRead,
@@ -66,6 +65,12 @@ async def update_general_settings(
     await db.commit()
     await db.refresh(tenant)
     return TenantGeneralSettingsRead(timezone=settings.get("timezone") or "Asia/Taipei")
+
+
+@router.get("/modules", response_model=TenantModulesRead)
+async def get_my_modules(db: DbSession, scope: TenantAdminDep):
+    mods = await get_tenant_modules(db, scope.tenant_id)
+    return TenantModulesRead(**mods)
 
 
 # ---------------------------------------------------------------------------

@@ -4,7 +4,7 @@ Used by the SaaS operator to review applications, suspend tenants, and
 manage subscription plans. None of these endpoints should be exposed to
 tenant users — guarded by ``PlatformSuperDep``.
 """
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
@@ -19,8 +19,12 @@ from ...core.deps import (
 from ...core.notify import send_email
 from ...core.security import generate_secret, hash_password
 from ...models import (
+    Category,
     GuestOrder,
     MarketplaceListing,
+    Product,
+    ProductBarcode,
+    Promotion,
     Store,
     SubscriptionPlan,
     Tenant,
@@ -30,14 +34,22 @@ from ...models import (
 )
 from ...schemas.auth import (
     TenantApplicationApprove,
+    TenantDirectCreateRequest,
+    TenantDirectCreateResponse,
     TenantApplicationRead,
     TenantApplicationReject,
 )
 from ...schemas.tenant import (
     PlatformDashboardStats,
     SubscriptionPlanRead,
+    TenantModulesRead,
+    TenantModulesUpdate,
     TenantRead,
     TenantUpdate,
+)
+from ...services.tenant_modules import (
+    apply_modules_patch,
+    get_tenant_modules,
 )
 from .tenant_apply import _to_read as _app_to_read
 
@@ -54,6 +66,135 @@ def _taipei_today_bounds() -> tuple[datetime, datetime]:
     start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     end = start.replace(hour=23, minute=59, second=59, microsecond=999999)
     return start.astimezone(timezone.utc), end.astimezone(timezone.utc)
+
+
+DEFAULT_CATEGORIES = ["飲料", "零食", "便當/熟食", "生活用品", "煙酒"]
+DEFAULT_PRODUCTS: list[tuple[str, str, int, str]] = [
+    ("4710001000017", "可口可樂 350ml", 25, "飲料"),
+    ("4710001000024", "雪碧 350ml", 25, "飲料"),
+    ("4710001000031", "礦泉水 600ml", 18, "飲料"),
+    ("4710001000048", "舒跑 350ml", 25, "飲料"),
+    ("4710002000016", "樂事洋芋片", 35, "零食"),
+    ("4710002000023", "波卡洋芋片", 30, "零食"),
+    ("4710002000030", "義美夾心酥", 45, "零食"),
+    ("4710003000015", "御便當-雞腿", 95, "便當/熟食"),
+    ("4710003000022", "御便當-排骨", 85, "便當/熟食"),
+    ("4710003000039", "三角飯糰", 28, "便當/熟食"),
+    ("4710004000014", "舒潔面紙", 65, "生活用品"),
+    ("4710004000021", "盤尼西林牙膏", 75, "生活用品"),
+    ("4710005000013", "台啤經典 350ml", 38, "煙酒"),
+    ("4710005000020", "黑松沙士 600ml", 30, "飲料"),
+    ("4710006000012", "茶葉蛋", 13, "便當/熟食"),
+]
+
+
+async def _seed_default_catalog(
+    db: DbSession, tenant_id: str
+) -> tuple[dict[str, Category], int]:
+    rows = (
+        await db.execute(
+            select(Category).where(
+                Category.tenant_id == tenant_id,
+                Category.deleted_at.is_(None),
+            )
+        )
+    ).scalars().all()
+    cat_map = {c.name: c for c in rows}
+    for name in DEFAULT_CATEGORIES:
+        if name not in cat_map:
+            c = Category(tenant_id=tenant_id, name=name)
+            db.add(c)
+            await db.flush()
+            cat_map[name] = c
+
+    created_count = 0
+    for sku, name, price, cat_name in DEFAULT_PRODUCTS:
+        existing = (
+            await db.execute(
+                select(Product).where(
+                    Product.tenant_id == tenant_id,
+                    Product.sku == sku,
+                    Product.deleted_at.is_(None),
+                )
+            )
+        ).scalar_one_or_none()
+        if existing:
+            continue
+
+        p = Product(
+            tenant_id=tenant_id,
+            sku=sku,
+            name=name,
+            price_cents=price,
+            tax_rate=0.05,
+            category_id=cat_map[cat_name].id,
+            is_active=True,
+            unit="個",
+        )
+        db.add(p)
+        await db.flush()
+        db.add(ProductBarcode(tenant_id=tenant_id, product_id=p.id, barcode=sku))
+        created_count += 1
+    return cat_map, created_count
+
+
+async def _seed_default_promotions(
+    db: DbSession, tenant_id: str, cat_map: dict[str, Category]
+) -> int:
+    now = _now()
+    specs = [
+        (
+            "滿 200 折 20",
+            "thresholdAmountOff",
+            {"threshold_amount": 200, "off_amount": 20},
+            10,
+            [],
+        ),
+        (
+            "飲料第二件 8 折",
+            "nthItemDiscount",
+            {"nth": 2, "nth_discount_pct": 20},
+            20,
+            [cat_map["飲料"].id] if "飲料" in cat_map else [],
+        ),
+        (
+            "零食買二送一",
+            "buyXGetY",
+            {"buy_n": 2, "get_n": 1, "get_discount_pct": 100},
+            15,
+            [cat_map["零食"].id] if "零食" in cat_map else [],
+        ),
+    ]
+    created_count = 0
+    for name, strategy, config, priority, category_ids in specs:
+        existing = (
+            await db.execute(
+                select(Promotion).where(
+                    Promotion.tenant_id == tenant_id,
+                    Promotion.name == name,
+                    Promotion.deleted_at.is_(None),
+                )
+            )
+        ).scalar_one_or_none()
+        if existing:
+            continue
+        db.add(
+            Promotion(
+                tenant_id=tenant_id,
+                name=name,
+                strategy=strategy,
+                config=config,
+                priority=priority,
+                starts_at=now - timedelta(days=1),
+                ends_at=now + timedelta(days=30),
+                is_active=True,
+                applicable_product_ids=[],
+                applicable_category_ids=category_ids,
+                member_level_ids=[],
+            )
+        )
+        created_count += 1
+    return created_count
 
 
 @router.get("/dashboard", response_model=PlatformDashboardStats)
@@ -156,6 +297,139 @@ async def update_tenant(
     await db.commit()
     await db.refresh(t)
     return t
+
+
+@router.post("/tenants/direct-create", response_model=TenantDirectCreateResponse, status_code=201)
+async def direct_create_tenant(
+    payload: TenantDirectCreateRequest,
+    request: Request,
+    db: DbSession,
+    user: PlatformSuperDep,
+):
+    plan = (
+        await db.execute(
+            select(SubscriptionPlan).where(SubscriptionPlan.code == payload.plan_code)
+        )
+    ).scalar_one_or_none()
+    if not plan:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "unknown plan_code")
+
+    tenant_code = payload.tenant_code.lower()
+    if (await db.execute(select(Tenant).where(Tenant.code == tenant_code))).scalar_one_or_none():
+        raise HTTPException(status.HTTP_409_CONFLICT, "tenant code already in use")
+
+    tenant = Tenant(
+        code=tenant_code,
+        name=payload.company_name,
+        contact_email=payload.contact_email.lower(),
+        contact_phone=payload.contact_phone,
+        tax_id=payload.tax_id,
+        status="active",
+        plan_code=plan.code,
+    )
+    db.add(tenant)
+    await db.flush()
+
+    store = Store(
+        tenant_id=tenant.id,
+        code="MAIN",
+        name=payload.company_name,
+        tax_id=payload.tax_id,
+        address=payload.address,
+    )
+    db.add(store)
+    await db.flush()
+
+    one_time_password = generate_secret(12)
+    owner = User(
+        tenant_id=tenant.id,
+        username=payload.owner_username,
+        password_hash=hash_password(one_time_password),
+        display_name=payload.contact_name,
+        email=payload.contact_email.lower(),
+        role="tenant_owner",
+        is_active=True,
+        must_change_password=True,
+    )
+    db.add(owner)
+
+    sub = TenantSubscription(
+        tenant_id=tenant.id,
+        plan_id=plan.id,
+        status="active",
+        started_at=_now(),
+    )
+    db.add(sub)
+
+    seeded_products = 0
+    seeded_promotions = 0
+    cat_map: dict[str, Category] = {}
+    if payload.seed_default_products or payload.seed_default_promotions:
+        cat_map, seeded_products = await _seed_default_catalog(db, tenant.id)
+    if payload.seed_default_promotions:
+        if not cat_map:
+            cat_map, _ = await _seed_default_catalog(db, tenant.id)
+        seeded_promotions = await _seed_default_promotions(db, tenant.id, cat_map)
+
+    await audit(
+        db,
+        user,
+        action="tenant_direct_create",
+        resource_type="tenant",
+        resource_id=tenant.id,
+        request=request,
+        extra={
+            "tenant_code": tenant.code,
+            "plan_code": plan.code,
+            "seed_default_products": payload.seed_default_products,
+            "seed_default_promotions": payload.seed_default_promotions,
+            "seeded_products": seeded_products,
+            "seeded_promotions": seeded_promotions,
+        },
+        flush=False,
+    )
+    await db.commit()
+
+    return TenantDirectCreateResponse(
+        tenant_id=tenant.id,
+        tenant_code=tenant.code,
+        owner_username=owner.username,
+        one_time_password=one_time_password,
+    )
+
+
+@router.get("/tenants/{tenant_id}/modules", response_model=TenantModulesRead)
+async def get_tenant_modules_endpoint(
+    tenant_id: str, db: DbSession, _: PlatformSuperDep
+):
+    mods = await get_tenant_modules(db, tenant_id)
+    return TenantModulesRead(**mods)
+
+
+@router.patch("/tenants/{tenant_id}/modules", response_model=TenantModulesRead)
+async def update_tenant_modules(
+    tenant_id: str,
+    payload: TenantModulesUpdate,
+    request: Request,
+    db: DbSession,
+    user: PlatformSuperDep,
+):
+    t = await db.get(Tenant, tenant_id)
+    if not t:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    t.settings = apply_modules_patch(t.settings, payload.model_dump(exclude_unset=True))
+    await audit(
+        db,
+        user,
+        action="tenant_modules_update",
+        resource_type="tenant",
+        resource_id=tenant_id,
+        request=request,
+        flush=False,
+    )
+    await db.commit()
+    mods = await get_tenant_modules(db, tenant_id)
+    return TenantModulesRead(**mods)
 
 
 # ---------------------------------------------------------------------------

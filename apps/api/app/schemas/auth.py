@@ -102,6 +102,18 @@ class TenantApplyVerifyRequest(BaseModel):
     code: str = Field(min_length=4, max_length=8)
 
 
+class TenantApplyResumeRequest(BaseModel):
+    contact_email: EmailStr
+
+
+class TenantApplyResumeResponse(BaseModel):
+    application_id: str
+    contact_email: EmailStr
+    status: str
+    company_name: str
+    message: str
+
+
 class TenantApplicationRead(BaseModel):
     id: str
     company_name: str
@@ -127,6 +139,27 @@ class TenantApplicationApprove(BaseModel):
     plan_code: str = Field(min_length=1, max_length=32)
     tenant_code: str | None = Field(default=None, min_length=2, max_length=32)
     owner_username: str = Field(default="owner", min_length=3, max_length=64)
+
+
+class TenantDirectCreateRequest(BaseModel):
+    company_name: str = Field(min_length=2, max_length=128)
+    contact_name: str = Field(min_length=1, max_length=64)
+    contact_email: EmailStr
+    contact_phone: str | None = Field(default=None, max_length=32)
+    tax_id: str | None = Field(default=None, max_length=16)
+    plan_code: str = Field(min_length=1, max_length=32)
+    tenant_code: str = Field(min_length=2, max_length=32, pattern=r"^[a-z0-9][a-z0-9-]{0,30}[a-z0-9]$")
+    owner_username: str = Field(default="admin", min_length=3, max_length=64)
+    address: str | None = Field(default=None, max_length=256)
+    seed_default_products: bool = False
+    seed_default_promotions: bool = False
+
+
+class TenantDirectCreateResponse(BaseModel):
+    tenant_id: str
+    tenant_code: str
+    owner_username: str
+    one_time_password: str
 
 
 class TenantApplicationReject(BaseModel):

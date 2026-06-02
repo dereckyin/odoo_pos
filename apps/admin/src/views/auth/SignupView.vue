@@ -66,30 +66,51 @@
             送出申請
           </a-button>
         </a-form>
+        <a-divider>或</a-divider>
+        <a-button block size="large" :loading="resuming" @click="resumeFromFormEmail">
+          已有申請？繼續驗證信箱
+        </a-button>
       </template>
 
       <!-- Step 1: OTP verification -->
       <template v-else-if="step === 1">
         <a-alert
-          :message="`已寄送 6 碼驗證碼到 ${form.contact_email}，請於 15 分鐘內輸入。`"
+          :message="verifyAlertMessage"
           type="success"
           show-icon
           style="margin-bottom: 16px"
         />
-        <a-form layout="vertical" @finish="verify">
-          <a-form-item label="驗證碼" :rules="[{ required: true }]">
+        <a-form :model="verifyForm" layout="vertical" @finish="verify">
+          <a-form-item
+            label="驗證碼"
+            name="otp"
+            :rules="[
+              { required: true, message: '請輸入驗證碼' },
+              { pattern: /^\d{6}$/, message: '驗證碼為 6 碼數字' },
+            ]"
+          >
             <a-input
-              v-model:value="otp"
+              v-model:value="verifyForm.otp"
               size="large"
               placeholder="請輸入 6 碼數字"
               :maxlength="6"
+              inputmode="numeric"
             />
           </a-form-item>
           <a-button type="primary" html-type="submit" :loading="verifying" block size="large">
             驗證並提交審核
           </a-button>
+          <a-button
+            type="default"
+            block
+            style="margin-top: 8px"
+            :loading="resending"
+            @click="resendOtp"
+          >
+            重新寄送驗證碼
+          </a-button>
           <a-button type="link" block style="margin-top: 8px" @click="step = 0">
-            返回修改資料
+            返回（修改資料需重新申請）
           </a-button>
         </a-form>
       </template>
@@ -116,25 +137,31 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { ShopOutlined } from '@ant-design/icons-vue'
 import * as authApi from '@/api/auth'
+import { formatApiError } from '@/api/formatApiError'
 import type { SubscriptionPlanRead } from '@/types'
+
+const SIGNUP_APP_KEY = 'pos_signup_application_id'
+const SIGNUP_EMAIL_KEY = 'pos_signup_contact_email'
 
 const router = useRouter()
 const step = ref(0)
 const submitting = ref(false)
 const verifying = ref(false)
-const applicationId = ref('')
-const otp = ref('')
+const resuming = ref(false)
+const resending = ref(false)
+const applicationId = ref(sessionStorage.getItem(SIGNUP_APP_KEY) || '')
+const verifyForm = reactive({ otp: '' })
 const plans = ref<SubscriptionPlanRead[]>([])
 
 const form = reactive({
   company_name: '',
   contact_name: '',
-  contact_email: '',
+  contact_email: sessionStorage.getItem(SIGNUP_EMAIL_KEY) || '',
   contact_phone: '',
   tax_id: '',
   plan_code: '',
@@ -143,43 +170,171 @@ const form = reactive({
   note: '',
 })
 
+const verifyAlertMessage = computed(() => {
+  const email = form.contact_email || '您的信箱'
+  return `請輸入寄送到 ${email} 的 6 碼驗證碼（15 分鐘內有效）。若未收到信，可點「重新寄送驗證碼」。`
+})
+
+function persistSession(id: string, email: string) {
+  applicationId.value = id
+  form.contact_email = email
+  sessionStorage.setItem(SIGNUP_APP_KEY, id)
+  sessionStorage.setItem(SIGNUP_EMAIL_KEY, email)
+}
+
+function clearSession() {
+  sessionStorage.removeItem(SIGNUP_APP_KEY)
+  sessionStorage.removeItem(SIGNUP_EMAIL_KEY)
+}
+
+function applyResume(data: authApi.TenantApplyResumeResponse) {
+  persistSession(data.application_id, data.contact_email)
+  form.company_name = data.company_name
+  if (data.status === 'email_verified') {
+    clearSession()
+    step.value = 2
+    message.info(data.message)
+    return
+  }
+  step.value = 1
+  message.success(data.message)
+}
+
+function conflictDetail(e: unknown): Record<string, string> | null {
+  const detail = (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
+  if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+    return detail as Record<string, string>
+  }
+  return null
+}
+
 async function loadPlans() {
   try {
     const { data } = await authApi.publicListPlans()
     plans.value = data
-  } catch { /* not fatal — plans are optional */ }
+  } catch { /* optional */ }
+}
+
+async function restoreFromSession() {
+  const id = sessionStorage.getItem(SIGNUP_APP_KEY)
+  const email = sessionStorage.getItem(SIGNUP_EMAIL_KEY)
+  if (email) form.contact_email = email
+  if (!id) {
+    if (email) {
+      try {
+        const { data } = await authApi.resumeApplication(email)
+        applyResume(data)
+      } catch {
+        /* no saved application */
+      }
+    }
+    return
+  }
+  try {
+    const { data } = await authApi.getApplicationStatus(id)
+    persistSession(data.id, data.contact_email)
+    form.company_name = data.company_name
+    if (data.status === 'email_verified') {
+      step.value = 2
+    } else if (data.status === 'pending') {
+      step.value = 1
+    } else {
+      clearSession()
+      step.value = 0
+    }
+  } catch {
+    if (email) {
+      try {
+        const { data } = await authApi.resumeApplication(email)
+        applyResume(data)
+      } catch {
+        clearSession()
+      }
+    }
+  }
+}
+
+async function resumeFromFormEmail() {
+  const email = form.contact_email.trim()
+  if (!email || !email.includes('@')) {
+    message.warning('請先填寫聯絡信箱')
+    return
+  }
+  resuming.value = true
+  try {
+    const { data } = await authApi.resumeApplication(email)
+    applyResume(data)
+  } catch (e: unknown) {
+    message.error(formatApiError(e) || '找不到待驗證的申請')
+  } finally {
+    resuming.value = false
+  }
 }
 
 async function submit() {
   submitting.value = true
   try {
     const payload = { ...form }
-    // strip empty optional strings so the backend treats them as null
     ;(['contact_phone', 'tax_id', 'plan_code', 'proposed_subdomain', 'address', 'note'] as const)
-      .forEach((k) => { if (!payload[k]) (payload as any)[k] = undefined })
-    const { data } = await authApi.applyForTenant(payload as any)
-    applicationId.value = data.application_id
+      .forEach((k) => { if (!payload[k]) (payload as Record<string, unknown>)[k] = undefined })
+    const { data } = await authApi.applyForTenant(payload as Parameters<typeof authApi.applyForTenant>[0])
+    persistSession(data.application_id, data.contact_email)
     message.success('已寄送驗證碼到您的信箱')
     step.value = 1
-  } catch (e: any) {
-    message.error(e.response?.data?.detail || '送出失敗，請稍後再試')
+  } catch (e: unknown) {
+    const detail = conflictDetail(e)
+    if (detail?.application_id) {
+      persistSession(detail.application_id, detail.contact_email || form.contact_email)
+      if (detail.company_name) form.company_name = detail.company_name
+      if (detail.status === 'email_verified') {
+        step.value = 2
+        message.info(detail.message || '申請已驗證，請等待審核')
+      } else {
+        step.value = 1
+        message.warning(detail.message || '請繼續完成信箱驗證')
+      }
+      return
+    }
+    message.error(formatApiError(e) || '送出失敗，請稍後再試')
   } finally {
     submitting.value = false
   }
 }
 
+async function resendOtp() {
+  if (!applicationId.value) {
+    message.error('申請編號遺失，請點「已有申請？繼續驗證信箱」')
+    return
+  }
+  resending.value = true
+  try {
+    await authApi.resendApplicationOtp(applicationId.value)
+    message.success('已重新寄送驗證碼')
+  } catch (e: unknown) {
+    message.error(formatApiError(e) || '無法重新寄送')
+  } finally {
+    resending.value = false
+  }
+}
+
 async function verify() {
-  if (!/^\d{6}$/.test(otp.value)) {
+  if (!applicationId.value) {
+    message.error('申請編號遺失，請點「已有申請？繼續驗證信箱」')
+    return
+  }
+  const code = verifyForm.otp.trim()
+  if (!/^\d{6}$/.test(code)) {
     message.warning('驗證碼為 6 碼數字')
     return
   }
   verifying.value = true
   try {
-    await authApi.verifyApplication(applicationId.value, otp.value)
+    await authApi.verifyApplication(applicationId.value, code)
+    clearSession()
     message.success('信箱驗證成功，已送至審核佇列')
     step.value = 2
-  } catch (e: any) {
-    message.error(e.response?.data?.detail || '驗證碼無效或已過期')
+  } catch (e: unknown) {
+    message.error(formatApiError(e) || '驗證碼無效或已過期')
   } finally {
     verifying.value = false
   }
@@ -189,7 +344,10 @@ function goLogin() {
   router.push({ name: 'login' })
 }
 
-onMounted(loadPlans)
+onMounted(async () => {
+  await loadPlans()
+  await restoreFromSession()
+})
 </script>
 
 <style scoped>

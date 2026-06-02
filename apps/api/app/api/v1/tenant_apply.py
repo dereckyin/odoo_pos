@@ -25,6 +25,8 @@ from ...schemas.auth import (
     TenantApplicationRead,
     TenantApplyRequest,
     TenantApplyResponse,
+    TenantApplyResumeRequest,
+    TenantApplyResumeResponse,
     TenantApplyVerifyRequest,
 )
 
@@ -41,6 +43,38 @@ def _client_ip(request: Request) -> str | None:
     return request.client.host if request.client else None
 
 
+async def _active_application_for_email(db: DbSession, email: str) -> TenantApplication | None:
+    """Latest application that can still resume OTP or is awaiting review."""
+    return (
+        await db.execute(
+            select(TenantApplication)
+            .where(
+                TenantApplication.contact_email == email,
+                TenantApplication.status.in_(("pending", "email_verified")),
+            )
+            .order_by(TenantApplication.created_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+
+async def _blocking_application_for_email(db: DbSession, email: str) -> TenantApplication | None:
+    """Latest application that prevents submitting a new one with the same email."""
+    return (
+        await db.execute(
+            select(TenantApplication)
+            .where(
+                TenantApplication.contact_email == email,
+                TenantApplication.status.in_(
+                    ("pending", "email_verified", "approved", "provisioned")
+                ),
+            )
+            .order_by(TenantApplication.created_at.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+
 @router.post("", response_model=TenantApplyResponse, status_code=201)
 @per_ip("5/minute")
 async def submit_application(
@@ -51,22 +85,40 @@ async def submit_application(
 
     email = payload.contact_email.lower()
 
-    # Reject if any active application exists for the same email or
-    # subdomain (avoids parallel duplicates polluting the review queue).
-    dup = (
-        await db.execute(
-            select(TenantApplication).where(
-                TenantApplication.contact_email == email,
-                TenantApplication.status.in_(
-                    ("pending", "email_verified", "approved")
-                ),
-            )
-        )
-    ).scalar_one_or_none()
+    dup = await _blocking_application_for_email(db, email)
     if dup:
+        if dup.status == "pending":
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "application_exists",
+                    "application_id": dup.id,
+                    "status": dup.status,
+                    "contact_email": dup.contact_email,
+                    "company_name": dup.company_name,
+                    "message": "此信箱已有申請尚未完成驗證，請繼續輸入驗證碼。",
+                },
+            )
+        if dup.status == "email_verified":
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "application_verified",
+                    "application_id": dup.id,
+                    "status": dup.status,
+                    "contact_email": dup.contact_email,
+                    "company_name": dup.company_name,
+                    "message": "此信箱的申請已完成驗證，請等待平台審核。",
+                },
+            )
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            "an application from this email is already in review",
+            detail={
+                "code": "application_provisioned",
+                "application_id": dup.id,
+                "status": dup.status,
+                "message": "此信箱的申請已通過審核，請使用寄送的帳號登入。",
+            },
         )
     if payload.proposed_subdomain:
         sub_dup = (
@@ -137,6 +189,53 @@ async def verify_application(
         app.email_verified_at = _now()
     await db.commit()
     return _to_read(app)
+
+
+@router.post("/resume", response_model=TenantApplyResumeResponse)
+@per_ip("10/minute")
+async def resume_application(
+    request: Request, payload: TenantApplyResumeRequest, db: DbSession
+) -> TenantApplyResumeResponse:
+    """Let applicants continue email verification after refresh or a new visit."""
+    email = payload.contact_email.lower()
+    app = await _active_application_for_email(db, email)
+    if not app:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "找不到此信箱待驗證的申請，請重新填寫並送出。",
+        )
+    if app.status == "pending":
+        await issue_email_otp(db, email=email, purpose="signup", related_id=app.id)
+        await db.commit()
+        msg = "已重新寄送驗證碼到您的信箱（若未收到，請向平台管理員索取）。"
+    else:
+        msg = "此申請已完成信箱驗證，請等待平台審核。"
+    return TenantApplyResumeResponse(
+        application_id=app.id,
+        contact_email=app.contact_email,
+        status=app.status,
+        company_name=app.company_name,
+        message=msg,
+    )
+
+
+@router.post("/{application_id}/resend-otp", status_code=204)
+@per_ip("5/minute")
+async def resend_application_otp(
+    request: Request, application_id: str, db: DbSession
+) -> None:
+    app = await db.get(TenantApplication, application_id)
+    if not app:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "application not found")
+    if app.status != "pending":
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "此申請不需要驗證碼，或已完成驗證",
+        )
+    await issue_email_otp(
+        db, email=app.contact_email, purpose="signup", related_id=app.id
+    )
+    await db.commit()
 
 
 @router.get("/{application_id}", response_model=TenantApplicationRead)

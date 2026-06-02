@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import case, func, select
 
@@ -15,9 +15,14 @@ from ...services.reporting import (
     prior_period,
 )
 from ...services.weather import fetch_daily_weather
+from ...services.tenant_modules import require_business_intelligence
 from .reports import _date_bucket, hourly_heatmap, sales_summary
 
-router = APIRouter(prefix="/analytics", tags=["analytics"])
+router = APIRouter(
+    prefix="/analytics",
+    tags=["analytics"],
+    dependencies=[Depends(require_business_intelligence)],
+)
 
 
 class StoreComparisonRow(BaseModel):

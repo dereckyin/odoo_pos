@@ -9,8 +9,8 @@
     <a-table :columns="columns" :data-source="users" :loading="loading" row-key="id">
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'role'">
-          <a-tag :color="record.role === 'admin' ? 'red' : record.role === 'manager' ? 'blue' : 'default'">
-            {{ roleLabel[record.role] || record.role }}
+          <a-tag :color="userRoleTagColor(record.role)">
+            {{ userRoleLabel(record.role) }}
           </a-tag>
         </template>
         <template v-if="column.key === 'is_active'">
@@ -39,11 +39,26 @@
           <a-input-password v-model:value="form.password" />
         </a-form-item>
         <a-form-item label="角色">
-          <a-select v-model:value="form.role" style="width: 200px">
-            <a-select-option value="admin">管理員</a-select-option>
-            <a-select-option value="manager">店長</a-select-option>
-            <a-select-option value="cashier">收銀員</a-select-option>
+          <a-select
+            v-if="!editingRoleLocked"
+            v-model:value="form.role"
+            style="width: 220px"
+          >
+            <a-select-option
+              v-for="opt in USER_ROLE_OPTIONS"
+              :key="opt.value"
+              :value="opt.value"
+            >
+              {{ opt.label }}
+            </a-select-option>
           </a-select>
+          <a-input v-else :value="userRoleLabel('tenant_owner')" disabled />
+          <div v-if="form.role === 'kitchen'" class="role-hint">
+            廚房帳號僅能登入 POS 廚房看板（KDS），建議綁定所屬門店。
+          </div>
+          <div v-else-if="form.role === 'cashier'" class="role-hint">
+            收銀員請綁定所屬門店，並在 POS 完成終端註冊後登入。
+          </div>
         </a-form-item>
         <a-form-item label="所屬門店">
           <a-select v-model:value="form.store_id" placeholder="選填" allow-clear style="width: 100%">
@@ -63,6 +78,13 @@ import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { listUsers, createUser, updateUser, deleteUser } from '@/api/users'
 import { listStores } from '@/api/stores'
+import {
+  USER_ROLE_OPTIONS,
+  normalizeRoleForApi,
+  userRoleLabel,
+  userRoleTagColor,
+  type AssignableUserRole,
+} from '@/constants/userRoles'
 import type { UserRead, StoreRead } from '@/types'
 
 const users = ref<UserRead[]>([])
@@ -71,18 +93,13 @@ const loading = ref(false)
 const modalOpen = ref(false)
 const saving = ref(false)
 const editingId = ref<string | null>(null)
-
-const roleLabel: Record<string, string> = {
-  admin: '管理員',
-  manager: '店長',
-  cashier: '收銀員',
-}
+const editingRoleLocked = ref(false)
 
 const form = reactive({
   username: '',
   display_name: '',
   password: '',
-  role: 'cashier',
+  role: 'cashier' as AssignableUserRole,
   store_id: null as string | null,
   is_active: true,
 })
@@ -108,14 +125,16 @@ async function fetchData() {
 function openModal(record?: UserRead) {
   if (record) {
     editingId.value = record.id
+    editingRoleLocked.value = record.role === 'tenant_owner'
     form.username = record.username
     form.display_name = record.display_name
     form.password = ''
-    form.role = record.role
+    form.role = normalizeRoleForApi(record.role)
     form.store_id = record.store_id
     form.is_active = record.is_active
   } else {
     editingId.value = null
+    editingRoleLocked.value = false
     form.username = ''
     form.display_name = ''
     form.password = ''
@@ -130,12 +149,12 @@ async function handleSave() {
   saving.value = true
   try {
     if (editingId.value) {
-      const payload: Record<string, any> = {
+      const payload: Record<string, unknown> = {
         display_name: form.display_name,
-        role: form.role,
         store_id: form.store_id,
         is_active: form.is_active,
       }
+      if (!editingRoleLocked.value) payload.role = form.role
       if (form.password) payload.password = form.password
       await updateUser(editingId.value, payload)
       message.success('已更新')
@@ -164,3 +183,12 @@ onMounted(async () => {
   fetchData()
 })
 </script>
+
+<style scoped>
+.role-hint {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.45);
+  line-height: 1.4;
+}
+</style>

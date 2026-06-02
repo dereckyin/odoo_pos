@@ -44,14 +44,31 @@
           <template #icon><ShopOutlined /></template>
           <template #title>門店帳號</template>
           <a-menu-item key="stores" @click="$router.push({ name: 'stores' })">門店管理</a-menu-item>
-          <a-menu-item key="tables" @click="$router.push({ name: 'tables' })">桌位管理</a-menu-item>
+          <a-menu-item v-if="modules.onlineOrdering" key="tables" @click="$router.push({ name: 'tables' })">桌位管理</a-menu-item>
           <a-menu-item key="users" @click="$router.push({ name: 'users' })">使用者管理</a-menu-item>
         </a-sub-menu>
-        <a-sub-menu key="qr-group">
+        <a-sub-menu v-if="modules.onlineOrdering" key="table-order-group">
           <template #icon><QrcodeOutlined /></template>
-          <template #title>線上點餐</template>
-          <a-menu-item key="marketplace-settings" @click="$router.push({ name: 'marketplace-settings' })">市集上架</a-menu-item>
-          <a-menu-item key="guest-orders" @click="$router.push({ name: 'guest-orders' })">桌邊/網路訂單</a-menu-item>
+          <template #title>桌邊點餐</template>
+          <a-menu-item
+            v-if="modules.guestOrdersEnabled"
+            key="guest-orders"
+            @click="$router.push({ name: 'guest-orders' })"
+          >
+            {{ modules.onlineOrdering && modules.marketplace ? '桌邊/網路訂單' : '桌邊訂單' }}
+          </a-menu-item>
+        </a-sub-menu>
+        <a-sub-menu v-if="modules.marketplace" key="marketplace-group">
+          <template #icon><ShopOutlined /></template>
+          <template #title>市集上架</template>
+          <a-menu-item key="marketplace-settings" @click="$router.push({ name: 'marketplace-settings' })">市集設定</a-menu-item>
+          <a-menu-item
+            v-if="modules.guestOrdersEnabled && !modules.onlineOrdering"
+            key="guest-orders"
+            @click="$router.push({ name: 'guest-orders' })"
+          >
+            網路訂單
+          </a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="order-group">
           <template #icon><FileTextOutlined /></template>
@@ -59,7 +76,7 @@
           <a-menu-item key="orders" @click="$router.push({ name: 'orders' })">訂單查詢</a-menu-item>
           <a-menu-item key="reports" @click="$router.push({ name: 'reports' })">銷售報表</a-menu-item>
         </a-sub-menu>
-        <a-sub-menu key="bi-group">
+        <a-sub-menu v-if="modules.businessIntelligence" key="bi-group">
           <template #icon><BarChartOutlined /></template>
           <template #title>商業智慧</template>
           <a-menu-item key="analytics-sales" @click="$router.push({ name: 'analytics-sales' })">銷售分析</a-menu-item>
@@ -121,9 +138,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useTenantModulesStore } from '@/stores/tenantModules'
 import { APP_VERSION } from '@/version'
 import {
   DashboardOutlined, ShoppingOutlined, GiftOutlined, TeamOutlined,
@@ -134,6 +152,7 @@ import {
 
 const collapsed = ref(false)
 const auth = useAuthStore()
+const modules = useTenantModulesStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -185,6 +204,24 @@ watch(() => route.name, (name) => {
     }
   }
 }, { immediate: true })
+
+watch(
+  () => [auth.isMerchantMode, auth.actingTenantId, auth.tenantId] as const,
+  ([merchantMode]) => {
+    if (merchantMode) {
+      modules.fetch()
+    } else {
+      modules.reset()
+    }
+  },
+  { immediate: true },
+)
+
+onMounted(() => {
+  if (auth.isMerchantMode) {
+    modules.fetch()
+  }
+})
 
 function handleLogout() {
   auth.logout()

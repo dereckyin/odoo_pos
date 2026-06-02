@@ -41,6 +41,7 @@ from ...services.option_validation import (
     validate_line_options,
 )
 from ...services.public_options import load_public_product_options
+from ...services.tenant_modules import assert_tenant_module, MODULE_ONLINE_ORDERING
 
 router = APIRouter(prefix="/public", tags=["public-ordering"])
 
@@ -107,6 +108,7 @@ async def _resolve_table(db, token: str) -> tuple[DiningTable, Store]:
     store = await db.get(Store, table.store_id)
     if not store or store.deleted_at:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "store not found")
+    await assert_tenant_module(db, table.tenant_id, MODULE_ONLINE_ORDERING)
     return table, store
 
 
