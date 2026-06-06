@@ -17,11 +17,8 @@
         message="每列會呼叫 TAAZE 查書、建立主檔並入庫。11 碼為 TAAZE 商品編號；ISBN/EAN 13 碼請改用商品編號貼紙。"
       />
       <div style="margin-top: 16px">
-        <a-button type="link" href="/templates/book-import-sample.csv" download="book-import-sample.csv">
+        <a-button type="link" :loading="downloadingTemplate" @click="downloadTemplate">
           <DownloadOutlined /> 下載範例 CSV
-        </a-button>
-        <a-button type="link" style="margin-left: 8px" @click="downloadTemplate">
-          從 API 下載範本
         </a-button>
       </div>
     </a-card>
@@ -104,16 +101,24 @@ const errorColumns = [
 ]
 
 const importing = ref(false)
+const downloadingTemplate = ref(false)
 const result = ref<ImportResultState | null>(null)
 
 async function downloadTemplate() {
-  const res = await client.get('/books/import-csv/template', { responseType: 'blob' })
-  const url = URL.createObjectURL(res.data)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'book-import-sample.csv'
-  a.click()
-  URL.revokeObjectURL(url)
+  downloadingTemplate.value = true
+  try {
+    const res = await client.get('/books/import-csv/template', { responseType: 'blob' })
+    const url = URL.createObjectURL(res.data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'book-import-sample.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (e: any) {
+    message.error(e?.response?.data?.detail || '下載範例失敗')
+  } finally {
+    downloadingTemplate.value = false
+  }
 }
 
 async function handleUpload(file: File) {
