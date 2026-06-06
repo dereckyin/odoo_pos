@@ -17,8 +17,11 @@
         message="每列會呼叫 TAAZE 查書、建立主檔並入庫。11 碼為 TAAZE 商品編號；ISBN/EAN 13 碼請改用商品編號貼紙。"
       />
       <div style="margin-top: 16px">
-        <a-button type="link" @click="downloadTemplate">
+        <a-button type="link" href="/templates/book-import-sample.csv" download="book-import-sample.csv">
           <DownloadOutlined /> 下載範例 CSV
+        </a-button>
+        <a-button type="link" style="margin-left: 8px" @click="downloadTemplate">
+          從 API 下載範本
         </a-button>
       </div>
     </a-card>

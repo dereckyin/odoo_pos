@@ -15,8 +15,7 @@ from .book_receive import receive_book_by_barcode
 IMPORT_CSV_COLUMNS = ["barcode", "qty", "store_id", "store_code"]
 
 IMPORT_CSV_SAMPLE_ROWS = [
-    {"barcode": "11101042331", "qty": "1", "store_id": "", "store_code": "main"},
-    {"barcode": "12345678", "qty": "2", "store_id": "", "store_code": "main"},
+    {"barcode": "11101042331", "qty": "1", "store_id": "", "store_code": "S001"},
 ]
 
 
