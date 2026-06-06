@@ -81,6 +81,7 @@ class PromotionEngine {
   }
 
   bool _matchesScope(Promotion p, CartLine line, CategoryTree? categoryTree) {
+    if (line.product.isConsignmentBook) return false;
     if (p.applicableProductIds.isEmpty && p.applicableCategoryIds.isEmpty) {
       return true;
     }

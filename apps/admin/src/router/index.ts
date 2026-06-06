@@ -20,6 +20,13 @@ const BUSINESS_INTELLIGENCE_ROUTES = new Set([
   'analytics-members',
 ])
 
+const CONSIGNMENT_BOOKS_ROUTES = new Set([
+  'books',
+  'book-receive',
+  'book-settings',
+  'book-reports',
+])
+
 const merchantChildren: RouteRecordRaw[] = [
   { path: '', name: 'dashboard', component: () => import('@/views/dashboard/DashboardView.vue') },
   // Products
@@ -58,6 +65,10 @@ const merchantChildren: RouteRecordRaw[] = [
   { path: 'orders', name: 'orders', component: () => import('@/views/orders/OrderListView.vue') },
   { path: 'orders/:id', name: 'order-detail', component: () => import('@/views/orders/OrderDetailView.vue') },
   { path: 'reports', name: 'reports', component: () => import('@/views/reports/ReportsView.vue') },
+  { path: 'books', name: 'books', component: () => import('@/views/books/BookListView.vue') },
+  { path: 'books/receive', name: 'book-receive', component: () => import('@/views/books/BookReceiveView.vue') },
+  { path: 'books/settings', name: 'book-settings', component: () => import('@/views/books/ConsignmentSettingsView.vue') },
+  { path: 'books/reports', name: 'book-reports', component: () => import('@/views/books/ConsignmentReportView.vue') },
   // Business intelligence
   { path: 'analytics/sales', name: 'analytics-sales', component: () => import('@/views/analytics/SalesAnalyticsView.vue') },
   { path: 'analytics/stores', name: 'analytics-stores', component: () => import('@/views/analytics/StorePerformanceView.vue') },
@@ -129,7 +140,8 @@ router.beforeEach(async (to) => {
     (
       ONLINE_ORDERING_ROUTES.has(routeName) ||
       MARKETPLACE_ROUTES.has(routeName) ||
-      BUSINESS_INTELLIGENCE_ROUTES.has(routeName)
+      BUSINESS_INTELLIGENCE_ROUTES.has(routeName) ||
+      CONSIGNMENT_BOOKS_ROUTES.has(routeName)
     )
   ) {
     const modules = useTenantModulesStore()
@@ -149,6 +161,9 @@ router.beforeEach(async (to) => {
       return { name: 'dashboard' }
     }
     if (BUSINESS_INTELLIGENCE_ROUTES.has(routeName) && !modules.businessIntelligence) {
+      return { name: 'dashboard' }
+    }
+    if (CONSIGNMENT_BOOKS_ROUTES.has(routeName) && !modules.consignmentBooks) {
       return { name: 'dashboard' }
     }
   }

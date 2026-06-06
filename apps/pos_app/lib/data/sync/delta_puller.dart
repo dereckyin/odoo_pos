@@ -96,6 +96,7 @@ class DeltaPuller {
       _pull('member_levels', failures, _pullMemberLevels),
       _pull('coupons', failures, _pullCoupons),
       _pull('promotions', failures, _pullPromotions),
+      _pull('book_details', failures, _pullBookDetails),
       _pull('inventory_levels', failures, () => _pullInventory(storeId: sid)),
     ]);
 
@@ -163,6 +164,7 @@ class DeltaPuller {
             deletedAt: Value(p.deletedAt),
             hideFromPublicOrdering: Value(p.hideFromPublicOrdering),
             hideFromPosBrowse: Value(p.hideFromPosBrowse),
+            productKind: Value(p.productKind),
           ),
           mode: InsertMode.insertOrReplace,
         );
@@ -453,6 +455,33 @@ class DeltaPuller {
       });
     }
     await _writeSince('inventory_levels', page.nextSince);
+  }
+
+  Future<void> _pullBookDetails() async {
+    final since = await _readSince('book_details');
+    final page = await api.syncBookDetails(since);
+    if (page.items.isNotEmpty) {
+      await db.batch((b) {
+        for (final bd in page.items) {
+          b.insert(
+            db.bookDetails,
+            BookDetailsCompanion(
+              productId: Value(bd.productId),
+              barcode: Value(bd.barcode),
+              author: Value(bd.author),
+              publisher: Value(bd.publisher),
+              isbn: Value(bd.isbn),
+              updatedAt: Value(bd.updatedAt),
+            ),
+            mode: InsertMode.insertOrReplace,
+          );
+        }
+      });
+    }
+    await _writeSince('book_details', page.nextSince);
+    if (page.items.length >= 500) {
+      await _pullBookDetails();
+    }
   }
 }
 

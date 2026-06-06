@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../features/books/providers/consignment_providers.dart';
 import 'delta_puller.dart';
 import 'master_data_scope.dart';
 import 'sync_queue_dao.dart';
@@ -60,6 +61,7 @@ final syncSessionLifecycleProvider = Provider<void>((ref) {
           );
       ref.read(syncWorkerProvider).start();
       ref.read(deltaPullerProvider).startAfterLogin(storeId: session.storeId);
+      await ref.read(consignmentPosConfigProvider.notifier).refresh();
     })());
   }, fireImmediately: true);
 });

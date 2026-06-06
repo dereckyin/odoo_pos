@@ -72,6 +72,9 @@ class OrderLineRead(ORMModel):
     tax_rate: float
     note: str | None
     options_json: list[SelectedOptionSnapshot] | None = None
+    product_kind: str = "regular"
+    consignment_book_share_cents: int = 0
+    consignment_restaurant_share_cents: int = 0
 
 
 class PaymentRead(ORMModel):

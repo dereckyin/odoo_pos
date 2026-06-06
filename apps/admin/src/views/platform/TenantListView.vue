@@ -102,6 +102,14 @@
           />
           <div class="field-hint">銷售分析、門店績效、環境洞察、會員分析</div>
         </a-form-item>
+        <a-form-item label="寄賣書籍">
+          <a-switch
+            v-model:checked="editForm.consignment_books"
+            checked-children="啟用"
+            un-checked-children="停用"
+          />
+          <div class="field-hint">餐飲門店寄賣二手書、分帳結算</div>
+        </a-form-item>
       </a-form>
     </a-modal>
 
@@ -204,6 +212,7 @@ const editForm = ref<{
   online_ordering: boolean
   marketplace: boolean
   business_intelligence: boolean
+  consignment_books: boolean
 }>({
   name: '',
   contact_email: '',
@@ -213,6 +222,7 @@ const editForm = ref<{
   online_ordering: false,
   marketplace: false,
   business_intelligence: false,
+  consignment_books: true,
 })
 const createForm = ref({
   company_name: '',
@@ -287,6 +297,7 @@ function openEdit(rec: TenantRead) {
     online_ordering: false,
     marketplace: false,
     business_intelligence: false,
+    consignment_books: true,
   }
   editVisible.value = true
   platformApi.getTenantModules(rec.id).then(({ data }) => {
@@ -294,6 +305,7 @@ function openEdit(rec: TenantRead) {
       editForm.value.online_ordering = data.online_ordering
       editForm.value.marketplace = data.marketplace
       editForm.value.business_intelligence = data.business_intelligence
+      editForm.value.consignment_books = data.consignment_books
     }
   }).catch(() => {
     message.warning('無法載入模組設定，將使用預設值')
@@ -315,6 +327,7 @@ async function submitEdit() {
       online_ordering: editForm.value.online_ordering,
       marketplace: editForm.value.marketplace,
       business_intelligence: editForm.value.business_intelligence,
+      consignment_books: editForm.value.consignment_books,
     })
     message.success('已更新')
     editVisible.value = false

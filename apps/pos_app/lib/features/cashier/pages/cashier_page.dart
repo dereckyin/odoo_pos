@@ -8,7 +8,7 @@ import 'package:pos_domain/pos_domain.dart';
 import '../../../core/providers.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../data/scanner/barcode_listener.dart';
-import '../demo/book_sale_demo.dart';
+import '../../books/providers/consignment_providers.dart';
 import '../../../data/sync/sync_providers.dart';
 import '../../sync/widgets/master_data_sync_button.dart';
 import '../../kds/providers/guest_orders_controller.dart';
@@ -38,6 +38,7 @@ class _CashierPageState extends ConsumerState<CashierPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(guestOrdersControllerProvider.notifier).startPolling();
+      ref.read(consignmentPosConfigProvider.notifier).refresh();
     });
   }
 
@@ -105,11 +106,11 @@ class _CashierPageState extends ConsumerState<CashierPage> {
                   ),
                 ),
               ),
-            if (BookSaleDemo.enabled)
+            if (ref.watch(consignmentPosConfigProvider).enabled)
               IconButton(
-                tooltip: '書籍售賣 Demo',
+                tooltip: '寄賣書籍查詢',
                 icon: const Icon(Icons.menu_book_outlined),
-                onPressed: () => context.push('/book-demo'),
+                onPressed: () => context.push('/books/search'),
               ),
             IconButton(
               tooltip: '商品管理',

@@ -18,6 +18,7 @@ from .user import (
     User,
 )
 from .product import Category, Product, ProductBarcode
+from .book import BookDetail
 from .option import (
     OptionChoice,
     OptionGroup,
@@ -73,6 +74,7 @@ __all__ = [
     "Category",
     "Product",
     "ProductBarcode",
+    "BookDetail",
     "OptionGroup",
     "OptionChoice",
     "ProductOptionGroup",

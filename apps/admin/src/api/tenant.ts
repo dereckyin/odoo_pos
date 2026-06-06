@@ -133,6 +133,7 @@ export interface TenantModulesRead {
   online_ordering: boolean
   marketplace: boolean
   business_intelligence: boolean
+  consignment_books: boolean
 }
 
 export function getModules() {

@@ -62,11 +62,25 @@ class Products extends Table {
   BoolColumn get hideFromPublicOrdering =>
       boolean().withDefault(const Constant(false))();
   BoolColumn get hideFromPosBrowse => boolean().withDefault(const Constant(false))();
+  TextColumn get productKind => text().withDefault(const Constant('regular'))();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('BookDetailRow')
+class BookDetails extends Table {
+  TextColumn get productId => text().references(Products, #id)();
+  TextColumn get barcode => text()();
+  TextColumn get author => text().nullable()();
+  TextColumn get publisher => text().nullable()();
+  TextColumn get isbn => text().nullable()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {productId};
 }
 
 @DataClassName('ProductBarcodeRow')

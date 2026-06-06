@@ -15,6 +15,7 @@ part 'app_database.g.dart';
   Terminals,
   Categories,
   Products,
+  BookDetails,
   ProductBarcodes,
   OptionGroups,
   OptionChoices,
@@ -46,7 +47,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,6 +76,10 @@ class AppDatabase extends _$AppDatabase {
             await _addColumnIfMissing(m, orders, orders.tableLabel);
             await _addColumnIfMissing(m, orders, orders.primaryPaymentMethod);
             await _addColumnIfMissing(m, orders, orders.sourceGuestOrderId);
+          }
+          if (from < 6) {
+            await _addColumnIfMissing(m, products, products.productKind);
+            await m.createTable(bookDetails);
           }
         },
         beforeOpen: (details) async {
@@ -117,6 +122,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(optionChoices).go();
       await delete(optionGroups).go();
       await delete(productBarcodes).go();
+      await delete(bookDetails).go();
       await delete(products).go();
       await delete(categories).go();
       await delete(memberLevels).go();

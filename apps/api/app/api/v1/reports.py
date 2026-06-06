@@ -6,6 +6,9 @@ from sqlalchemy import case, func, select
 
 from ...core.deps import DbSession, TenantScope
 from ...models import Category, Order, OrderLine, Payment, Product, Tenant
+from ...schemas.book import ConsignmentSettlementReport
+from ...services.consignment_books import assert_consignment_module
+from ...services.consignment_settlement import build_consignment_settlement
 from ...services.business_time import tenant_timezone
 from ...services.reporting import (
     SALE_STATUSES,
@@ -349,3 +352,15 @@ async def category_mix(
         )
         for r in rows
     ]
+
+
+@router.get("/consignment-settlement", response_model=ConsignmentSettlementReport)
+async def consignment_settlement(
+    db: DbSession,
+    scope: TenantScope,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    store_id: str | None = None,
+) -> ConsignmentSettlementReport:
+    await assert_consignment_module(db, scope.tenant_id)
+    return await build_consignment_settlement(db, scope, since, until, store_id)

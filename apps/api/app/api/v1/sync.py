@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from ...core.deps import DbSession, TenantScope, apply_tenant
 from ...models import (
+    BookDetail,
     Category,
     Coupon,
     InventoryLevel,
@@ -19,6 +20,7 @@ from ...models import (
     ProductOptionGroup,
     Promotion,
 )
+from ...schemas.book import BookDetailRead
 from ...schemas.inventory import InventoryLevelRead
 from ...schemas.member import CouponRead, MemberLevelRead, MemberRead
 from ...schemas.option import (
@@ -232,3 +234,25 @@ async def sync_product_option_overrides(
     return DeltaPage[ProductOptionChoiceOverrideSyncRead](
         items=items, server_time=_now(), next_since=next_since
     )
+
+
+@router.get("/book-details", response_model=DeltaPage[BookDetailRead])
+async def sync_book_details(
+    db: DbSession,
+    scope: TenantScope,
+    since: datetime = Query(default=datetime(1970, 1, 1, tzinfo=timezone.utc)),
+    limit: int = Query(500, le=2000),
+):
+    stmt = (
+        apply_tenant(
+            select(BookDetail).where(BookDetail.updated_at > since),
+            BookDetail,
+            scope,
+        )
+        .order_by(BookDetail.updated_at)
+        .limit(limit)
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+    items = [BookDetailRead.model_validate(r) for r in rows]
+    next_since = rows[-1].updated_at if rows else _now()
+    return DeltaPage[BookDetailRead](items=items, server_time=_now(), next_since=next_since)

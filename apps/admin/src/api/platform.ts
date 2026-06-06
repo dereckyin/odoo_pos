@@ -90,12 +90,14 @@ export interface TenantModulesRead {
   online_ordering: boolean
   marketplace: boolean
   business_intelligence: boolean
+  consignment_books: boolean
 }
 
 export interface TenantModulesUpdate {
   online_ordering?: boolean
   marketplace?: boolean
   business_intelligence?: boolean
+  consignment_books?: boolean
 }
 
 export function getTenantModules(id: string) {

@@ -4,7 +4,8 @@ import 'package:pos_domain/pos_domain.dart';
 
 import '../../../core/providers.dart';
 import '../../../data/api/dto.dart';
-import '../demo/book_sale_demo.dart';
+import '../../books/book_local_store.dart';
+import '../../books/providers/consignment_providers.dart';
 import '../../members/providers/member_providers.dart';
 import '../../products/providers/product_providers.dart';
 import '../../promotions/providers/promotion_providers.dart';
@@ -263,15 +264,18 @@ class CartController extends StateNotifier<Cart> {
   Future<bool> scanBarcode(String code) async {
     final repo = _ref.read(productRepositoryProvider);
     var p = await repo.findByBarcode(code);
-    if (p == null && BookSaleDemo.enabled) {
-      await BookSaleDemo.loadBooks();
-      final demo = BookSaleDemo.findByBarcode(code);
-      if (demo != null) {
-        await BookSaleDemo.ensureLocalCatalog(
-          _ref.read(databaseProvider),
-          books: BookSaleDemo.books,
-        );
-        p = BookSaleDemo.toProduct(demo);
+    if (p == null) {
+      final cfg = _ref.read(consignmentPosConfigProvider);
+      if (cfg.enabled) {
+        try {
+          final api = _ref.read(posApiProvider);
+          final store = BookLocalStore(_ref.read(databaseProvider));
+          final dto = await api.scanBook(code);
+          await store.upsertFromDto(dto);
+          p = store.toProduct(dto);
+        } catch (_) {
+          return false;
+        }
       }
     }
     if (p == null) return false;

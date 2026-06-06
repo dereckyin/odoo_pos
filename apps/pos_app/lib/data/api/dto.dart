@@ -132,6 +132,7 @@ class ProductDto {
     this.deletedAt,
     this.hideFromPublicOrdering = false,
     this.hideFromPosBrowse = false,
+    this.productKind = 'regular',
   });
 
   factory ProductDto.fromJson(Map<String, dynamic> j) => ProductDto(
@@ -152,6 +153,7 @@ class ProductDto {
         deletedAt: j['deleted_at'] == null ? null : DateTime.parse(j['deleted_at'] as String),
         hideFromPublicOrdering: j['hide_from_public_ordering'] as bool? ?? false,
         hideFromPosBrowse: j['hide_from_pos_browse'] as bool? ?? false,
+        productKind: j['product_kind'] as String? ?? 'regular',
       );
 
   final String id, sku, name, unit;
@@ -165,6 +167,107 @@ class ProductDto {
   final DateTime? deletedAt;
   final bool hideFromPublicOrdering;
   final bool hideFromPosBrowse;
+  final String productKind;
+}
+
+class BookDetailDto {
+  BookDetailDto({
+    required this.productId,
+    required this.barcode,
+    this.author,
+    this.publisher,
+    this.isbn,
+    required this.updatedAt,
+  });
+
+  factory BookDetailDto.fromJson(Map<String, dynamic> j) => BookDetailDto(
+        productId: j['product_id'] as String,
+        barcode: j['barcode'] as String,
+        author: j['author'] as String?,
+        publisher: j['publisher'] as String?,
+        isbn: j['isbn'] as String?,
+        updatedAt: DateTime.parse(j['updated_at'] as String),
+      );
+
+  final String productId;
+  final String barcode;
+  final String? author;
+  final String? publisher;
+  final String? isbn;
+  final DateTime updatedAt;
+}
+
+class ConsignmentPosConfigDto {
+  ConsignmentPosConfigDto({
+    required this.enabled,
+    required this.bookSharePct,
+    required this.discountPresets,
+    this.categoryId,
+  });
+
+  factory ConsignmentPosConfigDto.fromJson(Map<String, dynamic> j) =>
+      ConsignmentPosConfigDto(
+        enabled: j['enabled'] as bool? ?? false,
+        bookSharePct: (j['book_share_pct'] as num?)?.toInt() ?? 60,
+        categoryId: j['category_id'] as String?,
+        discountPresets: (j['discount_presets'] as List?)
+                ?.map((e) => DiscountPresetDto.fromJson((e as Map).cast<String, dynamic>()))
+                .toList() ??
+            const [],
+      );
+
+  final bool enabled;
+  final int bookSharePct;
+  final String? categoryId;
+  final List<DiscountPresetDto> discountPresets;
+}
+
+class DiscountPresetDto {
+  const DiscountPresetDto({required this.label, required this.pctOff});
+
+  factory DiscountPresetDto.fromJson(Map<String, dynamic> j) => DiscountPresetDto(
+        label: j['label'] as String,
+        pctOff: (j['pct_off'] as num).toInt(),
+      );
+
+  final String label;
+  final int pctOff;
+}
+
+class BookProductDto {
+  BookProductDto({
+    required this.id,
+    required this.sku,
+    required this.name,
+    required this.priceCents,
+    required this.unit,
+    required this.productKind,
+    required this.barcodes,
+    this.author,
+    this.onHand,
+  });
+
+  factory BookProductDto.fromJson(Map<String, dynamic> j) => BookProductDto(
+        id: j['id'] as String,
+        sku: j['sku'] as String,
+        name: j['name'] as String,
+        priceCents: (j['price_cents'] as num).toInt(),
+        unit: j['unit'] as String? ?? '本',
+        productKind: j['product_kind'] as String? ?? 'consignment_book',
+        barcodes: (j['barcodes'] as List?)?.cast<String>() ?? const [],
+        author: j['author'] as String?,
+        onHand: (j['on_hand'] as num?)?.toDouble(),
+      );
+
+  final String id;
+  final String sku;
+  final String name;
+  final int priceCents;
+  final String unit;
+  final String productKind;
+  final List<String> barcodes;
+  final String? author;
+  final double? onHand;
 }
 
 class MemberDto {

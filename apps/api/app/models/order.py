@@ -69,6 +69,9 @@ class OrderLine(Base, UUIDPrimaryKey, Timestamped):
     tax_rate: Mapped[float] = mapped_column(Float, default=0.05)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     options_json: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    product_kind: Mapped[str] = mapped_column(String(32), default="regular")
+    consignment_book_share_cents: Mapped[int] = mapped_column(Integer, default=0)
+    consignment_restaurant_share_cents: Mapped[int] = mapped_column(Integer, default=0)
 
     order: Mapped[Order] = relationship(back_populates="lines")
 

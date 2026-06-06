@@ -6,6 +6,7 @@ import 'package:pos_ui_kit/pos_ui_kit.dart';
 import '../../../data/printer/printer_providers.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../kds/providers/guest_orders_controller.dart';
+import '../../books/providers/consignment_providers.dart';
 import '../providers/cart_controller.dart';
 import '../utils/kitchen_ticket_builder.dart';
 import 'option_picker_sheet.dart';
@@ -292,11 +293,43 @@ class _CartLineTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(cartControllerProvider.notifier);
+    final consignment = ref.watch(consignmentPosConfigProvider);
     return ListTile(
       title: Text(line.product.name),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (line.product.bookAuthor != null && line.product.bookAuthor!.isNotEmpty)
+            Text(
+              line.product.bookAuthor!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.secondary),
+            ),
+          if (line.product.isConsignmentBook && consignment.discountPresets.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final preset in consignment.discountPresets)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ActionChip(
+                          label: Text(preset.label),
+                          onPressed: () => controller.setLineDiscount(
+                            line.id,
+                            Discount(
+                              type: DiscountType.percentage,
+                              value: preset.pctOff,
+                              label: preset.label,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
           if (line.selectedOptions.isNotEmpty)
             Text(
               line.selectedOptions.displayLabel,

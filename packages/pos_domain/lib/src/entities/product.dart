@@ -19,6 +19,8 @@ class Product {
     this.updatedAt,
     this.hideFromPublicOrdering = false,
     this.hideFromPosBrowse = false,
+    this.productKind = 'regular',
+    this.bookAuthor,
     this.optionConfigs = const [],
   });
 
@@ -41,9 +43,12 @@ class Product {
   final DateTime? updatedAt;
   final bool hideFromPublicOrdering;
   final bool hideFromPosBrowse;
+  final String productKind;
+  final String? bookAuthor;
   final List<ProductOptionConfig> optionConfigs;
 
   bool get hasOptions => optionConfigs.isNotEmpty;
+  bool get isConsignmentBook => productKind == 'consignment_book';
 
   Product copyWith({
     String? id,
@@ -61,6 +66,8 @@ class Product {
     DateTime? updatedAt,
     bool? hideFromPublicOrdering,
     bool? hideFromPosBrowse,
+    String? productKind,
+    String? bookAuthor,
     List<ProductOptionConfig>? optionConfigs,
   }) =>
       Product(
@@ -79,6 +86,8 @@ class Product {
         updatedAt: updatedAt ?? this.updatedAt,
         hideFromPublicOrdering: hideFromPublicOrdering ?? this.hideFromPublicOrdering,
         hideFromPosBrowse: hideFromPosBrowse ?? this.hideFromPosBrowse,
+        productKind: productKind ?? this.productKind,
+        bookAuthor: bookAuthor ?? this.bookAuthor,
         optionConfigs: optionConfigs ?? this.optionConfigs,
       );
 }

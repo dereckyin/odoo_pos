@@ -132,9 +132,11 @@ class TenantModulesRead(BaseModel):
     online_ordering: bool = False
     marketplace: bool = False
     business_intelligence: bool = False
+    consignment_books: bool = True
 
 
 class TenantModulesUpdate(BaseModel):
     online_ordering: bool | None = None
     marketplace: bool | None = None
     business_intelligence: bool | None = None
+    consignment_books: bool | None = None

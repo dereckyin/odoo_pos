@@ -17,6 +17,7 @@ class Supplier(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     contact_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    supplier_kind: Mapped[str] = mapped_column(String(32), default="purchase", index=True)
 
     purchase_orders: Mapped[list["PurchaseOrder"]] = relationship(back_populates="supplier")
 

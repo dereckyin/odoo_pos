@@ -36,6 +36,7 @@ from . import (
     options,
     alliance,
     webhooks,
+    books,
 )
 
 api_router = APIRouter()
@@ -75,3 +76,4 @@ api_router.include_router(marketplace_admin.router)
 api_router.include_router(platform.router)
 api_router.include_router(alliance.router)
 api_router.include_router(webhooks.router)
+api_router.include_router(books.router)

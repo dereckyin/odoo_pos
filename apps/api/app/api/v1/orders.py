@@ -42,6 +42,11 @@ from ...services.alliance_service import earn_alliance_points, tenant_alliance
 from ...services.member_metrics import upsert_member_metrics_for_order
 from ...services.webhooks import emit_webhook
 from ...services.business_time import tenant_timezone
+from ...services.consignment_books import (
+    PRODUCT_KIND_CONSIGNMENT,
+    calc_consignment_shares,
+    get_consignment_settings,
+)
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -161,7 +166,23 @@ async def upload_order(
     db.add(order)
     await db.flush()
 
+    consignment_cfg = await get_consignment_settings(db, scope.tenant_id)
+    book_share_pct = consignment_cfg["book_share_pct"]
+
     for ln_data in validated_lines:
+        p = products_by_id.get(ln_data["product_id"])
+        kind = getattr(p, "product_kind", "regular") if p else "regular"
+        ln_data = dict(ln_data)
+        ln_data["product_kind"] = kind
+        if kind == PRODUCT_KIND_CONSIGNMENT:
+            book_share, restaurant_share = calc_consignment_shares(
+                ln_data["line_total_cents"], book_share_pct
+            )
+            ln_data["consignment_book_share_cents"] = book_share
+            ln_data["consignment_restaurant_share_cents"] = restaurant_share
+        else:
+            ln_data["consignment_book_share_cents"] = 0
+            ln_data["consignment_restaurant_share_cents"] = 0
         db.add(OrderLine(order_id=order.id, **ln_data))
         if ln_data.get("sku") == "MARKETPLACE-DELIVERY-FEE":
             continue

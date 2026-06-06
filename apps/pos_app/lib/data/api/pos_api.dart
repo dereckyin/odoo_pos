@@ -279,6 +279,31 @@ class PosApi {
     return GuestOrderDto.fromJson(_asMap(r.data));
   }
 
+  // ---- Consignment books ----
+  Future<ConsignmentPosConfigDto> fetchConsignmentPosConfig() async {
+    final r = await _dio.get('/books/pos-config');
+    return ConsignmentPosConfigDto.fromJson(_asMap(r.data));
+  }
+
+  Future<BookProductDto> scanBook(String barcode) async {
+    final r = await _dio.post('/books/scan', data: {'barcode': barcode});
+    return BookProductDto.fromJson(_asMap(r.data));
+  }
+
+  Future<List<BookProductDto>> searchBooks(String q) async {
+    final r = await _dio.get('/books/search', queryParameters: {'q': q});
+    final list = r.data as List;
+    return list.map((e) => BookProductDto.fromJson((e as Map).cast<String, dynamic>())).toList();
+  }
+
+  Future<DeltaPage<BookDetailDto>> syncBookDetails(DateTime since, {int limit = 500}) async {
+    final r = await _dio.get('/sync/book-details', queryParameters: {
+      'since': since.toUtc().toIso8601String(),
+      'limit': limit,
+    });
+    return DeltaPage.fromJson(_asMap(r.data), BookDetailDto.fromJson);
+  }
+
   // helpers
   Map<String, dynamic> _asMap(dynamic data) => (data as Map).cast<String, dynamic>();
 }

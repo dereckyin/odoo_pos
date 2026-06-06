@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/providers.dart';
 import '../features/auth/pages/login_page.dart';
+import '../features/books/pages/book_search_page.dart';
 import '../features/cashier/pages/book_scan_demo_page.dart';
 import '../features/cashier/pages/cashier_page.dart';
 import '../features/cashier/pages/checkout_page.dart';
@@ -53,6 +54,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/held-orders', builder: (_, __) => const HeldOrdersPage()),
       GoRoute(path: '/checkout', builder: (_, __) => const CheckoutPage()),
       GoRoute(path: '/scan', builder: (_, __) => const ScanPage()),
+      GoRoute(path: '/books/search', builder: (_, __) => const BookSearchPage()),
       GoRoute(path: '/book-demo', builder: (_, __) => const BookScanDemoPage()),
       GoRoute(path: '/products', builder: (_, __) => const ProductsPage()),
       GoRoute(path: '/members', builder: (_, __) => const MembersPage()),

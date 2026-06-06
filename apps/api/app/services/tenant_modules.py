@@ -14,23 +14,27 @@ from ..models import Tenant
 MODULE_ONLINE_ORDERING = "online_ordering"
 MODULE_MARKETPLACE = "marketplace"
 MODULE_BUSINESS_INTELLIGENCE = "business_intelligence"
+MODULE_CONSIGNMENT_BOOKS = "consignment_books"
 
 ALL_MODULES = (
     MODULE_ONLINE_ORDERING,
     MODULE_MARKETPLACE,
     MODULE_BUSINESS_INTELLIGENCE,
+    MODULE_CONSIGNMENT_BOOKS,
 )
 
 DEFAULT_MODULES: dict[str, bool] = {
     MODULE_ONLINE_ORDERING: False,
     MODULE_MARKETPLACE: False,
     MODULE_BUSINESS_INTELLIGENCE: False,
+    MODULE_CONSIGNMENT_BOOKS: True,
 }
 
 MODULE_LABELS: dict[str, str] = {
     MODULE_ONLINE_ORDERING: "桌邊點餐",
     MODULE_MARKETPLACE: "市集上架",
     MODULE_BUSINESS_INTELLIGENCE: "商業智慧",
+    MODULE_CONSIGNMENT_BOOKS: "寄賣書籍",
 }
 
 
@@ -47,6 +51,12 @@ def read_modules_from_settings(settings: dict | None) -> dict[str, bool]:
             raw.get(
                 MODULE_BUSINESS_INTELLIGENCE,
                 DEFAULT_MODULES[MODULE_BUSINESS_INTELLIGENCE],
+            )
+        ),
+        MODULE_CONSIGNMENT_BOOKS: bool(
+            raw.get(
+                MODULE_CONSIGNMENT_BOOKS,
+                DEFAULT_MODULES[MODULE_CONSIGNMENT_BOOKS],
             )
         ),
     }

@@ -161,6 +161,9 @@ class ProductRepositoryImpl {
       byProduct.putIfAbsent(b.productId, () => []).add(b.barcode);
     }
     final optionConfigs = await _loadOptionConfigs(ids);
+    final bookRows =
+        await (_db.select(_db.bookDetails)..where((b) => b.productId.isIn(ids))).get();
+    final authorByProduct = {for (final b in bookRows) b.productId: b.author};
     return rows
         .map((r) => Product(
               id: r.id,
@@ -178,9 +181,36 @@ class ProductRepositoryImpl {
               updatedAt: r.updatedAt,
               hideFromPublicOrdering: r.hideFromPublicOrdering,
               hideFromPosBrowse: r.hideFromPosBrowse,
+              productKind: r.productKind,
+              bookAuthor: authorByProduct[r.id],
               optionConfigs: optionConfigs[r.id] ?? const [],
             ))
         .toList(growable: false);
+  }
+
+  Future<List<Product>> searchConsignmentBooks(String query, {int limit = 50}) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return const [];
+    final like = '%$trimmed%';
+    final byBarcode = await (_db.select(_db.productBarcodes)..where((b) => b.barcode.equals(trimmed))).get();
+    final productIds = byBarcode.map((e) => e.productId).toSet();
+
+    final stmt = _db.select(_db.products).join([
+      innerJoin(_db.bookDetails, _db.bookDetails.productId.equalsExp(_db.products.id)),
+    ])
+      ..where(_db.products.deletedAt.isNull() &
+          _db.products.isActive.equals(true) &
+          _db.products.productKind.equals('consignment_book') &
+          (_db.products.name.like(like) |
+              _db.products.sku.like(like) |
+              _db.bookDetails.author.like(like) |
+              _db.bookDetails.barcode.like(like) |
+              _db.products.id.isIn(productIds)))
+      ..orderBy([OrderingTerm(expression: _db.products.name)])
+      ..limit(limit);
+    final joined = await stmt.get();
+    final rows = joined.map((r) => r.readTable(_db.products)).toList();
+    return _hydrate(rows);
   }
 
   Future<Map<String, List<ProductOptionConfig>>> _loadOptionConfigs(
