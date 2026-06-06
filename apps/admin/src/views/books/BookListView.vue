@@ -6,7 +6,7 @@
       <a-select
         v-model:value="storeId"
         allow-clear
-        placeholder="篩選門店庫存"
+        placeholder="全部門店加總"
         style="width: 200px"
         :options="storeOptions"
         @change="load"
@@ -25,7 +25,7 @@
           {{ formatSaleDisc(record.sale_disc) }}
         </template>
         <template v-else-if="column.key === 'on_hand'">
-          {{ record.on_hand ?? '—' }}
+          {{ formatOnHand(record.on_hand) }}
         </template>
       </template>
     </a-table>
@@ -63,6 +63,11 @@ function formatMoney(cents: number | null | undefined) {
 function formatSaleDisc(disc: number | null | undefined) {
   if (disc == null) return '—'
   return `${disc}折`
+}
+
+function formatOnHand(qty: number | null | undefined) {
+  if (qty == null) return 0
+  return Number.isInteger(qty) ? qty : qty.toFixed(1)
 }
 
 async function load() {

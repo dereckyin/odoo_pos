@@ -199,6 +199,28 @@ async def upsert_book_from_barcode(
     ).scalar_one()
 
 
+async def book_on_hand_by_product(
+    db: AsyncSession,
+    tenant_id: str,
+    product_ids: list[str],
+    store_id: str | None = None,
+) -> dict[str, float]:
+    """Return on_hand per product; sums all stores when store_id is omitted."""
+    if not product_ids:
+        return {}
+    stmt = select(InventoryLevel).where(
+        InventoryLevel.tenant_id == tenant_id,
+        InventoryLevel.product_id.in_(product_ids),
+    )
+    if store_id:
+        stmt = stmt.where(InventoryLevel.store_id == store_id)
+    levels = (await db.execute(stmt)).scalars().all()
+    totals: dict[str, float] = {}
+    for lv in levels:
+        totals[lv.product_id] = totals.get(lv.product_id, 0.0) + float(lv.on_hand)
+    return totals
+
+
 async def search_books(
     db: AsyncSession,
     tenant_id: str,
@@ -227,19 +249,10 @@ async def search_books(
         .limit(limit)
     )
     products = (await db.execute(stmt)).scalars().unique().all()
-    on_hand_map: dict[str, float] = {}
-    if store_id and products:
-        pids = [p.id for p in products]
-        levels = (
-            await db.execute(
-                select(InventoryLevel).where(
-                    InventoryLevel.store_id == store_id,
-                    InventoryLevel.product_id.in_(pids),
-                )
-            )
-        ).scalars().all()
-        on_hand_map = {lv.product_id: float(lv.on_hand) for lv in levels}
-    return [(p, on_hand_map.get(p.id)) for p in products]
+    on_hand_map = await book_on_hand_by_product(
+        db, tenant_id, [p.id for p in products], store_id
+    )
+    return [(p, on_hand_map.get(p.id, 0.0)) for p in products]
 
 
 def product_to_book_read(product: Product, on_hand: float | None = None) -> dict:

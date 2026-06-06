@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from ...core.audit import audit
 from ...core.deps import DbSession, StoreAdminDep, TenantAdminDep, TenantScope
-from ...models import InventoryLevel, Product, Tenant
+from ...models import Product, Tenant
 from ...schemas.book import (
     BookImportResultRead,
     BookLookupRead,
@@ -21,6 +21,7 @@ from ...schemas.book import (
     DiscountPreset,
 )
 from ...services.book_catalog import (
+    book_on_hand_by_product,
     ensure_consignment_category,
     product_to_book_read,
     search_books,
@@ -241,21 +242,11 @@ async def list_books(
             .limit(limit)
         )
         products = (await db.execute(stmt)).scalars().unique().all()
-        on_hand_map: dict[str, float] = {}
-        if store_id:
-            pids = [p.id for p in products]
-            if pids:
-                levels = (
-                    await db.execute(
-                        select(InventoryLevel).where(
-                            InventoryLevel.store_id == store_id,
-                            InventoryLevel.product_id.in_(pids),
-                        )
-                    )
-                ).scalars().all()
-                on_hand_map = {lv.product_id: float(lv.on_hand) for lv in levels}
+        on_hand_map = await book_on_hand_by_product(
+            db, scope.tenant_id, [p.id for p in products], store_id
+        )
         return [
-            BookProductRead(**product_to_book_read(p, on_hand_map.get(p.id)))
+            BookProductRead(**product_to_book_read(p, on_hand_map.get(p.id, 0.0)))
             for p in products
         ]
     rows = await search_books(db, scope.tenant_id, query, store_id, limit=limit)

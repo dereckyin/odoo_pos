@@ -55,6 +55,29 @@ async def test_receive_book_by_barcode_creates_inventory(app, client):
 
 
 @pytest.mark.asyncio
+async def test_list_books_returns_on_hand_without_store_filter(app, client):
+    factory = db_mod.get_session_factory()
+    bundle = await build_tenant(factory)
+    token = await login_admin(client, bundle)
+    headers = {"Authorization": f"Bearer {token}"}
+    barcode = "11101042331"
+
+    with patch("app.services.book_receive.lookup_barcode", side_effect=_mock_lookup):
+        r = await client.post(
+            "/books/receive",
+            headers=headers,
+            json={"barcode": barcode, "store_id": bundle.store.id, "qty": 2},
+        )
+    assert r.status_code == 200, r.text
+
+    r_list = await client.get("/books", headers=headers)
+    assert r_list.status_code == 200, r_list.text
+    books = r_list.json()
+    assert len(books) == 1
+    assert books[0]["on_hand"] == 2
+
+
+@pytest.mark.asyncio
 async def test_books_scan_endpoint_removed(app, client):
     factory = db_mod.get_session_factory()
     bundle = await build_tenant(factory)
