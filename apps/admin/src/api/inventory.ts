@@ -26,3 +26,14 @@ export function createStocktake(data: {
 }) {
   return client.post<StocktakeRead>('/inventory/stocktakes', data)
 }
+
+export function adjustInventory(data: {
+  store_id: string
+  product_id: string
+  mode: 'delta' | 'set'
+  qty: number
+  note?: string
+  reason?: 'adjustment' | 'initial'
+}) {
+  return client.post<InventoryLevelRead>('/inventory/adjust', data)
+}

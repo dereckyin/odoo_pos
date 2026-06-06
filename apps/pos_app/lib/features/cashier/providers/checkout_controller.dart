@@ -103,19 +103,25 @@ class CheckoutController {
               note: d.Value(l.note),
               optionsJson: d.Value(optionsJson),
             ));
-        // movement
-        await db.into(db.inventoryMovements).insert(InventoryMovementsCompanion.insert(
-              id: newUuid(),
-              storeId: order.storeId,
-              productId: l.productId,
-              qtyDelta: -l.qty.toDouble(),
-              reason: 'sale',
-              refType: const d.Value('order'),
-              refId: d.Value(order.id),
-              terminalId: d.Value(order.terminalId),
-              userId: d.Value(order.cashierId),
-              createdAt: now,
-            ));
+        final productRow = await (db.select(db.products)..where((t) => t.id.equals(l.productId)))
+            .getSingleOrNull();
+        final tracksInventory = productRow == null ||
+            productRow.productKind == 'consignment_book' ||
+            productRow.trackInventory;
+        if (tracksInventory) {
+          await db.into(db.inventoryMovements).insert(InventoryMovementsCompanion.insert(
+                id: newUuid(),
+                storeId: order.storeId,
+                productId: l.productId,
+                qtyDelta: -l.qty.toDouble(),
+                reason: 'sale',
+                refType: const d.Value('order'),
+                refId: d.Value(order.id),
+                terminalId: d.Value(order.terminalId),
+                userId: d.Value(order.cashierId),
+                createdAt: now,
+              ));
+        }
       }
       for (final p in payments) {
         await db.into(db.payments).insert(PaymentsCompanion.insert(

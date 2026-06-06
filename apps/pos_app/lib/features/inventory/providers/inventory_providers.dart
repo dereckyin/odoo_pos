@@ -27,7 +27,13 @@ final inventoryListProvider = StreamProvider.autoDispose.family<List<InventoryRo
     ..orderBy([OrderingTerm(expression: db.products.name)]);
 
   return query.watch().map((rows) {
-    return rows.map((row) {
+    return rows
+        .where((row) {
+          final p = row.readTableOrNull(db.products);
+          if (p == null) return true;
+          return p.trackInventory || p.productKind == 'consignment_book';
+        })
+        .map((row) {
       final lv = row.readTable(db.inventoryLevels);
       final p = row.readTableOrNull(db.products);
       return InventoryRow(

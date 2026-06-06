@@ -132,6 +132,7 @@ class ProductDto {
     this.deletedAt,
     this.hideFromPublicOrdering = false,
     this.hideFromPosBrowse = false,
+    this.trackInventory = true,
     this.productKind = 'regular',
   });
 
@@ -153,6 +154,7 @@ class ProductDto {
         deletedAt: j['deleted_at'] == null ? null : DateTime.parse(j['deleted_at'] as String),
         hideFromPublicOrdering: j['hide_from_public_ordering'] as bool? ?? false,
         hideFromPosBrowse: j['hide_from_pos_browse'] as bool? ?? false,
+        trackInventory: j['track_inventory'] as bool? ?? true,
         productKind: j['product_kind'] as String? ?? 'regular',
       );
 
@@ -167,6 +169,7 @@ class ProductDto {
   final DateTime? deletedAt;
   final bool hideFromPublicOrdering;
   final bool hideFromPosBrowse;
+  final bool trackInventory;
   final String productKind;
 }
 

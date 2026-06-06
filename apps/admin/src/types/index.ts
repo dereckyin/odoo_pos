@@ -249,6 +249,8 @@ export interface ProductRead {
   description: string | null
   hide_from_public_ordering: boolean
   hide_from_pos_browse: boolean
+  track_inventory: boolean
+  product_kind?: string
   marketplace_category_id: string | null
   barcodes: string[]
   updated_at: string
@@ -269,6 +271,7 @@ export interface ProductCreate {
   description?: string | null
   hide_from_public_ordering?: boolean
   hide_from_pos_browse?: boolean
+  track_inventory?: boolean
   marketplace_category_id?: string | null
   barcodes?: string[]
 }
@@ -522,6 +525,9 @@ export interface InventoryLevelRead {
   safety_stock: number
   reserved: number
   updated_at: string
+  store_name?: string | null
+  product_name?: string | null
+  product_sku?: string | null
 }
 
 export interface TransferRead {

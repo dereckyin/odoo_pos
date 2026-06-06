@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
@@ -15,6 +16,7 @@ from ...core.deps import (
 from ...models import (
     InventoryLevel,
     InventoryMovement,
+    Product,
     Store,
     Stocktake,
     StocktakeLine,
@@ -22,6 +24,7 @@ from ...models import (
     TransferOrder,
 )
 from ...schemas.inventory import (
+    InventoryAdjustCreate,
     InventoryLevelRead,
     InventoryLevelUpdate,
     MovementCreate,
@@ -32,6 +35,7 @@ from ...schemas.inventory import (
     TransferRead,
     TransferUpdate,
 )
+from ...services.inventory_tracking import product_tracks_inventory
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
 
@@ -82,6 +86,21 @@ async def _apply_movement(db, m: InventoryMovement) -> None:
         level.on_hand = float(level.on_hand) + float(m.qty_delta)
 
 
+def _level_read(
+    lvl: InventoryLevel,
+    store_map: dict[str, str],
+    product_map: dict[str, Product],
+) -> InventoryLevelRead:
+    p = product_map.get(lvl.product_id)
+    return InventoryLevelRead.model_validate(lvl).model_copy(
+        update={
+            "store_name": store_map.get(lvl.store_id),
+            "product_name": p.name if p else None,
+            "product_sku": p.sku if p else None,
+        }
+    )
+
+
 @router.get("/levels", response_model=list[InventoryLevelRead])
 async def list_levels(
     db: DbSession, scope: TenantScope, store_id: str | None = None
@@ -92,7 +111,119 @@ async def list_levels(
     elif scope.store_id:
         stmt = stmt.where(InventoryLevel.store_id == scope.store_id)
     rows = (await db.execute(stmt)).scalars().all()
-    return rows
+    if not rows:
+        return []
+    store_ids = {r.store_id for r in rows}
+    product_ids = {r.product_id for r in rows}
+    store_map = {
+        s.id: s.name
+        for s in (await db.execute(select(Store).where(Store.id.in_(store_ids)))).scalars()
+    }
+    product_map = {
+        p.id: p
+        for p in (await db.execute(select(Product).where(Product.id.in_(product_ids)))).scalars()
+    }
+    return [
+        _level_read(lvl, store_map, product_map)
+        for lvl in rows
+        if product_tracks_inventory(product_map.get(lvl.product_id))
+    ]
+
+
+async def _product_or_404(db, scope, product_id: str) -> Product:
+    p = await db.get(Product, product_id)
+    if not p or p.deleted_at:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "product not found")
+    ensure_same_tenant(scope, p)
+    return p
+
+
+@router.post("/adjust", response_model=InventoryLevelRead)
+async def adjust_inventory(
+    payload: InventoryAdjustCreate, db: DbSession, scope: StoreAdminDep
+):
+    if payload.mode not in ("delta", "set"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "mode must be delta or set")
+    if payload.reason not in ("adjustment", "initial"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "reason must be adjustment or initial")
+    if payload.mode == "set" and payload.qty < 0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "target on_hand cannot be negative")
+
+    await _ensure_store_in_tenant(db, scope, payload.store_id)
+    product = await _product_or_404(db, scope, payload.product_id)
+    if not product_tracks_inventory(product):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "此商品不追蹤庫存")
+
+    level = (
+        await db.execute(
+            select(InventoryLevel).where(
+                InventoryLevel.store_id == payload.store_id,
+                InventoryLevel.product_id == payload.product_id,
+            )
+        )
+    ).scalar_one_or_none()
+    current = float(level.on_hand) if level else 0.0
+    if payload.mode == "set":
+        qty_delta = float(payload.qty) - current
+    else:
+        qty_delta = float(payload.qty)
+
+    if qty_delta == 0:
+        if level is None:
+            level = InventoryLevel(
+                tenant_id=scope.tenant_id,
+                store_id=payload.store_id,
+                product_id=payload.product_id,
+                on_hand=0,
+            )
+            db.add(level)
+            await db.flush()
+        store_map = {
+            payload.store_id: (
+                await db.get(Store, payload.store_id)
+            ).name
+        }
+        return _level_read(level, store_map, {product.id: product})
+
+    m = InventoryMovement(
+        id=str(uuid4()),
+        tenant_id=scope.tenant_id,
+        store_id=payload.store_id,
+        product_id=payload.product_id,
+        qty_delta=qty_delta,
+        reason=payload.reason,
+        ref_type="inventory_adjust",
+        user_id=scope.user_id,
+        note=payload.note,
+    )
+    db.add(m)
+    await _apply_movement(db, m)
+    await audit(
+        db,
+        scope,
+        action="inventory_adjust",
+        resource_type="inventory_level",
+        resource_id=payload.product_id,
+        extra={
+            "store_id": payload.store_id,
+            "mode": payload.mode,
+            "qty": payload.qty,
+            "qty_delta": qty_delta,
+            "reason": payload.reason,
+        },
+        flush=False,
+    )
+    await db.commit()
+    level = (
+        await db.execute(
+            select(InventoryLevel).where(
+                InventoryLevel.store_id == payload.store_id,
+                InventoryLevel.product_id == payload.product_id,
+            )
+        )
+    ).scalar_one()
+    store = await db.get(Store, payload.store_id)
+    return _level_read(level, {payload.store_id: store.name if store else None}, {product.id: product})
 
 
 @router.patch("/levels/{level_id}", response_model=InventoryLevelRead)
@@ -123,6 +254,10 @@ async def record_movement(
 
     target_store = _resolve_store_id(scope, payload.store_id)
     await _ensure_store_in_tenant(db, scope, target_store)
+
+    product = await db.get(Product, payload.product_id)
+    if product and not product_tracks_inventory(product):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "此商品不追蹤庫存")
 
     data = payload.model_dump()
     data["store_id"] = target_store

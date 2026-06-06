@@ -10,10 +10,12 @@ from ...models import (
     Member,
     Order,
     OrderLine,
+    Product,
     Refund,
     RefundLine,
 )
 from ...schemas.order import RefundCreate, RefundRead
+from ...services.inventory_tracking import product_tracks_inventory
 from ...services.loyalty_engine import reverse_order_loyalty
 
 router = APIRouter(prefix="/orders", tags=["refunds"])
@@ -68,40 +70,48 @@ async def refund_order(
     db.add(refund)
     await db.flush()
 
+    product_ids = {ln.product_id for ln in line_map.values()}
+    products_by_id = {
+        p.id: p
+        for p in (await db.execute(select(Product).where(Product.id.in_(product_ids)))).scalars()
+    }
+
     for line_id, qty, amount in line_inputs:
         ln = line_map[line_id]
         db.add(
             RefundLine(refund_id=refund.id, order_line_id=line_id, qty=qty, amount_cents=amount)
         )
-        mvt = InventoryMovement(
-            tenant_id=order.tenant_id,
-            store_id=order.store_id,
-            product_id=ln.product_id,
-            qty_delta=float(qty),
-            reason="refund",
-            ref_type="refund",
-            ref_id=refund.id,
-            terminal_id=order.terminal_id,
-            user_id=refund.user_id,
-        )
-        db.add(mvt)
-        level = (
-            await db.execute(
-                select(InventoryLevel).where(
-                    InventoryLevel.store_id == order.store_id,
-                    InventoryLevel.product_id == ln.product_id,
-                )
-            )
-        ).scalar_one_or_none()
-        if level is None:
-            db.add(InventoryLevel(
+        p = products_by_id.get(ln.product_id)
+        if product_tracks_inventory(p):
+            mvt = InventoryMovement(
                 tenant_id=order.tenant_id,
                 store_id=order.store_id,
                 product_id=ln.product_id,
-                on_hand=float(qty),
-            ))
-        else:
-            level.on_hand = float(level.on_hand) + float(qty)
+                qty_delta=float(qty),
+                reason="refund",
+                ref_type="refund",
+                ref_id=refund.id,
+                terminal_id=order.terminal_id,
+                user_id=refund.user_id,
+            )
+            db.add(mvt)
+            level = (
+                await db.execute(
+                    select(InventoryLevel).where(
+                        InventoryLevel.store_id == order.store_id,
+                        InventoryLevel.product_id == ln.product_id,
+                    )
+                )
+            ).scalar_one_or_none()
+            if level is None:
+                db.add(InventoryLevel(
+                    tenant_id=order.tenant_id,
+                    store_id=order.store_id,
+                    product_id=ln.product_id,
+                    on_hand=float(qty),
+                ))
+            else:
+                level.on_hand = float(level.on_hand) + float(qty)
         total_cents += amount
 
     refund.total_amount_cents = total_cents

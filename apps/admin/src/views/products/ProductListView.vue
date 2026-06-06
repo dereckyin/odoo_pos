@@ -23,6 +23,14 @@
         <a-select-option :value="true">上架中</a-select-option>
         <a-select-option :value="false">已下架</a-select-option>
       </a-select>
+      <a-select
+        v-model:value="filterStore"
+        placeholder="門店（在庫）"
+        style="width: 160px"
+        allow-clear
+        :options="storeOptions"
+        @change="fetchData"
+      />
     </a-space>
 
     <a-table :columns="columns" :data-source="products" :loading="loading" row-key="id" :pagination="{ pageSize: 20 }">
@@ -36,6 +44,14 @@
         </template>
         <template v-if="column.key === 'category_id'">
           {{ categoryMap[record.category_id] || '-' }}
+        </template>
+        <template v-if="column.key === 'track_inventory'">
+          <a-tag v-if="record.track_inventory !== false" color="blue">追蹤</a-tag>
+          <a-tag v-else>不追蹤</a-tag>
+        </template>
+        <template v-if="column.key === 'on_hand'">
+          <span v-if="record.track_inventory === false" class="muted">—</span>
+          <span v-else>{{ formatOnHand(record.id) }}</span>
         </template>
         <template v-if="column.key === 'is_active'">
           <a-tag :color="record.is_active ? 'green' : 'default'">{{ record.is_active ? '上架' : '下架' }}</a-tag>
@@ -61,12 +77,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { listProducts, deleteProduct, updateProduct, listCategoriesTree } from '@/api/products'
-import type { ProductRead, CategoryTreeNode } from '@/types'
+import { listInventoryLevels } from '@/api/inventory'
+import { listStores } from '@/api/stores'
+import type { ProductRead, CategoryTreeNode, InventoryLevelRead } from '@/types'
 
 const products = ref<ProductRead[]>([])
+const inventoryLevels = ref<InventoryLevelRead[]>([])
+const storeOptions = ref<{ label: string; value: string }[]>([])
+const filterStore = ref<string | undefined>()
 const categoryTreeOptions = ref<CategoryTreeNode[]>([])
 const flatCategories = ref<{ id: string; path_label?: string; name: string }[]>([])
 const loading = ref(false)
@@ -81,6 +102,21 @@ const categoryMap = computed(() => {
   })
   return map
 })
+
+const onHandByProduct = computed(() => {
+  const map: Record<string, number> = {}
+  for (const lv of inventoryLevels.value) {
+    if (filterStore.value && lv.store_id !== filterStore.value) continue
+    map[lv.product_id] = (map[lv.product_id] ?? 0) + lv.on_hand
+  }
+  return map
+})
+
+function formatOnHand(productId: string) {
+  const qty = onHandByProduct.value[productId]
+  if (qty === undefined) return 0
+  return Number.isInteger(qty) ? qty : qty.toFixed(1)
+}
 
 function flattenTree(nodes: CategoryTreeNode[], out: { id: string; path_label?: string; name: string }[] = []) {
   for (const n of nodes) {
@@ -104,6 +140,8 @@ const columns = [
   { title: '名稱', dataIndex: 'name', key: 'name' },
   { title: '售價', key: 'price_cents', width: 100 },
   { title: '分類', key: 'category_id', width: 200 },
+  { title: '追蹤', key: 'track_inventory', width: 72 },
+  { title: '在庫', key: 'on_hand', width: 72 },
   { title: '條碼', key: 'barcodes', width: 180 },
   { title: '狀態', key: 'is_active', width: 80 },
   { title: '操作', key: 'actions', width: 200 },
@@ -112,12 +150,17 @@ const columns = [
 async function fetchData() {
   loading.value = true
   try {
-    const { data } = await listProducts({
-      q: search.value || undefined,
-      category_id: filterCategory.value,
-      is_active: filterActive.value,
-    })
+    const [{ data }, { data: levels }] = await Promise.all([
+      listProducts({
+        q: search.value || undefined,
+        category_id: filterCategory.value,
+        is_active: filterActive.value,
+        limit: 200,
+      }),
+      listInventoryLevels(filterStore.value ? { store_id: filterStore.value } : undefined),
+    ])
     products.value = data
+    inventoryLevels.value = levels
   } finally {
     loading.value = false
   }
@@ -136,9 +179,16 @@ async function toggleActive(record: ProductRead) {
 }
 
 onMounted(async () => {
-  const { data } = await listCategoriesTree()
+  const [{ data }, { data: stores }] = await Promise.all([listCategoriesTree(), listStores()])
   categoryTreeOptions.value = decorateTree(data)
   flatCategories.value = flattenTree(data)
+  storeOptions.value = stores.map((s) => ({ label: s.name, value: s.id }))
   fetchData()
 })
 </script>
+
+<style scoped>
+.muted {
+  color: rgba(0, 0, 0, 0.25);
+}
+</style>

@@ -1362,6 +1362,16 @@ class $ProductsTable extends Products
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("hide_from_pos_browse" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _trackInventoryMeta =
+      const VerificationMeta('trackInventory');
+  @override
+  late final GeneratedColumn<bool> trackInventory = GeneratedColumn<bool>(
+      'track_inventory', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("track_inventory" IN (0, 1))'),
+      defaultValue: const Constant(true));
   static const VerificationMeta _productKindMeta =
       const VerificationMeta('productKind');
   @override
@@ -1398,6 +1408,7 @@ class $ProductsTable extends Products
         description,
         hideFromPublicOrdering,
         hideFromPosBrowse,
+        trackInventory,
         productKind,
         updatedAt,
         deletedAt
@@ -1485,6 +1496,12 @@ class $ProductsTable extends Products
           hideFromPosBrowse.isAcceptableOrUnknown(
               data['hide_from_pos_browse']!, _hideFromPosBrowseMeta));
     }
+    if (data.containsKey('track_inventory')) {
+      context.handle(
+          _trackInventoryMeta,
+          trackInventory.isAcceptableOrUnknown(
+              data['track_inventory']!, _trackInventoryMeta));
+    }
     if (data.containsKey('product_kind')) {
       context.handle(
           _productKindMeta,
@@ -1539,6 +1556,8 @@ class $ProductsTable extends Products
           data['${effectivePrefix}hide_from_public_ordering'])!,
       hideFromPosBrowse: attachedDatabase.typeMapping.read(
           DriftSqlType.bool, data['${effectivePrefix}hide_from_pos_browse'])!,
+      trackInventory: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}track_inventory'])!,
       productKind: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}product_kind'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -1569,6 +1588,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   final String? description;
   final bool hideFromPublicOrdering;
   final bool hideFromPosBrowse;
+  final bool trackInventory;
   final String productKind;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -1587,6 +1607,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       this.description,
       required this.hideFromPublicOrdering,
       required this.hideFromPosBrowse,
+      required this.trackInventory,
       required this.productKind,
       required this.updatedAt,
       this.deletedAt});
@@ -1615,6 +1636,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     }
     map['hide_from_public_ordering'] = Variable<bool>(hideFromPublicOrdering);
     map['hide_from_pos_browse'] = Variable<bool>(hideFromPosBrowse);
+    map['track_inventory'] = Variable<bool>(trackInventory);
     map['product_kind'] = Variable<String>(productKind);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
@@ -1647,6 +1669,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           : Value(description),
       hideFromPublicOrdering: Value(hideFromPublicOrdering),
       hideFromPosBrowse: Value(hideFromPosBrowse),
+      trackInventory: Value(trackInventory),
       productKind: Value(productKind),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
@@ -1674,6 +1697,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       hideFromPublicOrdering:
           serializer.fromJson<bool>(json['hideFromPublicOrdering']),
       hideFromPosBrowse: serializer.fromJson<bool>(json['hideFromPosBrowse']),
+      trackInventory: serializer.fromJson<bool>(json['trackInventory']),
       productKind: serializer.fromJson<String>(json['productKind']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
@@ -1697,6 +1721,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       'description': serializer.toJson<String?>(description),
       'hideFromPublicOrdering': serializer.toJson<bool>(hideFromPublicOrdering),
       'hideFromPosBrowse': serializer.toJson<bool>(hideFromPosBrowse),
+      'trackInventory': serializer.toJson<bool>(trackInventory),
       'productKind': serializer.toJson<String>(productKind),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
@@ -1718,6 +1743,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           Value<String?> description = const Value.absent(),
           bool? hideFromPublicOrdering,
           bool? hideFromPosBrowse,
+          bool? trackInventory,
           String? productKind,
           DateTime? updatedAt,
           Value<DateTime?> deletedAt = const Value.absent()}) =>
@@ -1737,6 +1763,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
         hideFromPublicOrdering:
             hideFromPublicOrdering ?? this.hideFromPublicOrdering,
         hideFromPosBrowse: hideFromPosBrowse ?? this.hideFromPosBrowse,
+        trackInventory: trackInventory ?? this.trackInventory,
         productKind: productKind ?? this.productKind,
         updatedAt: updatedAt ?? this.updatedAt,
         deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -1765,6 +1792,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       hideFromPosBrowse: data.hideFromPosBrowse.present
           ? data.hideFromPosBrowse.value
           : this.hideFromPosBrowse,
+      trackInventory: data.trackInventory.present
+          ? data.trackInventory.value
+          : this.trackInventory,
       productKind:
           data.productKind.present ? data.productKind.value : this.productKind,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -1789,6 +1819,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ..write('description: $description, ')
           ..write('hideFromPublicOrdering: $hideFromPublicOrdering, ')
           ..write('hideFromPosBrowse: $hideFromPosBrowse, ')
+          ..write('trackInventory: $trackInventory, ')
           ..write('productKind: $productKind, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt')
@@ -1812,6 +1843,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       description,
       hideFromPublicOrdering,
       hideFromPosBrowse,
+      trackInventory,
       productKind,
       updatedAt,
       deletedAt);
@@ -1833,6 +1865,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           other.description == this.description &&
           other.hideFromPublicOrdering == this.hideFromPublicOrdering &&
           other.hideFromPosBrowse == this.hideFromPosBrowse &&
+          other.trackInventory == this.trackInventory &&
           other.productKind == this.productKind &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt);
@@ -1853,6 +1886,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
   final Value<String?> description;
   final Value<bool> hideFromPublicOrdering;
   final Value<bool> hideFromPosBrowse;
+  final Value<bool> trackInventory;
   final Value<String> productKind;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
@@ -1872,6 +1906,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.description = const Value.absent(),
     this.hideFromPublicOrdering = const Value.absent(),
     this.hideFromPosBrowse = const Value.absent(),
+    this.trackInventory = const Value.absent(),
     this.productKind = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -1892,6 +1927,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.description = const Value.absent(),
     this.hideFromPublicOrdering = const Value.absent(),
     this.hideFromPosBrowse = const Value.absent(),
+    this.trackInventory = const Value.absent(),
     this.productKind = const Value.absent(),
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
@@ -1915,6 +1951,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Expression<String>? description,
     Expression<bool>? hideFromPublicOrdering,
     Expression<bool>? hideFromPosBrowse,
+    Expression<bool>? trackInventory,
     Expression<String>? productKind,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
@@ -1936,6 +1973,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       if (hideFromPublicOrdering != null)
         'hide_from_public_ordering': hideFromPublicOrdering,
       if (hideFromPosBrowse != null) 'hide_from_pos_browse': hideFromPosBrowse,
+      if (trackInventory != null) 'track_inventory': trackInventory,
       if (productKind != null) 'product_kind': productKind,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
@@ -1958,6 +1996,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       Value<String?>? description,
       Value<bool>? hideFromPublicOrdering,
       Value<bool>? hideFromPosBrowse,
+      Value<bool>? trackInventory,
       Value<String>? productKind,
       Value<DateTime>? updatedAt,
       Value<DateTime?>? deletedAt,
@@ -1978,6 +2017,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       hideFromPublicOrdering:
           hideFromPublicOrdering ?? this.hideFromPublicOrdering,
       hideFromPosBrowse: hideFromPosBrowse ?? this.hideFromPosBrowse,
+      trackInventory: trackInventory ?? this.trackInventory,
       productKind: productKind ?? this.productKind,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -2031,6 +2071,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     if (hideFromPosBrowse.present) {
       map['hide_from_pos_browse'] = Variable<bool>(hideFromPosBrowse.value);
     }
+    if (trackInventory.present) {
+      map['track_inventory'] = Variable<bool>(trackInventory.value);
+    }
     if (productKind.present) {
       map['product_kind'] = Variable<String>(productKind.value);
     }
@@ -2063,6 +2106,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
           ..write('description: $description, ')
           ..write('hideFromPublicOrdering: $hideFromPublicOrdering, ')
           ..write('hideFromPosBrowse: $hideFromPosBrowse, ')
+          ..write('trackInventory: $trackInventory, ')
           ..write('productKind: $productKind, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -14834,6 +14878,7 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   Value<String?> description,
   Value<bool> hideFromPublicOrdering,
   Value<bool> hideFromPosBrowse,
+  Value<bool> trackInventory,
   Value<String> productKind,
   required DateTime updatedAt,
   Value<DateTime?> deletedAt,
@@ -14854,6 +14899,7 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<String?> description,
   Value<bool> hideFromPublicOrdering,
   Value<bool> hideFromPosBrowse,
+  Value<bool> trackInventory,
   Value<String> productKind,
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
@@ -14985,6 +15031,10 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<bool> get hideFromPosBrowse => $composableBuilder(
       column: $table.hideFromPosBrowse,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get trackInventory => $composableBuilder(
+      column: $table.trackInventory,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get productKind => $composableBuilder(
@@ -15137,6 +15187,10 @@ class $$ProductsTableOrderingComposer
       column: $table.hideFromPosBrowse,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get trackInventory => $composableBuilder(
+      column: $table.trackInventory,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get productKind => $composableBuilder(
       column: $table.productKind, builder: (column) => ColumnOrderings(column));
 
@@ -15197,6 +15251,9 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<bool> get hideFromPosBrowse => $composableBuilder(
       column: $table.hideFromPosBrowse, builder: (column) => column);
+
+  GeneratedColumn<bool> get trackInventory => $composableBuilder(
+      column: $table.trackInventory, builder: (column) => column);
 
   GeneratedColumn<String> get productKind => $composableBuilder(
       column: $table.productKind, builder: (column) => column);
@@ -15338,6 +15395,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String?> description = const Value.absent(),
             Value<bool> hideFromPublicOrdering = const Value.absent(),
             Value<bool> hideFromPosBrowse = const Value.absent(),
+            Value<bool> trackInventory = const Value.absent(),
             Value<String> productKind = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<DateTime?> deletedAt = const Value.absent(),
@@ -15358,6 +15416,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             description: description,
             hideFromPublicOrdering: hideFromPublicOrdering,
             hideFromPosBrowse: hideFromPosBrowse,
+            trackInventory: trackInventory,
             productKind: productKind,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
@@ -15378,6 +15437,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String?> description = const Value.absent(),
             Value<bool> hideFromPublicOrdering = const Value.absent(),
             Value<bool> hideFromPosBrowse = const Value.absent(),
+            Value<bool> trackInventory = const Value.absent(),
             Value<String> productKind = const Value.absent(),
             required DateTime updatedAt,
             Value<DateTime?> deletedAt = const Value.absent(),
@@ -15398,6 +15458,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             description: description,
             hideFromPublicOrdering: hideFromPublicOrdering,
             hideFromPosBrowse: hideFromPosBrowse,
+            trackInventory: trackInventory,
             productKind: productKind,
             updatedAt: updatedAt,
             deletedAt: deletedAt,

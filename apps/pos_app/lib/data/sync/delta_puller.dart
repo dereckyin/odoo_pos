@@ -164,6 +164,7 @@ class DeltaPuller {
             deletedAt: Value(p.deletedAt),
             hideFromPublicOrdering: Value(p.hideFromPublicOrdering),
             hideFromPosBrowse: Value(p.hideFromPosBrowse),
+            trackInventory: Value(p.trackInventory),
             productKind: Value(p.productKind),
           ),
           mode: InsertMode.insertOrReplace,

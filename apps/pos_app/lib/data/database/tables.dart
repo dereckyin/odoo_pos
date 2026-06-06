@@ -62,6 +62,7 @@ class Products extends Table {
   BoolColumn get hideFromPublicOrdering =>
       boolean().withDefault(const Constant(false))();
   BoolColumn get hideFromPosBrowse => boolean().withDefault(const Constant(false))();
+  BoolColumn get trackInventory => boolean().withDefault(const Constant(true))();
   TextColumn get productKind => text().withDefault(const Constant('regular'))();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();

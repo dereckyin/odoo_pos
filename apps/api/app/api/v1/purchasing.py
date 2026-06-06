@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 from ...core.audit import audit
 from ...core.deps import DbSession, StoreAdminDep, apply_tenant, ensure_same_tenant
 from ...models import InventoryMovement, Product, PurchaseOrder, PurchaseOrderLine, Store, Supplier
+from ...services.inventory_tracking import product_tracks_inventory
 from ...schemas.purchasing import (
     PurchaseOrderCreate,
     PurchaseOrderRead,
@@ -273,21 +274,23 @@ async def receive_purchase_order(
         if take <= 0:
             continue
         applied = True
-        mid = str(uuid4())
-        m = InventoryMovement(
-            id=mid,
-            tenant_id=tid,
-            store_id=po.store_id,
-            product_id=ln.product_id,
-            qty_delta=take,
-            reason="receive",
-            ref_type="purchase_order",
-            ref_id=po.id,
-            user_id=scope.user_id,
-            client_created_at=now,
-        )
-        db.add(m)
-        await _apply_movement(db, m)
+        product = await db.get(Product, ln.product_id)
+        if product_tracks_inventory(product):
+            mid = str(uuid4())
+            m = InventoryMovement(
+                id=mid,
+                tenant_id=tid,
+                store_id=po.store_id,
+                product_id=ln.product_id,
+                qty_delta=take,
+                reason="receive",
+                ref_type="purchase_order",
+                ref_id=po.id,
+                user_id=scope.user_id,
+                client_created_at=now,
+            )
+            db.add(m)
+            await _apply_movement(db, m)
         ln.qty_received = float(ln.qty_received) + take
 
     if not applied:

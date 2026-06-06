@@ -155,6 +155,8 @@ async def update_product(
     barcodes = data.pop("barcodes", None)
     for k, v in data.items():
         setattr(p, k, v)
+    if getattr(p, "product_kind", "regular") == "consignment_book":
+        p.track_inventory = True
     if barcodes is not None:
         await _ensure_barcodes(db, p, barcodes, scope.tenant_id)
     await audit(db, scope, action="product_update", resource_type="product",

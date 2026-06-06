@@ -47,6 +47,7 @@ from ...services.consignment_books import (
     calc_consignment_shares,
     get_consignment_settings,
 )
+from ...services.inventory_tracking import product_tracks_inventory
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -185,6 +186,8 @@ async def upload_order(
             ln_data["consignment_restaurant_share_cents"] = 0
         db.add(OrderLine(order_id=order.id, **ln_data))
         if ln_data.get("sku") == "MARKETPLACE-DELIVERY-FEE":
+            continue
+        if not product_tracks_inventory(p):
             continue
         mvt = InventoryMovement(
             tenant_id=scope.tenant_id,

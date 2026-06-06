@@ -69,6 +69,13 @@
           <div style="color: #888; font-size: 12px">勾選後收銀「全部」網格不列出；條碼／搜尋與所屬分類內仍可點選。</div>
         </a-form-item>
 
+        <a-form-item label="管理庫存">
+          <a-switch v-model:checked="form.track_inventory" :disabled="isConsignmentBook" />
+          <div style="color: #888; font-size: 12px">
+            關閉後 POS 銷售不扣庫存（適用現泡飲品等無庫存概念品項）。寄賣書籍一律追蹤庫存。
+          </div>
+        </a-form-item>
+
         <a-form-item label="商品圖片">
           <a-upload
             :before-upload="handleUpload"
@@ -133,6 +140,8 @@ import type { CategoryTreeNode, ProductCreate, ProductUpdate, OptionGroupRead } 
 const route = useRoute()
 const router = useRouter()
 const isEdit = computed(() => !!route.params.id)
+const productKind = ref('regular')
+const isConsignmentBook = computed(() => productKind.value === 'consignment_book')
 const loading = ref(false)
 const submitting = ref(false)
 const uploading = ref(false)
@@ -172,6 +181,7 @@ const form = reactive({
   is_active: true,
   hide_from_public_ordering: false,
   hide_from_pos_browse: false,
+  track_inventory: true,
   image_url: '' as string | null,
   description: '' as string | null,
 })
@@ -231,6 +241,7 @@ async function handleSubmit() {
       description: form.description?.trim() ? form.description.trim() : null,
       hide_from_public_ordering: form.hide_from_public_ordering,
       hide_from_pos_browse: form.hide_from_pos_browse,
+      track_inventory: isConsignmentBook.value ? true : form.track_inventory,
       marketplace_category_id: marketplaceCategoryId.value ?? null,
       barcodes: barcodes.value.map((b) => b.trim()).filter(Boolean),
     }
@@ -294,6 +305,8 @@ onMounted(async () => {
       form.is_active = data.is_active
       form.hide_from_public_ordering = data.hide_from_public_ordering ?? false
       form.hide_from_pos_browse = data.hide_from_pos_browse ?? false
+      form.track_inventory = data.track_inventory ?? true
+      productKind.value = data.product_kind ?? 'regular'
       form.image_url = data.image_url
       form.description = data.description
       marketplaceCategoryId.value = data.marketplace_category_id ?? undefined

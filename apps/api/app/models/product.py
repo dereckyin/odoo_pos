@@ -39,6 +39,7 @@ class Product(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     hide_from_public_ordering: Mapped[bool] = mapped_column(Boolean, default=False)
     hide_from_pos_browse: Mapped[bool] = mapped_column(Boolean, default=False)
+    track_inventory: Mapped[bool] = mapped_column(Boolean, default=True)
     product_kind: Mapped[str] = mapped_column(String(32), default="regular", index=True)
     marketplace_category_id: Mapped[str | None] = mapped_column(
         ForeignKey("marketplace_categories.id"), nullable=True, index=True

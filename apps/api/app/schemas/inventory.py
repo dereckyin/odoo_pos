@@ -14,6 +14,9 @@ class InventoryLevelRead(ORMModel):
     safety_stock: float
     reserved: float
     updated_at: datetime
+    store_name: str | None = None
+    product_name: str | None = None
+    product_sku: str | None = None
 
 
 class InventoryLevelUpdate(BaseModel):
@@ -102,3 +105,12 @@ class StocktakeRead(ORMModel):
     completed_at: datetime | None
     note: str | None
     created_at: datetime
+
+
+class InventoryAdjustCreate(BaseModel):
+    store_id: str
+    product_id: str
+    mode: str = "delta"  # delta | set
+    qty: float
+    note: str | None = None
+    reason: str = "adjustment"  # adjustment | initial
