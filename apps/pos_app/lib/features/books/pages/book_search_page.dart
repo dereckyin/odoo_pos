@@ -5,9 +5,7 @@ import 'package:pos_domain/pos_domain.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
 import '../../cashier/providers/cart_controller.dart';
-import '../book_local_store.dart';
 import '../providers/book_providers.dart';
-import '../../../core/providers.dart';
 
 class BookSearchPage extends ConsumerStatefulWidget {
   const BookSearchPage({super.key});
@@ -27,28 +25,17 @@ class _BookSearchPageState extends ConsumerState<BookSearchPage> {
   }
 
   Future<void> _addBook(Product product) async {
-    await ref.read(cartControllerProvider.notifier).addProduct(product);
+    final err = await ref.read(cartControllerProvider.notifier).scanBarcode(
+          product.barcodes.isNotEmpty ? product.barcodes.first : product.sku,
+        );
     if (!mounted) return;
+    if (err != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('已加入：${product.name}')),
     );
-  }
-
-  Future<void> _scanRemote(String code) async {
-    try {
-      final api = ref.read(posApiProvider);
-      final store = ref.read(bookLocalStoreProvider);
-      final dto = await api.scanBook(code);
-      await store.upsertFromDto(dto);
-      await _addBook(store.toProduct(dto));
-      setState(() => _query = code);
-      _queryCtl.text = code;
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('查無書籍：$code')),
-      );
-    }
   }
 
   @override
@@ -67,13 +54,9 @@ class _BookSearchPageState extends ConsumerState<BookSearchPage> {
             child: TextField(
               controller: _queryCtl,
               autofocus: true,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                hintText: '書名 / 作者 / 條碼',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.qr_code_scanner_outlined),
-                  onPressed: () => context.push('/scan'),
-                ),
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                hintText: '書名 / 作者 / 條碼（僅已入庫書籍）',
               ),
               onSubmitted: (v) => setState(() => _query = v.trim()),
               onChanged: (v) {
@@ -87,25 +70,10 @@ class _BookSearchPageState extends ConsumerState<BookSearchPage> {
               error: (e, _) => Center(child: Text('查詢失敗：$e')),
               data: (books) {
                 if (_query.isEmpty) {
-                  return const Center(child: Text('輸入關鍵字搜尋寄賣書籍'));
+                  return const Center(child: Text('輸入關鍵字搜尋已入庫的寄賣書籍'));
                 }
                 if (books.isEmpty) {
-                  final looksBarcode = RegExp(r'^\d{8,11}$').hasMatch(_query);
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('本地無結果'),
-                        if (looksBarcode) ...[
-                          const SizedBox(height: 12),
-                          FilledButton(
-                            onPressed: () => _scanRemote(_query),
-                            child: Text('向伺服器查詢條碼 $_query'),
-                          ),
-                        ],
-                      ],
-                    ),
-                  );
+                  return const Center(child: Text('找不到書籍，請確認已入庫並完成同步'));
                 }
                 return ListView.separated(
                   itemCount: books.length,

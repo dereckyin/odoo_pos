@@ -23,6 +23,7 @@ const BUSINESS_INTELLIGENCE_ROUTES = new Set([
 const CONSIGNMENT_BOOKS_ROUTES = new Set([
   'books',
   'book-receive',
+  'book-import',
   'book-settings',
   'book-reports',
 ])
@@ -67,6 +68,7 @@ const merchantChildren: RouteRecordRaw[] = [
   { path: 'reports', name: 'reports', component: () => import('@/views/reports/ReportsView.vue') },
   { path: 'books', name: 'books', component: () => import('@/views/books/BookListView.vue') },
   { path: 'books/receive', name: 'book-receive', component: () => import('@/views/books/BookReceiveView.vue') },
+  { path: 'books/import', name: 'book-import', component: () => import('@/views/books/BookImportView.vue') },
   { path: 'books/settings', name: 'book-settings', component: () => import('@/views/books/ConsignmentSettingsView.vue') },
   { path: 'books/reports', name: 'book-reports', component: () => import('@/views/books/ConsignmentReportView.vue') },
   // Business intelligence

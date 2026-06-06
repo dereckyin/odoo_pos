@@ -119,12 +119,12 @@ class _ScanPageState extends ConsumerState<ScanPage> {
     final code = capture.barcodes.firstOrNull?.rawValue;
     if (code == null) return;
     _processing = true;
-    final ok = await ref.read(cartControllerProvider.notifier).scanBarcode(code);
+    final err = await ref.read(cartControllerProvider.notifier).scanBarcode(code);
     if (!mounted) return;
-    if (ok) {
+    if (err == null) {
       context.pop();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('找不到: $code')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
       Future.delayed(const Duration(seconds: 1), () => _processing = false);
     }
   }
@@ -173,15 +173,15 @@ class _BookDemoScanPanel extends ConsumerWidget {
                           avatar: const Icon(Icons.menu_book, size: 18),
                           label: Text(book.title, overflow: TextOverflow.ellipsis),
                           onPressed: () async {
-                            final ok = await ref
+                            final err = await ref
                                 .read(cartControllerProvider.notifier)
                                 .scanBarcode(book.barcode);
                             if (!context.mounted) return;
-                            if (ok) {
+                            if (err == null) {
                               context.pop();
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('無法加入: ${book.title}')),
+                                SnackBar(content: Text(err)),
                               );
                             }
                           },

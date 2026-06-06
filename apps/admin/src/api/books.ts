@@ -11,6 +11,22 @@ export interface ConsignmentBooksSettings {
   discount_presets: DiscountPreset[]
 }
 
+export interface BookLookup {
+  barcode: string
+  barcode_kind: string
+  title: string
+  author: string
+  publisher: string
+  isbn: string | null
+  list_price_cents: number
+  sale_price_cents: number | null
+  category_main: string | null
+  category_sub: string | null
+  image_url: string | null
+  sale_disc: number | null
+  source: string
+}
+
 export interface BookProduct {
   id: string
   sku: string
@@ -27,6 +43,18 @@ export interface BookProduct {
   list_price_cents: number | null
   sale_disc: number | null
   on_hand: number | null
+}
+
+export interface BookImportError {
+  row: number
+  barcode: string
+  message: string
+}
+
+export interface BookImportResult {
+  received: number
+  skipped: number
+  errors: BookImportError[]
 }
 
 export interface ConsignmentSettlementRow {
@@ -71,8 +99,20 @@ export function listBooks(params?: { q?: string; store_id?: string }) {
   return client.get<BookProduct[]>('/books', { params })
 }
 
-export function receiveBook(payload: { store_id: string; product_id: string; qty: number }) {
+export function lookupBook(barcode: string) {
+  return client.get<BookLookup>('/books/lookup', { params: { barcode } })
+}
+
+export function receiveBook(payload: { barcode: string; store_id: string; qty: number }) {
   return client.post<BookProduct>('/books/receive', payload)
+}
+
+export function importBooksCsv(file: File) {
+  const form = new FormData()
+  form.append('file', file)
+  return client.post<BookImportResult>('/books/import-csv', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
 }
 
 export function getConsignmentSettlement(params?: {

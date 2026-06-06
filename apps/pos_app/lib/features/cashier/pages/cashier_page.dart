@@ -8,6 +8,7 @@ import 'package:pos_domain/pos_domain.dart';
 import '../../../core/providers.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../data/scanner/barcode_listener.dart';
+import '../../../core/roles.dart';
 import '../../books/providers/consignment_providers.dart';
 import '../../../data/sync/sync_providers.dart';
 import '../../sync/widgets/master_data_sync_button.dart';
@@ -58,12 +59,10 @@ class _CashierPageState extends ConsumerState<CashierPage> {
   }
 
   Future<void> _onBarcode(String code) async {
-    final ok = await ref.read(cartControllerProvider.notifier).scanBarcode(code);
+    final err = await ref.read(cartControllerProvider.notifier).scanBarcode(code);
     if (!mounted) return;
-    if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('找不到條碼: $code')),
-      );
+    if (err != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
     }
   }
 
@@ -106,12 +105,19 @@ class _CashierPageState extends ConsumerState<CashierPage> {
                   ),
                 ),
               ),
-            if (ref.watch(consignmentPosConfigProvider).enabled)
+            if (ref.watch(consignmentPosConfigProvider).enabled) ...[
               IconButton(
                 tooltip: '寄賣書籍查詢',
                 icon: const Icon(Icons.menu_book_outlined),
                 onPressed: () => context.push('/books/search'),
               ),
+              if (session != null && isStoreAdminRole(session.role))
+                IconButton(
+                  tooltip: '寄賣入庫',
+                  icon: const Icon(Icons.inventory_outlined),
+                  onPressed: () => context.push('/books/receive'),
+                ),
+            ],
             IconButton(
               tooltip: '商品管理',
               icon: const Icon(Icons.inventory_2_outlined),

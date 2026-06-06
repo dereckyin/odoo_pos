@@ -1,10 +1,10 @@
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_core/pos_core.dart';
 import 'package:pos_domain/pos_domain.dart';
 
 import '../../../core/providers.dart';
 import '../../../data/api/dto.dart';
-import '../../books/book_local_store.dart';
 import '../../books/providers/consignment_providers.dart';
 import '../../members/providers/member_providers.dart';
 import '../../products/providers/product_providers.dart';
@@ -261,26 +261,33 @@ class CartController extends StateNotifier<Cart> {
     state = result.cart;
   }
 
-  Future<bool> scanBarcode(String code) async {
+  /// Returns null on success, or a user-facing error message.
+  Future<String?> scanBarcode(String code) async {
+    final trimmed = code.trim();
     final repo = _ref.read(productRepositoryProvider);
-    var p = await repo.findByBarcode(code);
+    final p = await repo.findByBarcode(trimmed);
     if (p == null) {
       final cfg = _ref.read(consignmentPosConfigProvider);
       if (cfg.enabled) {
-        try {
-          final api = _ref.read(posApiProvider);
-          final store = BookLocalStore(_ref.read(databaseProvider));
-          final dto = await api.scanBook(code);
-          await store.upsertFromDto(dto);
-          p = store.toProduct(dto);
-        } catch (_) {
-          return false;
+        return '此書尚未入庫，請先至寄賣入庫';
+      }
+      return '找不到條碼：$trimmed';
+    }
+    if (p.isConsignmentBook) {
+      final storeId = _ref.read(authStateProvider).session?.storeId;
+      if (storeId != null) {
+        final db = _ref.read(databaseProvider);
+        final level = await (db.select(db.inventoryLevels)
+              ..where((l) => l.storeId.equals(storeId) & l.productId.equals(p.id)))
+            .getSingleOrNull();
+        final onHand = level?.onHand ?? 0;
+        if (onHand <= 0) {
+          return '此書庫存不足（尚未入庫或已售完）';
         }
       }
     }
-    if (p == null) return false;
     await addProduct(p);
-    return true;
+    return null;
   }
 }
 

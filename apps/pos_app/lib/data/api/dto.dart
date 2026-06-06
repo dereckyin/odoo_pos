@@ -237,6 +237,42 @@ class DiscountPresetDto {
   final int pctOff;
 }
 
+class BookLookupDto {
+  BookLookupDto({
+    required this.barcode,
+    required this.title,
+    required this.author,
+    required this.publisher,
+    required this.listPriceCents,
+    this.salePriceCents,
+    this.categoryMain,
+    this.categorySub,
+    this.saleDisc,
+  });
+
+  factory BookLookupDto.fromJson(Map<String, dynamic> j) => BookLookupDto(
+        barcode: j['barcode'] as String,
+        title: j['title'] as String,
+        author: j['author'] as String? ?? '—',
+        publisher: j['publisher'] as String? ?? '—',
+        listPriceCents: (j['list_price_cents'] as num).toInt(),
+        salePriceCents: (j['sale_price_cents'] as num?)?.toInt(),
+        categoryMain: j['category_main'] as String?,
+        categorySub: j['category_sub'] as String?,
+        saleDisc: (j['sale_disc'] as num?)?.toInt(),
+      );
+
+  final String barcode;
+  final String title;
+  final String author;
+  final String publisher;
+  final int listPriceCents;
+  final int? salePriceCents;
+  final String? categoryMain;
+  final String? categorySub;
+  final int? saleDisc;
+}
+
 class BookProductDto {
   BookProductDto({
     required this.id,

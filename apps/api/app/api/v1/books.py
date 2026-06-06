@@ -1,18 +1,20 @@
+import csv
 from datetime import datetime, timezone
-from uuid import uuid4
+from io import StringIO
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from ...core.audit import audit
 from ...core.deps import DbSession, StoreAdminDep, TenantAdminDep, TenantScope
-from ...models import InventoryLevel, InventoryMovement, Product, Tenant
+from ...models import InventoryLevel, Product, Tenant
 from ...schemas.book import (
+    BookImportResultRead,
     BookLookupRead,
     BookProductRead,
     BookReceiveRequest,
-    BookScanRequest,
     ConsignmentBooksSettingsRead,
     ConsignmentBooksSettingsUpdate,
     ConsignmentPosConfig,
@@ -22,13 +24,14 @@ from ...services.book_catalog import (
     ensure_consignment_category,
     product_to_book_read,
     search_books,
-    upsert_book_from_barcode,
 )
+from ...services.book_import import import_books_from_csv, render_book_import_template_csv
 from ...services.book_lookup import (
     BookLookupNotFoundError,
     UnsupportedBarcodeError,
     lookup_barcode,
 )
+from ...services.book_receive import product_read_after_receive, receive_book_by_barcode
 from ...services.consignment_books import (
     assert_consignment_module,
     assert_store_allowed,
@@ -37,7 +40,7 @@ from ...services.consignment_books import (
     read_consignment_settings,
     write_consignment_settings,
 )
-from ...api.v1.inventories import _apply_movement, _ensure_store_in_tenant, _resolve_store_id
+from ...api.v1.inventories import _ensure_store_in_tenant, _resolve_store_id
 
 router = APIRouter(prefix="/books", tags=["books"])
 
@@ -104,9 +107,10 @@ async def pos_config(db: DbSession, scope: TenantScope):
 
 @router.get("/lookup", response_model=BookLookupRead)
 async def lookup_book(
-    db: DbSession, scope: TenantScope, barcode: str = Query(min_length=1)
+    db: DbSession, scope: StoreAdminDep, barcode: str = Query(min_length=1)
 ):
-    await assert_store_allowed(db, scope.tenant_id, scope.store_id)
+    """Preview book metadata from TAAZE before inbound (does not write DB)."""
+    await assert_consignment_module(db, scope.tenant_id)
     try:
         result = lookup_barcode(barcode)
     except UnsupportedBarcodeError as e:
@@ -150,93 +154,68 @@ async def search_book_products(
     return [BookProductRead(**product_to_book_read(p, on_hand)) for p, on_hand in rows]
 
 
-@router.post("/scan", response_model=BookProductRead)
-async def scan_book(payload: BookScanRequest, db: DbSession, scope: TenantScope):
-    await assert_store_allowed(db, scope.tenant_id, scope.store_id)
-    try:
-        lookup = lookup_barcode(payload.barcode)
-    except UnsupportedBarcodeError as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e)) from e
-    except BookLookupNotFoundError as e:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e)) from e
-    product = await upsert_book_from_barcode(db, scope.tenant_id, payload.barcode, lookup)
-    on_hand = None
-    if scope.store_id:
-        level = (
-            await db.execute(
-                select(InventoryLevel).where(
-                    InventoryLevel.store_id == scope.store_id,
-                    InventoryLevel.product_id == product.id,
-                )
-            )
-        ).scalar_one_or_none()
-        on_hand = float(level.on_hand) if level else 0.0
-    await audit(
-        db, scope, action="book_scan_upsert",
-        resource_type="product", resource_id=product.id, flush=False,
-    )
-    await db.commit()
-    product = (
-        await db.execute(
-            select(Product)
-            .where(Product.id == product.id)
-            .options(selectinload(Product.barcodes), selectinload(Product.book_detail))
-        )
-    ).scalar_one()
-    return BookProductRead(**product_to_book_read(product, on_hand))
-
-
 @router.post("/receive", response_model=BookProductRead)
 async def receive_book(payload: BookReceiveRequest, db: DbSession, scope: StoreAdminDep):
+    """Inbound: TAAZE lookup → upsert catalog → add store inventory."""
     await assert_consignment_module(db, scope.tenant_id)
     target_store = _resolve_store_id(scope, payload.store_id)
     await _ensure_store_in_tenant(db, scope, target_store)
     await assert_store_allowed(db, scope.tenant_id, target_store)
 
-    product = (
-        await db.execute(
-            select(Product)
-            .where(
-                Product.id == payload.product_id,
-                Product.tenant_id == scope.tenant_id,
-                Product.product_kind == "consignment_book",
-            )
-            .options(selectinload(Product.barcodes), selectinload(Product.book_detail))
+    try:
+        product, on_hand = await receive_book_by_barcode(
+            db,
+            scope.tenant_id,
+            target_store,
+            payload.barcode.strip(),
+            payload.qty,
+            scope.user_id,
         )
-    ).scalar_one_or_none()
-    if not product:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "book product not found")
+    except UnsupportedBarcodeError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e)) from e
+    except BookLookupNotFoundError as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e)) from e
 
-    m = InventoryMovement(
-        id=str(uuid4()),
-        tenant_id=scope.tenant_id,
-        store_id=target_store,
-        product_id=product.id,
-        qty_delta=float(payload.qty),
-        reason="consignment_receive",
-        ref_type="book_receive",
-        ref_id=product.id,
-        user_id=scope.user_id,
-    )
-    db.add(m)
-    await _apply_movement(db, m)
     await audit(
         db, scope, action="book_receive",
         resource_type="product", resource_id=product.id,
-        extra={"qty": payload.qty, "store_id": target_store}, flush=False,
+        extra={"barcode": payload.barcode.strip(), "qty": payload.qty, "store_id": target_store},
+        flush=False,
     )
     await db.commit()
+    return BookProductRead(**product_read_after_receive(product, on_hand))
 
-    level = (
-        await db.execute(
-            select(InventoryLevel).where(
-                InventoryLevel.store_id == target_store,
-                InventoryLevel.product_id == product.id,
-            )
-        )
-    ).scalar_one_or_none()
-    on_hand = float(level.on_hand) if level else float(payload.qty)
-    return BookProductRead(**product_to_book_read(product, on_hand))
+
+@router.get("/import-csv/template")
+async def download_book_import_template(scope: StoreAdminDep) -> Response:
+    content = render_book_import_template_csv()
+    return Response(
+        content=content.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="book-import-sample.csv"'},
+    )
+
+
+@router.post("/import-csv", response_model=BookImportResultRead, status_code=201)
+async def import_books_csv(
+    db: DbSession,
+    scope: StoreAdminDep,
+    file: UploadFile = File(...),
+) -> BookImportResultRead:
+    await assert_consignment_module(db, scope.tenant_id)
+    raw = (await file.read()).decode("utf-8-sig")
+    reader = csv.DictReader(StringIO(raw))
+    result = await import_books_from_csv(db, scope.tenant_id, list(reader), scope.user_id)
+    await audit(
+        db,
+        scope,
+        action="book_import_csv",
+        resource_type="product",
+        extra=result.to_dict(),
+        flush=False,
+    )
+    await db.commit()
+    return BookImportResultRead(**result.to_dict())
 
 
 @router.get("", response_model=list[BookProductRead])

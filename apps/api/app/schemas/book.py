@@ -82,14 +82,22 @@ class BookProductRead(BaseModel):
     on_hand: float | None = None
 
 
-class BookScanRequest(BaseModel):
-    barcode: str
-
-
 class BookReceiveRequest(BaseModel):
+    barcode: str = Field(min_length=1)
     store_id: str | None = None
-    product_id: str
     qty: float = Field(gt=0)
+
+
+class BookImportRowErrorRead(BaseModel):
+    row: int
+    barcode: str
+    message: str
+
+
+class BookImportResultRead(BaseModel):
+    received: int = 0
+    skipped: int = 0
+    errors: list[BookImportRowErrorRead] = []
 
 
 class ConsignmentSettlementRow(BaseModel):

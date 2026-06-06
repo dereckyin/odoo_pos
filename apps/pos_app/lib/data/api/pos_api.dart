@@ -285,8 +285,17 @@ class PosApi {
     return ConsignmentPosConfigDto.fromJson(_asMap(r.data));
   }
 
-  Future<BookProductDto> scanBook(String barcode) async {
-    final r = await _dio.post('/books/scan', data: {'barcode': barcode});
+  Future<BookLookupDto> lookupBook(String barcode) async {
+    final r = await _dio.get('/books/lookup', queryParameters: {'barcode': barcode});
+    return BookLookupDto.fromJson(_asMap(r.data));
+  }
+
+  Future<BookProductDto> receiveBook({required String barcode, required double qty, String? storeId}) async {
+    final r = await _dio.post('/books/receive', data: {
+      'barcode': barcode,
+      'qty': qty,
+      if (storeId != null) 'store_id': storeId,
+    });
     return BookProductDto.fromJson(_asMap(r.data));
   }
 
