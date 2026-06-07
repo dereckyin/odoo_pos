@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/providers.dart';
+import '../../../data/scanner/barcode_listener.dart';
 import '../../../data/api/dto.dart';
 import '../../../data/sync/sync_providers.dart';
 import '../../books/book_local_store.dart';
@@ -25,6 +26,19 @@ class _BookReceivePageState extends ConsumerState<BookReceivePage> {
   void dispose() {
     _barcodeCtl.dispose();
     super.dispose();
+  }
+
+  Future<void> _applyBarcode(String code) async {
+    final trimmed = code.trim();
+    if (trimmed.isEmpty) return;
+    _barcodeCtl.text = trimmed;
+    await _lookup();
+  }
+
+  Future<void> _openCameraScan() async {
+    final code = await context.push<String>('/barcode-scan');
+    if (!mounted || code == null) return;
+    await _applyBarcode(code);
   }
 
   Future<void> _lookup() async {
@@ -84,30 +98,50 @@ class _BookReceivePageState extends ConsumerState<BookReceivePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('寄賣入庫'),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          TextField(
-            controller: _barcodeCtl,
-            autofocus: true,
-            decoration: InputDecoration(
-              labelText: '條碼',
-              hintText: '11 碼 TAAZE 商品編號',
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.search),
-                onPressed: _lookingUp ? null : _lookup,
+    return BarcodeKeyboardListener(
+      onBarcode: _applyBarcode,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('寄賣入庫'),
+          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            TextField(
+              controller: _barcodeCtl,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: '條碼',
+                hintText: '掃碼或輸入 11 碼 TAAZE 商品編號',
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: '相機掃碼',
+                      icon: const Icon(Icons.qr_code_scanner_outlined),
+                      onPressed: _lookingUp ? null : _openCameraScan,
+                    ),
+                    IconButton(
+                      tooltip: '查詢書目',
+                      icon: const Icon(Icons.search),
+                      onPressed: _lookingUp ? null : _lookup,
+                    ),
+                  ],
+                ),
               ),
+              onSubmitted: (_) => _lookup(),
             ),
-            onSubmitted: (_) => _lookup(),
-          ),
-          const SizedBox(height: 12),
-          if (_lookingUp) const LinearProgressIndicator(),
-          if (_preview != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              '可使用 USB 條碼槍掃描（掃完自動查詢），手機／平板可點相機圖示掃碼。',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            if (_lookingUp) const LinearProgressIndicator(),
+            if (_preview != null) ...[
             const SizedBox(height: 16),
             Card(
               child: Padding(
@@ -153,8 +187,9 @@ class _BookReceivePageState extends ConsumerState<BookReceivePage> {
                     )
                   : const Text('確認入庫'),
             ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

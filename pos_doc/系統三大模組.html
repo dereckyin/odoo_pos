@@ -1020,6 +1020,9 @@
       .shots--2 { grid-template-columns: 1fr; }
     }
 
+    /* 版本歷程暫不對外顯示；保留 HTML 以便日後恢復 */
+    #changelog { display: none; }
+
     .changelog-item {
       border-left: 3px solid var(--accent);
       padding: 0 0 1.25rem 1.25rem;
@@ -1140,7 +1143,6 @@
   <main>
     <nav class="toc" aria-label="快速導覽">
       <a href="#overview">總覽</a>
-      <a href="#changelog">版本歷程</a>
       <a href="#download">下載 App</a>
       <a href="#pos-app">① 收銀 App</a>
       <a href="#admin">② 管理後台</a>
@@ -1670,8 +1672,7 @@
   <footer>
     <p>點餐趣 · 餐飲 POS 解決方案 · <span class="version-badge">__APP_VERSION__</span></p>
     <p style="margin-top:0.5rem;color:var(--muted);font-size:0.88rem">
-      正式站點 <a href="https://pos.myvnc.com/">pos.myvnc.com</a> ·
-      最新更新見上方 <a href="#changelog">版本歷程</a>
+      正式站點 <a href="https://pos.myvnc.com/">pos.myvnc.com</a>
     </p>
   </footer>
 
