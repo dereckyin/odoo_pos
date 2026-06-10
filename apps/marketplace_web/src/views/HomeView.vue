@@ -4,7 +4,8 @@
       <div class="hero-top">
         <h1>點餐趣美食市集</h1>
         <button class="member-btn" type="button" @click="$router.push({ name: 'member' })">
-          {{ memberStore.isLoggedIn ? `${memberStore.points} 點` : '會員' }}
+          <span class="ic">👤</span>
+          <span>{{ memberStore.isLoggedIn ? `${memberStore.points} 點` : '會員登入' }}</span>
         </button>
       </div>
       <p>依分類瀏覽精選餐點，外帶、外送、內用一站搞定</p>
@@ -338,13 +339,20 @@ onBeforeUnmount(() => scrollObserver?.disconnect())
 }
 .member-btn {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   border: 0;
-  background: rgba(255, 255, 255, 0.25);
-  color: #fff;
-  border-radius: 16px;
-  padding: 6px 14px;
+  background: #fff;
+  color: var(--accent);
+  border-radius: 18px;
+  padding: 7px 14px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+.member-btn .ic {
+  font-size: 15px;
 }
 .store-chip-meta {
   display: block;

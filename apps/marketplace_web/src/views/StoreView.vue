@@ -18,6 +18,10 @@
       <button class="fav" :class="{ on: detail?.is_favorite }" @click="toggleFav">
         {{ detail?.is_favorite ? '♥' : '♡' }}
       </button>
+      <button class="member" type="button" @click="onMemberClick">
+        <span class="ic">👤</span>
+        <span>{{ memberStore.isLoggedIn ? `${memberStore.points} 點` : '登入' }}</span>
+      </button>
     </header>
 
     <nav class="cat-bar">
@@ -60,22 +64,31 @@
     </button>
 
     <OptionModal :open="optionProduct != null" :product="optionProduct" @close="optionProduct = null" @confirm="onOptionsConfirmed" />
+    <MemberLoginModal :open="loginOpen" :store-slug="slug" @close="loginOpen = false" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { fetchStore, fetchStoreMenu, resolveUploadPath, toggleFavorite } from '@/api'
 import type { MarketplaceMenu, MarketplaceStoreDetail, PublicProduct, PublicCategory, SelectedOption } from '@/types'
 import { useCartStore } from '@/stores/cart'
 import { useMemberStore } from '@/stores/member'
 import OptionModal from '@/components/OptionModal.vue'
+import MemberLoginModal from '@/components/MemberLoginModal.vue'
 
 const route = useRoute()
+const router = useRouter()
 const cart = useCartStore()
 const memberStore = useMemberStore()
 const slug = computed(() => String(route.params.slug))
+const loginOpen = ref(false)
+
+function onMemberClick() {
+  if (memberStore.isLoggedIn) router.push({ name: 'member' })
+  else loginOpen.value = true
+}
 
 const menu = ref<MarketplaceMenu | null>(null)
 const detail = ref<MarketplaceStoreDetail | null>(null)
@@ -200,6 +213,8 @@ watch(slug, () => void loadMenu(), { immediate: true })
 .store-meta .rc { color: var(--muted); font-weight: 400; }
 .fav { border: 0; background: none; font-size: 24px; color: var(--accent); }
 .fav.on { color: #e0245e; }
+.member { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); border-radius: 16px; padding: 6px 12px; font-size: 13px; font-weight: 600; }
+.member .ic { font-size: 14px; }
 .closed { color: #b33; font-size: 12px; }
 .cat-bar { display: flex; overflow-x: auto; padding: 8px; background: var(--surface); border-bottom: 1px solid var(--border); }
 .cat-bar button { flex-shrink: 0; border: 0; background: transparent; padding: 8px 14px; border-radius: 16px; }
