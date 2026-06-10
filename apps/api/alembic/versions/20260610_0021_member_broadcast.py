@@ -23,7 +23,6 @@ def upgrade() -> None:
             sa.String(36),
             sa.ForeignKey("tenants.id"),
             nullable=False,
-            index=True,
         ),
         sa.Column("channel", sa.String(16), nullable=False, server_default="sms"),
         sa.Column("message", sa.Text(), nullable=False),

@@ -33,7 +33,6 @@ def upgrade() -> None:
             sa.String(36),
             sa.ForeignKey("tenants.id"),
             nullable=False,
-            index=True,
         ),
         sa.Column("title", sa.String(160), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
@@ -71,14 +70,12 @@ def upgrade() -> None:
             sa.String(36),
             sa.ForeignKey("tenants.id"),
             nullable=False,
-            index=True,
         ),
         sa.Column(
             "event_id",
             sa.String(36),
             sa.ForeignKey("events.id"),
             nullable=False,
-            index=True,
         ),
         sa.Column(
             "member_id",
