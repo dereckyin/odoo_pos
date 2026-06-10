@@ -52,6 +52,8 @@ export function fetchStores(params?: {
   cuisine?: string
   fulfillment?: string
   sort?: string
+  price_level?: string
+  open_now?: boolean
 }) {
   return client.get<MarketplaceStoreSummary[]>('/public/marketplace/stores', { params })
 }

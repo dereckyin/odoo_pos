@@ -11,7 +11,7 @@ const router = useRouter()
 
 function redirect() {
   const q = String(route.query.q || '').trim()
-  router.replace({ name: 'stores', query: q ? { q } : {} })
+  router.replace({ name: 'home', query: q ? { q } : {} })
 }
 
 onMounted(redirect)

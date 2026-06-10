@@ -44,6 +44,8 @@ class MarketplaceListing(Base, UUIDPrimaryKey, Timestamped):
     prep_time_min: Mapped[int] = mapped_column(Integer, default=15, server_default="15")
     rating_avg: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
     rating_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # Price tier: 1=$, 2=$$, 3=$$$ (Foodpanda-style discovery filter).
+    price_level: Mapped[int] = mapped_column(Integer, default=2, server_default="2")
 
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     approved_by_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)

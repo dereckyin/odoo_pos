@@ -5,7 +5,7 @@ export const router = createRouter({
   routes: [
     { path: '/', name: 'home', component: () => import('@/views/HomeView.vue') },
     { path: '/search', name: 'search', component: () => import('@/views/SearchView.vue') },
-    { path: '/stores', name: 'stores', component: () => import('@/views/StoresView.vue') },
+    { path: '/stores', name: 'stores', redirect: (to) => ({ name: 'home', query: to.query }) },
     { path: '/store/:slug', name: 'store', component: () => import('@/views/StoreView.vue') },
     { path: '/cart', name: 'cart', component: () => import('@/views/CartView.vue') },
     { path: '/checkout', name: 'checkout', component: () => import('@/views/CheckoutView.vue') },

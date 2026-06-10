@@ -69,6 +69,7 @@ export interface MarketplaceStoreSummary {
   prep_time_min: number
   rating_avg: number
   rating_count: number
+  price_level: number
   is_favorite: boolean
 }
 

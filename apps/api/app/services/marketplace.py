@@ -128,4 +128,5 @@ def listing_to_summary(
         "prep_time_min": listing.prep_time_min,
         "rating_avg": round(listing.rating_avg or 0.0, 1),
         "rating_count": listing.rating_count or 0,
+        "price_level": listing.price_level or 2,
     }

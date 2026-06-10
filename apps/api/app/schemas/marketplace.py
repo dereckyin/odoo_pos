@@ -29,6 +29,7 @@ class MarketplaceStoreSummary(BaseModel):
     prep_time_min: int = 15
     rating_avg: float = 0.0
     rating_count: int = 0
+    price_level: int = 2
     is_favorite: bool = False
 
 
@@ -249,6 +250,7 @@ class MarketplaceListingRead(ORMModel):
     prep_time_min: int = 15
     rating_avg: float = 0.0
     rating_count: int = 0
+    price_level: int = 2
     approved_at: datetime | None
     submitted_at: datetime | None
     created_at: datetime
@@ -271,6 +273,7 @@ class MarketplaceListingUpdate(BaseModel):
     payment_online: bool | None = None
     business_hours: dict | None = None
     prep_time_min: int | None = Field(default=None, ge=0, le=240)
+    price_level: int | None = Field(default=None, ge=1, le=3)
     store_id: str | None = None
 
 

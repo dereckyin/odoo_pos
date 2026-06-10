@@ -47,6 +47,7 @@ def _to_read(row: MarketplaceListing) -> MarketplaceListingRead:
         prep_time_min=row.prep_time_min,
         rating_avg=round(row.rating_avg or 0.0, 1),
         rating_count=row.rating_count or 0,
+        price_level=row.price_level or 2,
         approved_at=row.approved_at,
         submitted_at=row.submitted_at,
         created_at=row.created_at,

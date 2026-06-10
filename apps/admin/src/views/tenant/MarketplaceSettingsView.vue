@@ -85,6 +85,15 @@
               <a-input-number v-model:value="form.prep_time_min" :min="0" :max="240" style="width: 100%" :disabled="!editable" />
             </a-form-item>
           </a-col>
+          <a-col :span="8">
+            <a-form-item label="價位等級">
+              <a-select v-model:value="form.price_level" :disabled="!editable" style="width: 100%">
+                <a-select-option :value="1">$（平價）</a-select-option>
+                <a-select-option :value="2">$$（中等）</a-select-option>
+                <a-select-option :value="3">$$$（高價）</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
           <a-col v-if="listing.rating_count > 0" :span="8">
             <a-form-item label="顧客評分">
               <span>★ {{ listing.rating_avg.toFixed(1) }}（{{ listing.rating_count }} 則評價）</span>
@@ -160,6 +169,7 @@ const form = reactive({
   banner_url: '',
   delivery_radius_km: null as number | null,
   prep_time_min: 15,
+  price_level: 2,
   supports_pickup: true,
   supports_delivery: false,
   supports_dine_in: false,
@@ -225,6 +235,7 @@ function fillForm(row: MarketplaceListing) {
   form.banner_url = row.banner_url ?? ''
   form.delivery_radius_km = row.delivery_radius_km
   form.prep_time_min = row.prep_time_min ?? 15
+  form.price_level = row.price_level ?? 2
   form.supports_pickup = row.supports_pickup
   form.supports_delivery = row.supports_delivery
   form.supports_dine_in = row.supports_dine_in
@@ -294,6 +305,7 @@ async function handleSave() {
       delivery_fee_cents: deliveryFeeYuan.value * 100,
       delivery_radius_km: form.delivery_radius_km,
       prep_time_min: form.prep_time_min,
+      price_level: form.price_level,
       supports_pickup: form.supports_pickup,
       supports_delivery: form.supports_delivery,
       supports_dine_in: form.supports_dine_in,

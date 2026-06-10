@@ -198,7 +198,9 @@ async def list_stores(
     lng: float | None = Query(default=None),
     cuisine: str | None = Query(default=None),
     fulfillment: str | None = Query(default=None, description="pickup|delivery|dine_in"),
-    sort: str | None = Query(default=None, description="distance|rating|prep"),
+    sort: str | None = Query(default=None, description="recommended|distance|rating|prep"),
+    price_level: str | None = Query(default=None, description="csv of tiers e.g. 1,2"),
+    open_now: bool = Query(default=False),
 ):
     stmt = (
         select(MarketplaceListing, Store, Tenant)
@@ -228,6 +230,13 @@ async def list_stores(
     elif fulfillment == "dine_in":
         stmt = stmt.where(MarketplaceListing.supports_dine_in.is_(True))
 
+    price_levels: set[int] = set()
+    if price_level:
+        for part in price_level.split(","):
+            part = part.strip()
+            if part.isdigit():
+                price_levels.add(int(part))
+
     rows = (await db.execute(stmt)).all()
     fav_ids = await _favorite_listing_ids(db, member_ctx)
     summaries: list[MarketplaceStoreSummary] = []
@@ -236,6 +245,8 @@ async def list_stores(
             continue
         if cuisine and cuisine not in (listing.cuisine_tags or []):
             continue
+        if price_levels and (listing.price_level or 2) not in price_levels:
+            continue
         if fulfillment == "delivery" and lat is not None and lng is not None:
             if store.latitude is None or store.longitude is None:
                 continue
@@ -243,6 +254,8 @@ async def list_stores(
             if listing.delivery_radius_km and dist > listing.delivery_radius_km:
                 continue
         data = listing_to_summary(listing, store, lat=lat, lng=lng)
+        if open_now and not data["is_open"]:
+            continue
         data["is_favorite"] = listing.id in fav_ids
         summaries.append(MarketplaceStoreSummary(**data))
 
@@ -250,6 +263,17 @@ async def list_stores(
         summaries.sort(key=lambda s: s.rating_avg, reverse=True)
     elif sort == "prep":
         summaries.sort(key=lambda s: s.prep_time_min)
+    elif sort == "distance":
+        summaries.sort(key=lambda s: s.distance_km if s.distance_km is not None else 9999)
+    elif sort == "recommended":
+        # Open stores first, then higher rating, then nearer distance.
+        summaries.sort(
+            key=lambda s: (
+                0 if s.is_open else 1,
+                -s.rating_avg,
+                s.distance_km if s.distance_km is not None else 9999,
+            )
+        )
     elif lat is not None and lng is not None:
         summaries.sort(key=lambda s: s.distance_km if s.distance_km is not None else 9999)
     else:
