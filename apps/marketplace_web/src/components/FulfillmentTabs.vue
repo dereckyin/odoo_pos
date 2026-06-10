@@ -1,12 +1,12 @@
 <template>
   <div class="ff-tabs">
-    <button type="button" :class="{ active: model === 'delivery' }" @click="model = 'delivery'">
-      <span class="ic">🛵</span>
-      <span>外送</span>
-    </button>
     <button type="button" :class="{ active: model === 'pickup' }" @click="model = 'pickup'">
       <span class="ic">🛍️</span>
       <span>外帶自取</span>
+    </button>
+    <button type="button" :class="{ active: model === 'delivery' }" @click="model = 'delivery'">
+      <span class="ic">🛵</span>
+      <span>外送</span>
     </button>
   </div>
 </template>

@@ -142,7 +142,7 @@ const loading = ref(true)
 const error = ref('')
 
 const query = ref(String(route.query.q || ''))
-const fulfillment = ref<'delivery' | 'pickup'>('delivery')
+const fulfillment = ref<'delivery' | 'pickup'>('pickup')
 const cuisine = ref('')
 const sort = ref('recommended')
 const prices = ref<number[]>([])
@@ -371,14 +371,24 @@ onMounted(() => {
   border-radius: 24px;
   padding: 0 14px;
   margin: 12px 16px 0;
+  overflow: hidden;
 }
 .search-bar input {
   flex: 1;
+  min-width: 0;
   border: 0;
   outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0;
   padding: 12px 0;
   font-size: 16px;
+  line-height: 1.4;
   background: transparent;
+}
+.search-ic,
+.clear {
+  flex-shrink: 0;
 }
 .search-ic {
   color: var(--muted);
