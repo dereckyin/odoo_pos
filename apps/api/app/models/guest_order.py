@@ -47,7 +47,14 @@ class GuestOrder(Base, UUIDPrimaryKey, Timestamped):
     party_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
     member_id: Mapped[str | None] = mapped_column(ForeignKey("members.id"), nullable=True, index=True)
 
+    # Multi-store marketplace orders share a group id (one checkout -> N stores).
+    order_group_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+
     estimated_subtotal_cents: Mapped[int] = mapped_column(Integer, default=0)
+    # Online loyalty: applied at checkout for marketplace online orders.
+    points_redeemed: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    coupon_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    discount_cents: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

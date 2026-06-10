@@ -19,6 +19,8 @@ from ...core.deps import (
     ensure_same_tenant,
 )
 from ...models import GuestOrder, Order
+from pydantic import BaseModel
+
 from ...schemas.guest_order import (
     CancelRequest,
     GuestOrderLineRead,
@@ -26,6 +28,13 @@ from ...schemas.guest_order import (
     MergeRequest,
 )
 from ...services.tenant_modules import require_guest_order_admin
+
+# Uber Eats style delivery sub-states.
+DELIVERY_FLOW = ("pending", "preparing", "out_for_delivery", "delivered")
+
+
+class DeliveryStatusUpdate(BaseModel):
+    status: str
 
 router = APIRouter(
     prefix="/guest-orders",
@@ -185,6 +194,34 @@ async def complete_online_paid(gid: str, db: DbSession, scope: TenantScope):
         action="guest_order_complete",
         resource_type="guest_order",
         resource_id=gid,
+        flush=False,
+    )
+    await db.commit()
+    await db.refresh(g)
+    return _to_read(g)
+
+
+@router.post("/{gid}/delivery-status", response_model=GuestOrderRead)
+async def set_delivery_status(
+    gid: str, payload: DeliveryStatusUpdate, db: DbSession, scope: TenantScope
+):
+    """Advance the delivery sub-state (pending -> preparing -> out_for_delivery
+    -> delivered) for a marketplace delivery order."""
+    g = await _load(db, scope, gid)
+    if g.fulfillment_type != "delivery":
+        raise HTTPException(status.HTTP_409_CONFLICT, "not a delivery order")
+    if payload.status not in DELIVERY_FLOW:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid delivery status")
+    if g.status in ("merged", "cancelled"):
+        raise HTTPException(status.HTTP_409_CONFLICT, f"order is {g.status}")
+    g.delivery_status = payload.status
+    await audit(
+        db,
+        scope,
+        action="guest_order_delivery_status",
+        resource_type="guest_order",
+        resource_id=gid,
+        extra={"delivery_status": payload.status},
         flush=False,
     )
     await db.commit()

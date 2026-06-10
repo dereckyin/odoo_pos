@@ -34,3 +34,7 @@ export function listGuestOrders(params?: {
 }) {
   return client.get<GuestOrderRead[]>('/guest-orders', { params })
 }
+
+export function setGuestOrderDeliveryStatus(id: string, status: string) {
+  return client.post<GuestOrderRead>(`/guest-orders/${id}/delivery-status`, { status })
+}

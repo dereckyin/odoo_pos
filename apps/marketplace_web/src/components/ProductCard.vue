@@ -62,31 +62,18 @@ function goStore() {
   router.push({ name: 'store', params: { slug: props.card.store_slug } })
 }
 
-async function bindStoreFromMenu(slug: string) {
-  const menu = await menuCache.ensureMenu(slug)
-  if (!cart.tryBindStore(menu.meta)) {
-    if (confirm('購物車已有其他商家餐點，是否清空並加入？')) {
-      cart.clear()
-      cart.bindStore(menu.meta)
-    } else {
-      return null
-    }
-  }
-  return menu
-}
+const activeMeta = ref<import('@/types').MarketplaceMenuMeta | null>(null)
 
 async function onAdd() {
   if (adding.value) return
   adding.value = true
   try {
+    const menu = await menuCache.ensureMenu(props.card.store_slug)
+    activeMeta.value = menu.meta
     if (!props.card.has_options) {
-      const menu = await bindStoreFromMenu(props.card.store_slug)
-      if (!menu) return
-      cart.add(cardToProduct(props.card), 1)
+      cart.add(menu.meta, cardToProduct(props.card), 1)
       return
     }
-    const menu = await bindStoreFromMenu(props.card.store_slug)
-    if (!menu) return
     const product = menu.products.find((p) => p.id === props.card.product_id)
     if (!product) {
       alert('此餐點暫時無法加購')
@@ -95,7 +82,7 @@ async function onAdd() {
     if (product.option_groups?.length) {
       optionProduct.value = product
     } else {
-      cart.add(product, 1)
+      cart.add(menu.meta, product, 1)
     }
   } finally {
     adding.value = false
@@ -103,8 +90,8 @@ async function onAdd() {
 }
 
 function onOptionsConfirmed(options: SelectedOption[]) {
-  if (optionProduct.value) {
-    cart.add(optionProduct.value, 1, options)
+  if (optionProduct.value && activeMeta.value) {
+    cart.add(activeMeta.value, optionProduct.value, 1, options)
     optionProduct.value = null
   }
 }

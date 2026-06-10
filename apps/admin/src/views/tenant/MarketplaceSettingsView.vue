@@ -79,6 +79,18 @@
             </a-form-item>
           </a-col>
         </a-row>
+        <a-row :gutter="16">
+          <a-col :span="8">
+            <a-form-item label="預估出餐時間 (分鐘)">
+              <a-input-number v-model:value="form.prep_time_min" :min="0" :max="240" style="width: 100%" :disabled="!editable" />
+            </a-form-item>
+          </a-col>
+          <a-col v-if="listing.rating_count > 0" :span="8">
+            <a-form-item label="顧客評分">
+              <span>★ {{ listing.rating_avg.toFixed(1) }}（{{ listing.rating_count }} 則評價）</span>
+            </a-form-item>
+          </a-col>
+        </a-row>
         <a-form-item label="支援的取餐方式">
           <a-checkbox v-model:checked="form.supports_pickup" :disabled="!editable">外帶自取</a-checkbox>
           <a-checkbox v-model:checked="form.supports_delivery" :disabled="!editable">外送</a-checkbox>
@@ -87,6 +99,26 @@
         <a-form-item label="支援的付款方式">
           <a-checkbox v-model:checked="form.payment_counter" :disabled="!editable">櫃台付款</a-checkbox>
           <a-checkbox v-model:checked="form.payment_online" :disabled="!editable">線上付款</a-checkbox>
+        </a-form-item>
+        <a-form-item label="營業時間（未勾選的日期視為休息）">
+          <div v-for="day in weekdays" :key="day.key" class="hours-row">
+            <a-checkbox v-model:checked="hours[day.key].enabled" :disabled="!editable">{{ day.label }}</a-checkbox>
+            <a-time-picker
+              v-model:value="hours[day.key].open"
+              format="HH:mm"
+              value-format="HH:mm"
+              :disabled="!editable || !hours[day.key].enabled"
+              placeholder="開"
+            />
+            <span>—</span>
+            <a-time-picker
+              v-model:value="hours[day.key].close"
+              format="HH:mm"
+              value-format="HH:mm"
+              :disabled="!editable || !hours[day.key].enabled"
+              placeholder="關"
+            />
+          </div>
         </a-form-item>
         <a-space>
           <a-button v-if="editable" type="primary" :loading="saving" @click="handleSave">儲存</a-button>
@@ -127,6 +159,7 @@ const form = reactive({
   logo_url: '',
   banner_url: '',
   delivery_radius_km: null as number | null,
+  prep_time_min: 15,
   supports_pickup: true,
   supports_delivery: false,
   supports_dine_in: false,
@@ -134,9 +167,37 @@ const form = reactive({
   payment_online: false,
 })
 
+const weekdays = [
+  { key: 'mon', label: '週一' },
+  { key: 'tue', label: '週二' },
+  { key: 'wed', label: '週三' },
+  { key: 'thu', label: '週四' },
+  { key: 'fri', label: '週五' },
+  { key: 'sat', label: '週六' },
+  { key: 'sun', label: '週日' },
+] as const
+
+interface DayHours {
+  enabled: boolean
+  open: string
+  close: string
+}
+const hours = reactive<Record<string, DayHours>>(
+  Object.fromEntries(weekdays.map((d) => [d.key, { enabled: false, open: '09:00', close: '21:00' }])),
+)
+
 const cuisineInput = ref('')
 const minOrderYuan = ref(0)
 const deliveryFeeYuan = ref(0)
+
+function buildBusinessHours(): Record<string, { open: string; close: string }[]> | null {
+  const out: Record<string, { open: string; close: string }[]> = {}
+  for (const d of weekdays) {
+    const h = hours[d.key]
+    if (h.enabled && h.open && h.close) out[d.key] = [{ open: h.open, close: h.close }]
+  }
+  return Object.keys(out).length ? out : null
+}
 
 const editable = computed(() => listing.value && ['draft', 'suspended'].includes(listing.value.status))
 const statusAlertType = computed(() => {
@@ -163,6 +224,7 @@ function fillForm(row: MarketplaceListing) {
   form.logo_url = row.logo_url ?? ''
   form.banner_url = row.banner_url ?? ''
   form.delivery_radius_km = row.delivery_radius_km
+  form.prep_time_min = row.prep_time_min ?? 15
   form.supports_pickup = row.supports_pickup
   form.supports_delivery = row.supports_delivery
   form.supports_dine_in = row.supports_dine_in
@@ -171,6 +233,14 @@ function fillForm(row: MarketplaceListing) {
   cuisineInput.value = (row.cuisine_tags ?? []).join(', ')
   minOrderYuan.value = Math.round(row.min_order_cents / 100)
   deliveryFeeYuan.value = Math.round(row.delivery_fee_cents / 100)
+  for (const d of weekdays) {
+    const slots = row.business_hours?.[d.key]
+    if (slots && slots.length) {
+      hours[d.key] = { enabled: true, open: slots[0].open, close: slots[0].close }
+    } else {
+      hours[d.key] = { enabled: false, open: '09:00', close: '21:00' }
+    }
+  }
 }
 
 async function loadStores() {
@@ -223,11 +293,13 @@ async function handleSave() {
       min_order_cents: minOrderYuan.value * 100,
       delivery_fee_cents: deliveryFeeYuan.value * 100,
       delivery_radius_km: form.delivery_radius_km,
+      prep_time_min: form.prep_time_min,
       supports_pickup: form.supports_pickup,
       supports_delivery: form.supports_delivery,
       supports_dine_in: form.supports_dine_in,
       payment_counter: form.payment_counter,
       payment_online: form.payment_online,
+      business_hours: buildBusinessHours(),
     })
     listing.value = data
     message.success('已儲存')
@@ -254,3 +326,15 @@ watch(selectedStoreId, () => {
   listing.value = null
 })
 </script>
+
+<style scoped>
+.hours-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.hours-row > .ant-checkbox-wrapper {
+  width: 72px;
+}
+</style>

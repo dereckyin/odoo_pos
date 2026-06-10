@@ -32,6 +32,10 @@ class AllianceMember(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     email: Mapped[str | None] = mapped_column(String(128), nullable=True)
     points: Mapped[int] = mapped_column(Integer, default=0)
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Personal referral code, lazily generated on first member-center load.
+    referral_code: Mapped[str | None] = mapped_column(String(16), index=True, nullable=True)
+    birthday: Mapped[str | None] = mapped_column(String(10), nullable=True)  # YYYY-MM-DD
+    birthday_reward_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class AllianceTenant(Base, UUIDPrimaryKey, Timestamped):

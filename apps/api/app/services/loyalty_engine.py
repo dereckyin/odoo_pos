@@ -83,6 +83,59 @@ def points_discount_cents(points: int, settings: dict) -> int:
     return points * max(1, int(settings.get("point_value_cents", 1)))
 
 
+def coupon_discount_cents(coupon: Coupon, items_total_cents: int) -> int:
+    """Compute the monetary discount a coupon applies to a line-items subtotal.
+
+    - ``percentage``: ``value`` is a percent (e.g. 10 => 10% off).
+    - ``amount``: ``value`` is a flat cent discount.
+    - ``freeItem``: settled item-side at POS; no subtotal discount here.
+    """
+    if items_total_cents <= 0:
+        return 0
+    ctype = (coupon.type or "").lower()
+    value = int(coupon.value or 0)
+    if ctype == "percentage":
+        pct = max(0, min(100, value))
+        return min(items_total_cents, items_total_cents * pct // 100)
+    if ctype == "amount":
+        return min(items_total_cents, max(0, value))
+    return 0
+
+
+async def preview_coupon(
+    db: AsyncSession,
+    *,
+    tenant_id: str,
+    code: str | None,
+    member_id: str | None,
+    order_total_cents: int,
+) -> Coupon | None:
+    """Validate a coupon without consuming it. Raises on invalid coupons."""
+    if not code:
+        return None
+    c = (
+        await db.execute(
+            select(Coupon).where(
+                Coupon.tenant_id == tenant_id,
+                Coupon.code == code,
+                Coupon.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if not c:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "coupon not found")
+    if c.used_at:
+        raise HTTPException(status.HTTP_409_CONFLICT, "coupon already used")
+    now = datetime.now(timezone.utc)
+    if c.expires_at and c.expires_at < now:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "coupon expired")
+    if c.min_spend_cents and order_total_cents < c.min_spend_cents:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "order below coupon minimum spend")
+    if c.member_id and c.member_id != member_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "coupon not for this member")
+    return c
+
+
 async def validate_and_redeem_coupon(
     db: AsyncSession,
     *,

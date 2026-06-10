@@ -61,6 +61,18 @@ def create_access_token(sub: str, claims: dict[str, Any] | None = None) -> tuple
     return token, expires
 
 
+def create_token_with_ttl(
+    sub: str, ttl: timedelta, claims: dict[str, Any] | None = None
+) -> tuple[str, datetime]:
+    """Issue a signed token with a caller-supplied lifetime.
+
+    Used for long-lived public identities (e.g. marketplace member sessions)
+    that are not tied to the staff access/refresh token lifecycle.
+    """
+    token, _, expires = _create_token(sub, ttl, claims)
+    return token, expires
+
+
 def create_refresh_token(
     sub: str, claims: dict[str, Any] | None = None
 ) -> tuple[str, str, datetime]:

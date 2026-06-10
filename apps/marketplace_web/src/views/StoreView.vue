@@ -4,10 +4,20 @@
   <div v-else-if="menu" class="menu-page">
     <header class="store-header">
       <button class="back" @click="$router.push({ name: 'home' })">‹</button>
-      <div>
+      <div class="store-head-info">
         <div class="store-name">{{ menu.meta.display_name }}</div>
+        <div class="store-meta">
+          <span v-if="detail" class="rating">★ {{ detail.rating_avg ? detail.rating_avg.toFixed(1) : '新店' }}<span v-if="detail.rating_count" class="rc">({{ detail.rating_count }})</span></span>
+          <span v-if="detail">· {{ detail.prep_time_min }} 分</span>
+          <span v-if="detail && detail.distance_km != null">· {{ detail.distance_km.toFixed(1) }} km</span>
+          <span v-if="menu.meta.supports_delivery">· 外送 ${{ menu.meta.delivery_fee_cents }}</span>
+          <span v-if="menu.meta.min_order_cents">· 低消 ${{ menu.meta.min_order_cents }}</span>
+        </div>
         <div v-if="!menu.meta.is_open" class="closed">休息中</div>
       </div>
+      <button class="fav" :class="{ on: detail?.is_favorite }" @click="toggleFav">
+        {{ detail?.is_favorite ? '♥' : '♡' }}
+      </button>
     </header>
 
     <nav class="cat-bar">
@@ -56,16 +66,19 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { fetchStoreMenu, resolveUploadPath } from '@/api'
-import type { MarketplaceMenu, PublicProduct, PublicCategory, SelectedOption } from '@/types'
+import { fetchStore, fetchStoreMenu, resolveUploadPath, toggleFavorite } from '@/api'
+import type { MarketplaceMenu, MarketplaceStoreDetail, PublicProduct, PublicCategory, SelectedOption } from '@/types'
 import { useCartStore } from '@/stores/cart'
+import { useMemberStore } from '@/stores/member'
 import OptionModal from '@/components/OptionModal.vue'
 
 const route = useRoute()
 const cart = useCartStore()
+const memberStore = useMemberStore()
 const slug = computed(() => String(route.params.slug))
 
 const menu = ref<MarketplaceMenu | null>(null)
+const detail = ref<MarketplaceStoreDetail | null>(null)
 const loading = ref(true)
 const error = ref('')
 const optionProduct = ref<PublicProduct | null>(null)
@@ -112,19 +125,13 @@ function categoriesUnderRoot(rootId: string) {
 
 function addOne(p: PublicProduct) {
   if (!menu.value) return
-  if (!cart.tryBindStore(menu.value.meta)) {
-    if (confirm('購物車已有其他商家餐點，是否清空並加入？')) {
-      cart.clear()
-      cart.bindStore(menu.value.meta)
-    } else return
-  }
   if (p.option_groups?.length) optionProduct.value = p
-  else cart.add(p, 1)
+  else cart.add(menu.value.meta, p, 1)
 }
 
 function onOptionsConfirmed(options: SelectedOption[]) {
-  if (optionProduct.value) {
-    cart.add(optionProduct.value, 1, options)
+  if (optionProduct.value && menu.value) {
+    cart.add(menu.value.meta, optionProduct.value, 1, options)
     optionProduct.value = null
   }
 }
@@ -149,9 +156,12 @@ async function loadMenu() {
   loading.value = true
   error.value = ''
   try {
-    const { data } = await fetchStoreMenu(slug.value)
+    const [{ data }, detailRes] = await Promise.all([
+      fetchStoreMenu(slug.value),
+      fetchStore(slug.value).catch(() => null),
+    ])
     menu.value = data
-    cart.tryBindStore(data.meta)
+    detail.value = detailRes?.data ?? null
     if (rootCategoryIds.value[0]) activeCat.value = rootCategoryIds.value[0]
   } catch (e: unknown) {
     const err = e as { response?: { data?: { detail?: string } } }
@@ -161,14 +171,35 @@ async function loadMenu() {
   }
 }
 
+async function toggleFav() {
+  if (!memberStore.isLoggedIn) {
+    alert('請先登入會員')
+    return
+  }
+  if (!detail.value) return
+  const next = !detail.value.is_favorite
+  detail.value.is_favorite = next
+  try {
+    await toggleFavorite(slug.value, next)
+  } catch {
+    if (detail.value) detail.value.is_favorite = !next
+  }
+}
+
 watch(slug, () => void loadMenu(), { immediate: true })
 </script>
 
 <style scoped>
 .menu-page { display: flex; flex-direction: column; height: 100vh; }
 .store-header { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.store-head-info { flex: 1; min-width: 0; }
 .back { border: 0; background: transparent; font-size: 24px; }
 .store-name { font-weight: 600; }
+.store-meta { font-size: 12px; color: var(--muted); margin-top: 2px; display: flex; gap: 4px; flex-wrap: wrap; }
+.store-meta .rating { color: #e6a700; font-weight: 600; }
+.store-meta .rc { color: var(--muted); font-weight: 400; }
+.fav { border: 0; background: none; font-size: 24px; color: var(--accent); }
+.fav.on { color: #e0245e; }
 .closed { color: #b33; font-size: 12px; }
 .cat-bar { display: flex; overflow-x: auto; padding: 8px; background: var(--surface); border-bottom: 1px solid var(--border); }
 .cat-bar button { flex-shrink: 0; border: 0; background: transparent; padding: 8px 14px; border-radius: 16px; }

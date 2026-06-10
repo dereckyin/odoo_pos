@@ -655,6 +655,11 @@ async def approve_marketplace_listing(
     row.status = "approved"
     row.approved_at = _now()
     row.approved_by_user_id = user.user_id
+    # Auto-enroll the tenant into the platform marketplace alliance so customers
+    # get a single unified cross-store member identity.
+    from ...services.marketplace_member import ensure_tenant_in_marketplace_alliance
+
+    await ensure_tenant_in_marketplace_alliance(db, row.tenant_id)
     await audit(
         db,
         user,
@@ -667,6 +672,19 @@ async def approve_marketplace_listing(
     await db.commit()
     await db.refresh(row)
     return _to_read(row)
+
+
+@router.post("/maintenance/loyalty")
+async def run_loyalty_maintenance(db: DbSession, _: PlatformSuperDep):
+    """Run scheduled loyalty jobs: expire stale points + grant birthday bonuses.
+
+    Intended to be hit by a daily cron / scheduled task.
+    """
+    from ...services.loyalty_maintenance import run_birthday_rewards, run_point_expiry
+
+    expired = await run_point_expiry(db)
+    birthdays = await run_birthday_rewards(db)
+    return {"expired_points_entries": expired, "birthday_rewards": birthdays}
 
 
 @router.post("/marketplace/applications/{listing_id}/suspend")

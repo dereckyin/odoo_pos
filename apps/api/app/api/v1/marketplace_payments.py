@@ -10,6 +10,7 @@ from ...core.ratelimit import per_ip
 from ...integrations.payments.provider import get_payment_provider
 from ...models import GuestOrder, MarketplaceListing, Store
 from ...schemas.marketplace import PaymentInitiateResponse
+from ...services.marketplace_order import settle_marketplace_online_loyalty
 from ...services.tenant_modules import assert_tenant_module, MODULE_MARKETPLACE
 from .public_marketplace import _order_access_token
 
@@ -97,6 +98,12 @@ async def ecpay_webhook(request: Request, db: DbSession):
     g.online_payment_ref = provider_ref
     if g.extras is None:
         g.extras = {}
-    g.extras["paid_at"] = datetime.now(timezone.utc).isoformat()
+    g.extras = {**g.extras, "paid_at": datetime.now(timezone.utc).isoformat()}
+    # Close the loyalty loop for online marketplace orders (earn/redeem/coupon)
+    # without waiting for a POS counter flow.
+    try:
+        await settle_marketplace_online_loyalty(db, g)
+    except Exception:  # noqa: BLE001 - never fail the payment ack on loyalty errors
+        pass
     await db.commit()
     return "1|OK"

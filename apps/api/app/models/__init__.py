@@ -50,8 +50,14 @@ from .invoice import Invoice
 from .idempotency import IdempotencyKey
 from .dining_table import DiningTable
 from .guest_order import GuestOrder, GuestOrderLine
-from .marketplace import MarketplaceListing
+from .marketplace import MarketplaceListing, MarketplaceReview
 from .marketplace_category import MarketplaceCategory, MarketplaceCategoryAlias
+from .member_extras import (
+    MemberFavoriteStore,
+    MemberReferral,
+    MemberWallet,
+    WalletTransaction,
+)
 from .purchasing import PurchaseOrder, PurchaseOrderLine, Supplier
 
 __all__ = [
@@ -111,8 +117,13 @@ __all__ = [
     "GuestOrder",
     "GuestOrderLine",
     "MarketplaceListing",
+    "MarketplaceReview",
     "MarketplaceCategory",
     "MarketplaceCategoryAlias",
+    "MemberFavoriteStore",
+    "MemberReferral",
+    "MemberWallet",
+    "WalletTransaction",
     "Supplier",
     "PurchaseOrder",
     "PurchaseOrderLine",

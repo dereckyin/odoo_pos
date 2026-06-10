@@ -8,13 +8,34 @@ import type {
   MarketplaceProductFeed,
   MarketplaceProductSearchHit,
   MarketplaceStoreDetail,
+  MarketplaceStoreReviews,
   MarketplaceStoreSummary,
+  MemberCoupon,
+  MemberProfile,
+  PointsSummary,
   PublicMember,
+  ReferralInfo,
+  WalletRead,
 } from './types'
 
 const baseURL = import.meta.env.VITE_API_BASE || '/api'
 
 export const client = axios.create({ baseURL, timeout: 30000 })
+
+// Attach the unified marketplace member token when present. Read lazily to
+// avoid a circular import with the Pinia store.
+let memberTokenGetter: () => string | null = () => null
+export function registerMemberTokenGetter(fn: () => string | null) {
+  memberTokenGetter = fn
+}
+client.interceptors.request.use((config) => {
+  const token = memberTokenGetter()
+  if (token) {
+    config.headers = config.headers ?? {}
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
 
 export function resolveUploadPath(url: string | null | undefined) {
   if (!url) return ''
@@ -30,6 +51,7 @@ export function fetchStores(params?: {
   lng?: number
   cuisine?: string
   fulfillment?: string
+  sort?: string
 }) {
   return client.get<MarketplaceStoreSummary[]>('/public/marketplace/stores', { params })
 }
@@ -112,15 +134,107 @@ export function initiatePayment(orderId: string, accessToken: string, returnUrl:
 
 export function requestMemberOtp(storeSlug: string, phone: string) {
   return client.post<{ ok: boolean; dev_code?: string }>('/public/members/otp/request', {
-    store_slug: storeSlug,
+    store_slug: storeSlug || null,
     phone,
   })
 }
 
-export function verifyMemberOtp(storeSlug: string, phone: string, code: string) {
+export function verifyMemberOtp(storeSlug: string, phone: string, code: string, name?: string) {
   return client.post<PublicMember>('/public/members/otp/verify', {
-    store_slug: storeSlug,
+    store_slug: storeSlug || null,
     phone,
     code,
+    name: name || null,
   })
+}
+
+// --- Multi-store checkout ---
+export interface BatchStoreCart {
+  store_slug: string
+  fulfillment_type: string
+  payment_method: string
+  delivery_address?: string | null
+  delivery_lat?: number | null
+  delivery_lng?: number | null
+  delivery_note?: string | null
+  table_label?: string | null
+  party_size?: number | null
+  store_note?: string | null
+  points_redeemed?: number
+  coupon_code?: string | null
+  lines: SubmitOrderPayload['lines']
+}
+export interface BatchOrderItem {
+  order_id: string
+  access_token: string
+  store_slug: string
+  store_name: string
+  payment_method: string
+  payment_status: string | null
+  estimated_subtotal_cents: number
+}
+export interface BatchOrderCreated {
+  order_group_id: string
+  orders: BatchOrderItem[]
+  total_cents: number
+}
+export function submitBatchOrder(payload: {
+  customer_name: string
+  customer_phone: string
+  carts: BatchStoreCart[]
+}) {
+  return client.post<BatchOrderCreated>('/public/marketplace/orders/batch', payload)
+}
+
+export function fetchOrderGroup(groupId: string) {
+  return client.get<MarketplaceOrderRead[]>(`/public/marketplace/order-groups/${groupId}`)
+}
+
+// --- Reviews ---
+export function fetchStoreReviews(slug: string) {
+  return client.get<MarketplaceStoreReviews>(`/public/marketplace/stores/${slug}/reviews`)
+}
+export function submitReview(payload: {
+  order_id: string
+  access_token: string
+  rating: number
+  comment?: string | null
+}) {
+  return client.post('/public/marketplace/reviews', payload)
+}
+
+// --- Member center (requires member token) ---
+export function fetchMyProfile() {
+  return client.get<MemberProfile>('/public/members/me')
+}
+export function fetchMyOrders() {
+  return client.get<MarketplaceOrderRead[]>('/public/members/me/orders')
+}
+export function fetchMyPoints() {
+  return client.get<PointsSummary>('/public/members/me/points')
+}
+export function fetchMyCoupons() {
+  return client.get<MemberCoupon[]>('/public/members/me/coupons')
+}
+export function fetchMyFavorites() {
+  return client.get<MarketplaceStoreSummary[]>('/public/members/me/favorites')
+}
+export function toggleFavorite(slug: string, on: boolean) {
+  if (on) return client.post('/public/members/me/favorites', { store_slug: slug })
+  return client.delete(`/public/members/me/favorites/${slug}`)
+}
+export function fetchMyWallet() {
+  return client.get<WalletRead>('/public/members/me/wallet')
+}
+export function topupWallet(amountCents: number) {
+  return client.post<WalletRead>('/public/members/me/wallet/topup', { amount_cents: amountCents })
+}
+export function fetchMyReferral() {
+  return client.get<ReferralInfo>('/public/members/me/referral')
+}
+export function applyReferral(code: string) {
+  return client.post<ReferralInfo>('/public/members/me/referral/apply', { code })
+}
+export function updateMyProfile(payload: { name?: string | null; birthday?: string | null }) {
+  return client.patch<MemberProfile>('/public/members/me', payload)
 }

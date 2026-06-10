@@ -125,4 +125,7 @@ def listing_to_summary(
         "longitude": store.longitude,
         "distance_km": distance_km,
         "is_open": is_store_open(listing.business_hours),
+        "prep_time_min": listing.prep_time_min,
+        "rating_avg": round(listing.rating_avg or 0.0, 1),
+        "rating_count": listing.rating_count or 0,
     }

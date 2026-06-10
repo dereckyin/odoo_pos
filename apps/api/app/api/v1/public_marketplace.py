@@ -8,10 +8,12 @@ from sqlalchemy.orm import selectinload
 from ...core.deps import DbSession
 from ...core.ratelimit import per_ip
 from ...models import (
+    AllianceMember,
     GuestOrder,
-    GuestOrderLine,
     MarketplaceListing,
+    MarketplaceReview,
     Member,
+    MemberFavoriteStore,
     Product,
     ProductOptionGroup,
     Store,
@@ -19,6 +21,9 @@ from ...models import (
 )
 from ...schemas.guest_order import GuestOrderLineRead
 from ...schemas.marketplace import (
+    MarketplaceBatchOrderCreated,
+    MarketplaceBatchOrderItem,
+    MarketplaceBatchOrderSubmit,
     MarketplaceFeedCategory,
     MarketplaceMenu,
     MarketplaceMenuMeta,
@@ -29,33 +34,59 @@ from ...schemas.marketplace import (
     MarketplaceProductFeed,
     MarketplaceProductFeedSection,
     MarketplaceProductSearchHit,
+    MarketplaceReviewCreate,
+    MarketplaceReviewRead,
     MarketplaceStoreDetail,
+    MarketplaceStoreReviews,
     MarketplaceStoreSummary,
 )
 from ...schemas.public import PublicMeta
+from ...services.alliance_service import resolve_alliance_member
 from ...services.marketplace import (
-    get_or_create_web_dinein_table,
     haversine_km,
     is_store_open,
     listing_to_summary,
 )
 from ...services.marketplace_category import load_marketplace_taxonomy, load_tenant_categories_map
-from ...services.option_validation import (
-    OptionValidationError,
-    load_product_option_context,
-    validate_line_options,
+from ...services.marketplace_member import (
+    MarketplaceMemberContext,
+    ensure_tenant_in_marketplace_alliance,
+    get_or_create_marketplace_alliance,
 )
+from ...services.marketplace_order import MarketplaceOrderInput, build_marketplace_order
 from ...services.public_menu import build_public_menu_for_tenant, product_orderable_via_public_menu
 from ...services.tenant_modules import (
     MODULE_MARKETPLACE,
     assert_tenant_module,
     read_modules_from_settings,
 )
+from .public_members import OptionalMarketplaceMemberDep
 
 router = APIRouter(prefix="/public/marketplace", tags=["public-marketplace"])
 
 FULFILLMENT_TYPES = ("pickup", "delivery", "dine_in")
 PAYMENT_METHODS = ("counter", "online")
+
+
+async def _resolve_tenant_member_id(
+    db, tenant_id: str, member_ctx: MarketplaceMemberContext | None
+) -> str | None:
+    """Map a unified marketplace member to this tenant's local member id."""
+    if member_ctx is None:
+        return None
+    am = await db.get(AllianceMember, member_ctx.alliance_member_id)
+    if not am or am.deleted_at is not None:
+        return None
+    net = await get_or_create_marketplace_alliance(db)
+    await ensure_tenant_in_marketplace_alliance(db, tenant_id)
+    _, member = await resolve_alliance_member(
+        db,
+        alliance_id=net.id,
+        tenant_id=tenant_id,
+        phone=am.phone,
+        name=am.name,
+    )
+    return member.id
 
 
 async def _resolve_listing(db, slug: str) -> tuple[MarketplaceListing, Store]:
@@ -90,7 +121,27 @@ def _order_access_token(g: GuestOrder) -> str | None:
     return None
 
 
-def _to_marketplace_read(g: GuestOrder, listing: MarketplaceListing, store: Store) -> MarketplaceOrderRead:
+def _eta_minutes(g: GuestOrder, listing: MarketplaceListing) -> int | None:
+    """Rough remaining ETA: prep time (+ delivery buffer), counting down once accepted."""
+    if g.status in ("merged", "cancelled"):
+        return None
+    base = max(0, listing.prep_time_min or 15)
+    if g.fulfillment_type == "delivery":
+        base += 15
+    if g.status == "ready":
+        return 0 if g.fulfillment_type != "delivery" else 10
+    return base
+
+
+def _to_marketplace_read(
+    g: GuestOrder,
+    listing: MarketplaceListing,
+    store: Store,
+    *,
+    has_review: bool = False,
+) -> MarketplaceOrderRead:
+    completed = g.status == "merged" or (g.payment_status == "paid")
+    can_review = completed and not has_review
     return MarketplaceOrderRead(
         id=g.id,
         status=g.status,
@@ -105,6 +156,13 @@ def _to_marketplace_read(g: GuestOrder, listing: MarketplaceListing, store: Stor
         store_name=listing.display_name,
         store_slug=listing.slug,
         estimated_subtotal_cents=g.estimated_subtotal_cents,
+        discount_cents=g.discount_cents or 0,
+        points_redeemed=g.points_redeemed or 0,
+        order_group_id=g.order_group_id,
+        prep_time_min=listing.prep_time_min or 15,
+        eta_minutes=_eta_minutes(g, listing),
+        can_review=can_review,
+        has_review=has_review,
         customer_note=g.customer_note,
         party_size=g.party_size,
         created_at=g.created_at,
@@ -116,16 +174,31 @@ def _to_marketplace_read(g: GuestOrder, listing: MarketplaceListing, store: Stor
     )
 
 
+async def _favorite_listing_ids(db, member_ctx: MarketplaceMemberContext | None) -> set[str]:
+    if member_ctx is None:
+        return set()
+    rows = (
+        await db.execute(
+            select(MemberFavoriteStore.listing_id).where(
+                MemberFavoriteStore.alliance_member_id == member_ctx.alliance_member_id
+            )
+        )
+    ).scalars().all()
+    return set(rows)
+
+
 @router.get("/stores", response_model=list[MarketplaceStoreSummary])
 @per_ip("60/minute")
 async def list_stores(
     request: Request,
     db: DbSession,
+    member_ctx: OptionalMarketplaceMemberDep,
     q: str | None = Query(default=None),
     lat: float | None = Query(default=None),
     lng: float | None = Query(default=None),
     cuisine: str | None = Query(default=None),
     fulfillment: str | None = Query(default=None, description="pickup|delivery|dine_in"),
+    sort: str | None = Query(default=None, description="distance|rating|prep"),
 ):
     stmt = (
         select(MarketplaceListing, Store, Tenant)
@@ -156,6 +229,7 @@ async def list_stores(
         stmt = stmt.where(MarketplaceListing.supports_dine_in.is_(True))
 
     rows = (await db.execute(stmt)).all()
+    fav_ids = await _favorite_listing_ids(db, member_ctx)
     summaries: list[MarketplaceStoreSummary] = []
     for listing, store, tenant in rows:
         if not _marketplace_enabled_for_tenant(tenant):
@@ -169,9 +243,14 @@ async def list_stores(
             if listing.delivery_radius_km and dist > listing.delivery_radius_km:
                 continue
         data = listing_to_summary(listing, store, lat=lat, lng=lng)
+        data["is_favorite"] = listing.id in fav_ids
         summaries.append(MarketplaceStoreSummary(**data))
 
-    if lat is not None and lng is not None:
+    if sort == "rating":
+        summaries.sort(key=lambda s: s.rating_avg, reverse=True)
+    elif sort == "prep":
+        summaries.sort(key=lambda s: s.prep_time_min)
+    elif lat is not None and lng is not None:
         summaries.sort(key=lambda s: s.distance_km if s.distance_km is not None else 9999)
     else:
         summaries.sort(key=lambda s: s.display_name)
@@ -180,9 +259,13 @@ async def list_stores(
 
 @router.get("/stores/{slug}", response_model=MarketplaceStoreDetail)
 @per_ip("60/minute")
-async def get_store(request: Request, slug: str, db: DbSession):
+async def get_store(
+    request: Request, slug: str, db: DbSession, member_ctx: OptionalMarketplaceMemberDep
+):
     listing, store = await _resolve_listing(db, slug)
     data = listing_to_summary(listing, store)
+    fav_ids = await _favorite_listing_ids(db, member_ctx)
+    data["is_favorite"] = listing.id in fav_ids
     return MarketplaceStoreDetail(
         **data,
         store_id=store.id,
@@ -488,145 +571,109 @@ async def submit_marketplace_order(
     slug: str,
     payload: MarketplaceOrderSubmit,
     db: DbSession,
+    member_ctx: OptionalMarketplaceMemberDep,
 ):
-    if not payload.lines:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "empty cart")
-    if payload.fulfillment_type not in FULFILLMENT_TYPES:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid fulfillment_type")
-    if payload.payment_method not in PAYMENT_METHODS:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid payment_method")
-
     listing, store = await _resolve_listing(db, slug)
-    if not is_store_open(listing.business_hours):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "store is currently closed")
-
-    if payload.fulfillment_type == "pickup" and not listing.supports_pickup:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "pickup not supported")
-    if payload.fulfillment_type == "delivery" and not listing.supports_delivery:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "delivery not supported")
-    if payload.fulfillment_type == "dine_in" and not listing.supports_dine_in:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "dine_in not supported")
-    if payload.payment_method == "counter" and not listing.payment_counter:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "counter payment not supported")
-    if payload.payment_method == "online" and not listing.payment_online:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "online payment not supported")
-
-    if payload.fulfillment_type == "delivery":
-        if not payload.delivery_address:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "delivery_address required")
-
-    table_id = None
-    if payload.fulfillment_type == "dine_in":
-        table = await get_or_create_web_dinein_table(db, store)
-        table_id = table.id
-        if payload.table_label:
-            table.label = payload.table_label[:32]
-            await db.flush()
-
-    product_ids = list({ln.product_id for ln in payload.lines})
-    products = (
-        await db.execute(
-            select(Product).where(
-                Product.id.in_(product_ids),
-                Product.tenant_id == store.tenant_id,
-                Product.deleted_at.is_(None),
-                Product.is_active.is_(True),
-            )
-        )
-    ).scalars().all()
-    by_id = {p.id: p for p in products}
-    option_ctx = await load_product_option_context(db, store.tenant_id, product_ids)
-
-    estimated = 0
-    if payload.fulfillment_type == "delivery":
-        estimated += listing.delivery_fee_cents
-    line_models: list[GuestOrderLine] = []
-    for ln in payload.lines:
-        p = by_id.get(ln.product_id)
-        if not p:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"product not available: {ln.product_id}")
-        if not await product_orderable_via_public_menu(db, p):
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                f"product not available: {ln.product_id}",
-            )
-        try:
-            options_json = validate_line_options(
-                p.id,
-                p.price_cents,
-                p.price_cents + sum(o.price_delta_cents for o in (ln.options or [])),
-                ln.options,
-                option_ctx,
-            )
-        except OptionValidationError as e:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e)) from e
-
-        unit_price = p.price_cents + sum(o["price_delta_cents"] for o in options_json)
-        line_total = round(unit_price * ln.qty)
-        estimated += line_total
-        line_models.append(
-            GuestOrderLine(
-                product_id=p.id,
-                product_name=p.name,
-                sku=p.sku,
-                qty=ln.qty,
-                unit_price_cents=unit_price,
-                line_total_cents=line_total,
-                note=ln.note,
-                options_json=options_json or None,
-            )
-        )
-
-    if estimated < listing.min_order_cents:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            f"minimum order is {listing.min_order_cents} cents",
-        )
-
-    if payload.member_id:
+    # Prefer the authenticated unified member; fall back to a raw member_id.
+    member_id = await _resolve_tenant_member_id(db, store.tenant_id, member_ctx)
+    available_points = None
+    if member_ctx is not None:
+        am = await db.get(AllianceMember, member_ctx.alliance_member_id)
+        available_points = am.points if am else None
+    if member_id is None and payload.member_id:
         member = await db.get(Member, payload.member_id)
-        if not member or member.tenant_id != store.tenant_id or member.deleted_at:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid member")
+        if member and member.tenant_id == store.tenant_id and not member.deleted_at:
+            member_id = member.id
+            available_points = member.points
 
-    access_token = str(uuid4())
-    payment_status = "pending" if payload.payment_method == "online" else None
-    delivery_status = "pending" if payload.fulfillment_type == "delivery" else None
-
-    g = GuestOrder(
-        tenant_id=store.tenant_id,
-        store_id=store.id,
-        table_id=table_id,
-        channel="marketplace",
+    data = MarketplaceOrderInput(
         fulfillment_type=payload.fulfillment_type,
-        status="submitted",
+        payment_method=payload.payment_method,
         customer_name=payload.customer_name,
         customer_phone=payload.customer_phone,
         customer_note=payload.customer_note,
         party_size=payload.party_size,
-        member_id=payload.member_id,
+        member_id=member_id,
         delivery_address=payload.delivery_address,
         delivery_lat=payload.delivery_lat,
         delivery_lng=payload.delivery_lng,
         delivery_note=payload.delivery_note,
-        delivery_status=delivery_status,
-        payment_method=payload.payment_method,
-        payment_status=payment_status,
-        estimated_subtotal_cents=estimated,
-        extras={"access_token": access_token, "store_slug": slug},
+        table_label=payload.table_label,
+        points_redeemed=payload.points_redeemed,
+        coupon_code=payload.coupon_code,
+        available_points=available_points,
+        lines=payload.lines,
     )
-    db.add(g)
-    await db.flush()
-    for lm in line_models:
-        lm.order_id = g.id
-        db.add(lm)
+    g, access_token, estimated = await build_marketplace_order(
+        db, listing=listing, store=store, data=data
+    )
     await db.commit()
-
     return MarketplaceOrderCreated(
         order_id=g.id,
         access_token=access_token,
         payment_method=payload.payment_method,
-        payment_status=payment_status,
+        payment_status=g.payment_status,
         estimated_subtotal_cents=estimated,
+    )
+
+
+@router.post("/orders/batch", response_model=MarketplaceBatchOrderCreated, status_code=201)
+@per_ip("15/minute")
+async def submit_batch_order(
+    request: Request,
+    payload: MarketplaceBatchOrderSubmit,
+    db: DbSession,
+    member_ctx: OptionalMarketplaceMemberDep,
+):
+    """Multi-store checkout: one group id, one GuestOrder per store."""
+    if not payload.carts:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "empty cart")
+    group_id = str(uuid4())
+    items: list[MarketplaceBatchOrderItem] = []
+    total = 0
+    available_points = None
+    if member_ctx is not None:
+        am = await db.get(AllianceMember, member_ctx.alliance_member_id)
+        available_points = am.points if am else None
+    for cart in payload.carts:
+        listing, store = await _resolve_listing(db, cart.store_slug)
+        member_id = await _resolve_tenant_member_id(db, store.tenant_id, member_ctx)
+        data = MarketplaceOrderInput(
+            fulfillment_type=cart.fulfillment_type,
+            payment_method=cart.payment_method,
+            customer_name=payload.customer_name,
+            customer_phone=payload.customer_phone,
+            customer_note=cart.store_note,
+            party_size=cart.party_size,
+            member_id=member_id,
+            delivery_address=cart.delivery_address,
+            delivery_lat=cart.delivery_lat,
+            delivery_lng=cart.delivery_lng,
+            delivery_note=cart.delivery_note,
+            table_label=cart.table_label,
+            points_redeemed=cart.points_redeemed,
+            coupon_code=cart.coupon_code,
+            available_points=available_points,
+            lines=cart.lines,
+        )
+        g, access_token, estimated = await build_marketplace_order(
+            db, listing=listing, store=store, data=data, order_group_id=group_id
+        )
+        total += estimated
+        items.append(
+            MarketplaceBatchOrderItem(
+                order_id=g.id,
+                access_token=access_token,
+                store_slug=listing.slug,
+                store_name=listing.display_name,
+                payment_method=cart.payment_method,
+                payment_status=g.payment_status,
+                estimated_subtotal_cents=estimated,
+            )
+        )
+    await db.commit()
+    return MarketplaceBatchOrderCreated(
+        order_group_id=group_id, orders=items, total_cents=total
     )
 
 
@@ -659,4 +706,135 @@ async def get_marketplace_order(
     store = await db.get(Store, g.store_id)
     if not listing or not store:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
-    return _to_marketplace_read(g, listing, store)
+    has_review = (
+        await db.execute(
+            select(MarketplaceReview.id).where(MarketplaceReview.guest_order_id == g.id)
+        )
+    ).scalar_one_or_none() is not None
+    return _to_marketplace_read(g, listing, store, has_review=has_review)
+
+
+@router.get("/order-groups/{group_id}", response_model=list[MarketplaceOrderRead])
+@per_ip("120/minute")
+async def get_order_group(
+    request: Request,
+    group_id: str,
+    db: DbSession,
+    member_ctx: OptionalMarketplaceMemberDep,
+):
+    """Aggregate tracking for a multi-store checkout. Requires the member token
+    (the group's owner) to enumerate orders."""
+    if member_ctx is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "member token required")
+    member_ids = (
+        await db.execute(
+            select(GuestOrder)
+            .where(GuestOrder.order_group_id == group_id)
+            .options(selectinload(GuestOrder.lines))
+            .order_by(GuestOrder.created_at)
+        )
+    ).scalars().all()
+    out: list[MarketplaceOrderRead] = []
+    for g in member_ids:
+        listing = (
+            await db.execute(
+                select(MarketplaceListing).where(MarketplaceListing.store_id == g.store_id)
+            )
+        ).scalar_one_or_none()
+        store = await db.get(Store, g.store_id)
+        if listing and store:
+            out.append(_to_marketplace_read(g, listing, store))
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Reviews
+# ---------------------------------------------------------------------------
+
+@router.get("/stores/{slug}/reviews", response_model=MarketplaceStoreReviews)
+@per_ip("60/minute")
+async def get_store_reviews(request: Request, slug: str, db: DbSession):
+    listing, _store = await _resolve_listing(db, slug)
+    rows = (
+        await db.execute(
+            select(MarketplaceReview)
+            .where(MarketplaceReview.listing_id == listing.id)
+            .order_by(MarketplaceReview.created_at.desc())
+            .limit(50)
+        )
+    ).scalars().all()
+    return MarketplaceStoreReviews(
+        rating_avg=round(listing.rating_avg or 0.0, 1),
+        rating_count=listing.rating_count or 0,
+        reviews=[
+            MarketplaceReviewRead(
+                id=r.id,
+                rating=r.rating,
+                comment=r.comment,
+                author_name=r.author_name,
+                created_at=r.created_at,
+            )
+            for r in rows
+        ],
+    )
+
+
+@router.post("/reviews", response_model=MarketplaceReviewRead, status_code=201)
+@per_ip("20/minute")
+async def submit_review(
+    request: Request,
+    payload: MarketplaceReviewCreate,
+    db: DbSession,
+):
+    g = (
+        await db.execute(
+            select(GuestOrder).where(
+                GuestOrder.id == payload.order_id,
+                GuestOrder.channel == "marketplace",
+            )
+        )
+    ).scalar_one_or_none()
+    if not g or _order_access_token(g) != payload.access_token:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    if g.status != "merged" and g.payment_status != "paid":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "只能評價已完成的訂單")
+    existing = (
+        await db.execute(
+            select(MarketplaceReview).where(MarketplaceReview.guest_order_id == g.id)
+        )
+    ).scalar_one_or_none()
+    if existing:
+        raise HTTPException(status.HTTP_409_CONFLICT, "此訂單已評價")
+
+    listing = (
+        await db.execute(
+            select(MarketplaceListing).where(MarketplaceListing.store_id == g.store_id)
+        )
+    ).scalar_one_or_none()
+    if not listing:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+    review = MarketplaceReview(
+        listing_id=listing.id,
+        tenant_id=g.tenant_id,
+        store_id=g.store_id,
+        guest_order_id=g.id,
+        rating=payload.rating,
+        comment=payload.comment,
+        author_name=g.customer_name,
+    )
+    db.add(review)
+    # Recompute aggregate rating incrementally.
+    prev_total = (listing.rating_avg or 0.0) * (listing.rating_count or 0)
+    listing.rating_count = (listing.rating_count or 0) + 1
+    listing.rating_avg = (prev_total + payload.rating) / listing.rating_count
+    await db.flush()
+    await db.commit()
+    await db.refresh(review)
+    return MarketplaceReviewRead(
+        id=review.id,
+        rating=review.rating,
+        comment=review.comment,
+        author_name=review.author_name,
+        created_at=review.created_at,
+    )

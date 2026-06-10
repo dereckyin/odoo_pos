@@ -66,11 +66,29 @@ export interface MarketplaceStoreSummary {
   longitude: number | null
   distance_km: number | null
   is_open: boolean
+  prep_time_min: number
+  rating_avg: number
+  rating_count: number
+  is_favorite: boolean
 }
 
 export interface MarketplaceStoreDetail extends MarketplaceStoreSummary {
   store_id: string
   business_hours: Record<string, { open: string; close: string }[]> | null
+}
+
+export interface MarketplaceReview {
+  id: string
+  rating: number
+  comment: string | null
+  author_name: string | null
+  created_at: string
+}
+
+export interface MarketplaceStoreReviews {
+  rating_avg: number
+  rating_count: number
+  reviews: MarketplaceReview[]
 }
 
 export interface MarketplaceMenuMeta {
@@ -161,6 +179,13 @@ export interface MarketplaceOrderRead {
   store_name: string
   store_slug: string
   estimated_subtotal_cents: number
+  discount_cents: number
+  points_redeemed: number
+  order_group_id: string | null
+  prep_time_min: number
+  eta_minutes: number | null
+  can_review: boolean
+  has_review: boolean
   customer_note: string | null
   party_size: number | null
   created_at: string
@@ -179,10 +204,59 @@ export interface MarketplaceOrderCreated {
   estimated_subtotal_cents: number
 }
 
+export interface MemberProfile {
+  alliance_member_id: string
+  name: string | null
+  phone: string
+  points: number
+  birthday: string | null
+  referral_code: string | null
+  wallet_balance_cents: number
+}
+
+export interface PointEntry {
+  delta: number
+  reason: string
+  order_id: string | null
+  created_at: string
+}
+export interface PointsSummary {
+  balance: number
+  entries: PointEntry[]
+}
+
+export interface MemberCoupon {
+  code: string
+  type: string
+  value: number
+  min_spend_cents: number
+  expires_at: string | null
+}
+
+export interface WalletTxn {
+  delta_cents: number
+  reason: string
+  order_id: string | null
+  created_at: string
+}
+export interface WalletRead {
+  balance_cents: number
+  transactions: WalletTxn[]
+}
+
+export interface ReferralInfo {
+  code: string
+  referred_count: number
+  reward_points: number
+}
+
 export interface PublicMember {
   id: string
   name: string
   phone: string
   points: number
   level_id: string | null
+  token?: string | null
+  alliance_member_id?: string | null
+  cross_store_points?: number | null
 }

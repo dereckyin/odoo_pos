@@ -20,6 +20,9 @@ export interface MarketplaceListing {
   payment_counter: boolean
   payment_online: boolean
   business_hours: Record<string, { open: string; close: string }[]> | null
+  prep_time_min: number
+  rating_avg: number
+  rating_count: number
   approved_at: string | null
   submitted_at: string | null
   created_at: string
@@ -41,6 +44,7 @@ export interface MarketplaceListingUpdate {
   payment_counter?: boolean
   payment_online?: boolean
   business_hours?: Record<string, { open: string; close: string }[]> | null
+  prep_time_min?: number
 }
 
 export function listListings() {

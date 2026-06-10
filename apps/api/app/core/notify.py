@@ -53,6 +53,38 @@ async def send_email(to: str, subject: str, body: str) -> None:
         logger.exception("failed to send email to=%s", to)
 
 
+async def send_sms(to: str, body: str) -> bool:
+    """Send an SMS. Returns True when handed to a real provider, False when it
+    fell back to the dev stub (so callers can echo a dev code instead)."""
+    settings = get_settings()
+    if (
+        settings.SMS_PROVIDER == "twilio"
+        and settings.TWILIO_ACCOUNT_SID
+        and settings.TWILIO_AUTH_TOKEN
+        and settings.TWILIO_FROM_NUMBER
+    ):
+        url = (
+            f"https://api.twilio.com/2010-04-01/Accounts/"
+            f"{settings.TWILIO_ACCOUNT_SID}/Messages.json"
+        )
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.post(
+                    url,
+                    auth=(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN),
+                    data={"From": settings.TWILIO_FROM_NUMBER, "To": to, "Body": body},
+                )
+            if resp.status_code >= 400:
+                logger.error("twilio sms failed to=%s status=%s", to, resp.status_code)
+                return False
+            return True
+        except Exception:  # noqa: BLE001
+            logger.exception("failed to send sms to=%s", to)
+            return False
+    logger.info("[stub-sms] to=%s body=%s", to, body)
+    return False
+
+
 async def _send_via_resend(*, to: str, subject: str, body: str) -> None:
     settings = get_settings()
     payload = {

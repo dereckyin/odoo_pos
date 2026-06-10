@@ -86,7 +86,19 @@
           {{ paymentLabel(record) }}
         </template>
         <template v-else-if="column.key === 'delivery'">
-          {{ deliveryLabel(record) }}
+          <template v-if="record.fulfillment_type === 'delivery'">
+            <div>{{ deliveryLabel(record) }}</div>
+            <a-button
+              v-if="nextDelivery(record)"
+              type="link"
+              size="small"
+              :loading="advancing === record.id"
+              @click="advanceDelivery(record)"
+            >
+              → {{ deliveryStageLabel(nextDelivery(record)!) }}
+            </a-button>
+          </template>
+          <template v-else>—</template>
         </template>
         <template v-else-if="column.key === 'status'">
           <a-tag :color="statusColor(record.status)">{{ statusLabel(record.status) }}</a-tag>
@@ -105,10 +117,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
-import { listGuestOrders } from '@/api/tables'
+import { listGuestOrders, setGuestOrderDeliveryStatus } from '@/api/tables'
 import { listStores } from '@/api/stores'
 import type { GuestOrderRead, StoreRead } from '@/types'
+
+const DELIVERY_FLOW = ['pending', 'preparing', 'out_for_delivery', 'delivered'] as const
+const advancing = ref<string | null>(null)
 
 const orders = ref<GuestOrderRead[]>([])
 const stores = ref<StoreRead[]>([])
@@ -164,11 +180,40 @@ function paymentLabel(record: GuestOrderRead) {
   if (record.payment_method === 'counter') return '櫃台付'
   return '—'
 }
+function deliveryStageLabel(s: string) {
+  return (
+    {
+      pending: '待處理',
+      preparing: '備餐中',
+      out_for_delivery: '外送中',
+      delivered: '已送達',
+    } as Record<string, string>
+  )[s] || s
+}
 function deliveryLabel(record: GuestOrderRead) {
   if (record.fulfillment_type !== 'delivery') return '—'
-  if (record.delivery_status === 'delivered') return '已送達'
-  if (record.delivery_status === 'pending') return '待送達'
-  return record.delivery_status || '—'
+  return deliveryStageLabel(record.delivery_status || 'pending')
+}
+function nextDelivery(record: GuestOrderRead): string | null {
+  const cur = record.delivery_status || 'pending'
+  const idx = DELIVERY_FLOW.indexOf(cur as (typeof DELIVERY_FLOW)[number])
+  if (idx < 0 || idx >= DELIVERY_FLOW.length - 1) return null
+  return DELIVERY_FLOW[idx + 1]
+}
+async function advanceDelivery(record: GuestOrderRead) {
+  const next = nextDelivery(record)
+  if (!next) return
+  advancing.value = record.id
+  try {
+    const { data } = await setGuestOrderDeliveryStatus(record.id, next)
+    const i = orders.value.findIndex((o) => o.id === data.id)
+    if (i >= 0) orders.value[i] = data
+    message.success(`已更新為「${deliveryStageLabel(next)}」`)
+  } catch {
+    message.error('更新外送狀態失敗')
+  } finally {
+    advancing.value = null
+  }
 }
 function statusColor(s: string) {
   switch (s) {

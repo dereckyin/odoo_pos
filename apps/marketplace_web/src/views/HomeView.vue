@@ -1,7 +1,12 @@
 <template>
   <div class="page">
     <header class="hero">
-      <h1>點餐趣美食市集</h1>
+      <div class="hero-top">
+        <h1>點餐趣美食市集</h1>
+        <button class="member-btn" type="button" @click="$router.push({ name: 'member' })">
+          {{ memberStore.isLoggedIn ? `${memberStore.points} 點` : '會員' }}
+        </button>
+      </div>
       <p>依分類瀏覽精選餐點，外帶、外送、內用一站搞定</p>
       <div class="search-bar">
         <input v-model="query" placeholder="搜尋餐點或商家…" />
@@ -40,7 +45,10 @@
     </div>
 
     <section v-if="stores.length" class="stores-section">
-      <h2 class="section-title">熱門商家</h2>
+      <h2 class="section-title">
+        熱門商家
+        <button class="see-all" type="button" @click="$router.push({ name: 'stores' })">查看全部 ›</button>
+      </h2>
       <div class="stores-scroll">
         <router-link
           v-for="s in stores"
@@ -51,6 +59,10 @@
           <img v-if="s.logo_url" :src="resolveUploadPath(s.logo_url)" class="store-chip-logo" alt="" />
           <div v-else class="store-chip-logo ph">{{ s.display_name.charAt(0) }}</div>
           <span class="store-chip-name">{{ s.display_name }}</span>
+          <span class="store-chip-meta">
+            ★{{ s.rating_avg ? s.rating_avg.toFixed(1) : '新' }}
+            <template v-if="s.distance_km != null"> · {{ s.distance_km.toFixed(1) }}km</template>
+          </span>
         </router-link>
       </div>
     </section>
@@ -97,10 +109,12 @@ import type {
   MarketplaceStoreSummary,
 } from '@/types'
 import { useCartStore } from '@/stores/cart'
+import { useMemberStore } from '@/stores/member'
 
 const route = useRoute()
 const router = useRouter()
 const cart = useCartStore()
+const memberStore = useMemberStore()
 
 const feedSections = ref<MarketplaceProductFeedSection[]>([])
 const feedCategories = ref<MarketplaceFeedCategory[]>([])
@@ -305,6 +319,38 @@ onBeforeUnmount(() => scrollObserver?.disconnect())
   margin: 8px 4px 10px;
   font-size: 1rem;
   font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.see-all {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+.hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.member-btn {
+  flex-shrink: 0;
+  border: 0;
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border-radius: 16px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.store-chip-meta {
+  display: block;
+  font-size: 10px;
+  color: #e6a700;
+  margin-top: 2px;
 }
 .stores-scroll {
   display: flex;

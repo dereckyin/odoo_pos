@@ -26,6 +26,10 @@ class MarketplaceStoreSummary(BaseModel):
     longitude: float | None = None
     distance_km: float | None = None
     is_open: bool = True
+    prep_time_min: int = 15
+    rating_avg: float = 0.0
+    rating_count: int = 0
+    is_favorite: bool = False
 
 
 class MarketplaceStoreDetail(MarketplaceStoreSummary):
@@ -115,6 +119,8 @@ class MarketplaceOrderSubmit(BaseModel):
     delivery_lng: float | None = None
     delivery_note: str | None = None
     table_label: str | None = Field(default=None, description="Optional table number for dine_in")
+    points_redeemed: int = Field(default=0, ge=0)
+    coupon_code: str | None = None
     lines: list[GuestOrderLineCreate]
 
 
@@ -124,6 +130,69 @@ class MarketplaceOrderCreated(BaseModel):
     payment_method: str
     payment_status: str | None = None
     estimated_subtotal_cents: int
+
+
+class MarketplaceStoreCart(BaseModel):
+    """One store's portion of a multi-store checkout."""
+
+    store_slug: str
+    fulfillment_type: str = Field(description="pickup | delivery | dine_in")
+    payment_method: str = Field(description="counter | online")
+    delivery_address: str | None = None
+    delivery_lat: float | None = None
+    delivery_lng: float | None = None
+    delivery_note: str | None = None
+    table_label: str | None = None
+    party_size: int | None = Field(default=None, ge=1)
+    store_note: str | None = None
+    points_redeemed: int = Field(default=0, ge=0)
+    coupon_code: str | None = None
+    lines: list[GuestOrderLineCreate]
+
+
+class MarketplaceBatchOrderSubmit(BaseModel):
+    """Multi-store checkout: shared contact info + per-store carts."""
+
+    customer_name: str = Field(min_length=1, max_length=64)
+    customer_phone: str = Field(min_length=1, max_length=32)
+    carts: list[MarketplaceStoreCart] = Field(min_length=1)
+
+
+class MarketplaceBatchOrderItem(BaseModel):
+    order_id: str
+    access_token: str
+    store_slug: str
+    store_name: str
+    payment_method: str
+    payment_status: str | None = None
+    estimated_subtotal_cents: int
+
+
+class MarketplaceBatchOrderCreated(BaseModel):
+    order_group_id: str
+    orders: list[MarketplaceBatchOrderItem]
+    total_cents: int
+
+
+class MarketplaceReviewCreate(BaseModel):
+    order_id: str
+    access_token: str
+    rating: int = Field(ge=1, le=5)
+    comment: str | None = Field(default=None, max_length=1000)
+
+
+class MarketplaceReviewRead(BaseModel):
+    id: str
+    rating: int
+    comment: str | None
+    author_name: str | None
+    created_at: datetime
+
+
+class MarketplaceStoreReviews(BaseModel):
+    rating_avg: float
+    rating_count: int
+    reviews: list[MarketplaceReviewRead]
 
 
 class MarketplaceOrderRead(BaseModel):
@@ -140,6 +209,13 @@ class MarketplaceOrderRead(BaseModel):
     store_name: str
     store_slug: str
     estimated_subtotal_cents: int
+    discount_cents: int = 0
+    points_redeemed: int = 0
+    order_group_id: str | None = None
+    prep_time_min: int = 15
+    eta_minutes: int | None = None
+    can_review: bool = False
+    has_review: bool = False
     customer_note: str | None
     party_size: int | None
     created_at: datetime
@@ -170,6 +246,9 @@ class MarketplaceListingRead(ORMModel):
     payment_counter: bool
     payment_online: bool
     business_hours: dict | None
+    prep_time_min: int = 15
+    rating_avg: float = 0.0
+    rating_count: int = 0
     approved_at: datetime | None
     submitted_at: datetime | None
     created_at: datetime
@@ -191,6 +270,7 @@ class MarketplaceListingUpdate(BaseModel):
     payment_counter: bool | None = None
     payment_online: bool | None = None
     business_hours: dict | None = None
+    prep_time_min: int | None = Field(default=None, ge=0, le=240)
     store_id: str | None = None
 
 

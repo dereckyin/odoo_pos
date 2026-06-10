@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     SMTP_FROM: str = "no-reply@pos.local"
     EMAIL_OTP_TTL_MIN: int = 15
 
+    # SMS (Twilio-compatible). Empty creds => stub log + dev_code echo fallback.
+    SMS_PROVIDER: str = ""  # "" | "twilio"
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_FROM_NUMBER: str = ""
+
     # Platform-level invoice/payment fallbacks. Per-tenant credentials live in
     # ``tenant_payment_settings`` / ``tenant_invoice_settings`` and override
     # these. Kept here only for development / single-tenant fallback.
