@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from ...core.deps import DbSession
+from ...core.security import hash_password
 from ...models import (
     AllianceMember,
     AlliancePointLedger,
@@ -65,19 +66,40 @@ async def _get_or_create_wallet(db, alliance_member_id: str) -> MemberWallet:
 # Profile
 # ---------------------------------------------------------------------------
 
+MIN_PASSWORD_LEN = 8
+
+
 class MemberProfile(BaseModel):
     alliance_member_id: str
     name: str | None
     phone: str
+    email: str | None
     points: int
     birthday: str | None
     referral_code: str | None
     wallet_balance_cents: int
+    has_password: bool
 
 
 class ProfileUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=64)
     birthday: str | None = Field(default=None, max_length=10)
+    email: str | None = Field(default=None, max_length=128)
+    password: str | None = Field(default=None, max_length=128)
+
+
+def _profile(am, code: str, wallet) -> "MemberProfile":
+    return MemberProfile(
+        alliance_member_id=am.id,
+        name=am.name,
+        phone=am.phone,
+        email=am.email,
+        points=am.points,
+        birthday=am.birthday,
+        referral_code=code,
+        wallet_balance_cents=wallet.balance_cents,
+        has_password=bool(am.password_hash),
+    )
 
 
 @router.get("", response_model=MemberProfile)
@@ -86,15 +108,7 @@ async def get_profile(db: DbSession, ctx: MarketplaceMemberDep):
     code = await ensure_referral_code(db, am)
     wallet = await _get_or_create_wallet(db, am.id)
     await db.commit()
-    return MemberProfile(
-        alliance_member_id=am.id,
-        name=am.name,
-        phone=am.phone,
-        points=am.points,
-        birthday=am.birthday,
-        referral_code=code,
-        wallet_balance_cents=wallet.balance_cents,
-    )
+    return _profile(am, code, wallet)
 
 
 @router.patch("", response_model=MemberProfile)
@@ -104,19 +118,17 @@ async def update_profile(payload: ProfileUpdate, db: DbSession, ctx: Marketplace
         am.name = payload.name[:64] or None
     if payload.birthday is not None:
         am.birthday = payload.birthday[:10] or None
+    if payload.email is not None:
+        am.email = payload.email.strip()[:128] or None
+    if payload.password is not None and payload.password != "":
+        if len(payload.password) < MIN_PASSWORD_LEN:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"密碼至少需 {MIN_PASSWORD_LEN} 碼")
+        am.password_hash = hash_password(payload.password)
     code = await ensure_referral_code(db, am)
     wallet = await _get_or_create_wallet(db, am.id)
     await db.commit()
     await db.refresh(am)
-    return MemberProfile(
-        alliance_member_id=am.id,
-        name=am.name,
-        phone=am.phone,
-        points=am.points,
-        birthday=am.birthday,
-        referral_code=code,
-        wallet_balance_cents=wallet.balance_cents,
-    )
+    return _profile(am, code, wallet)
 
 
 # ---------------------------------------------------------------------------

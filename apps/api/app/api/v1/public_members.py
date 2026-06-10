@@ -17,12 +17,15 @@ from sqlalchemy import select
 from ...core.deps import DbSession
 from ...core.notify import send_sms
 from ...core.ratelimit import per_ip
+from ...core.security import hash_password, verify_password
 from ...models import (
     AllianceMember,
+    AlliancePointLedger,
     DiningTable,
     EmailOtp,
     MarketplaceListing,
     Member,
+    MemberReferral,
     Tenant,
 )
 from ...services.alliance_service import resolve_alliance_member
@@ -36,6 +39,10 @@ from ...services.marketplace_member import (
 )
 
 router = APIRouter(prefix="/public/members", tags=["public"])
+
+# Reward granted to both referrer and referee when a referral code is applied.
+REFERRAL_REWARD_POINTS = 50
+MIN_PASSWORD_LEN = 8
 
 
 class MemberOtpRequest(BaseModel):
@@ -62,6 +69,23 @@ class PublicMemberRead(BaseModel):
     token: str | None = None
     alliance_member_id: str | None = None
     cross_store_points: int | None = None
+    email: str | None = None
+    birthday: str | None = None
+
+
+class MemberRegister(BaseModel):
+    phone: str = Field(min_length=4, max_length=32)
+    password: str = Field(min_length=MIN_PASSWORD_LEN, max_length=128)
+    name: str = Field(min_length=1, max_length=64)
+    email: str | None = Field(default=None, max_length=128)
+    birthday: str | None = Field(default=None, max_length=10)
+    referral_code: str | None = Field(default=None, max_length=32)
+    terms_accepted: bool = False
+
+
+class MemberPasswordLogin(BaseModel):
+    phone: str = Field(min_length=4, max_length=32)
+    password: str = Field(min_length=1, max_length=128)
 
 
 async def _tenant_from_table(db: DbSession, table_token: str) -> Tenant:
@@ -235,6 +259,143 @@ async def verify_otp(request: Request, payload: MemberOtpVerify, db: DbSession):
         points=member.points,
         level_id=member.level_id,
     )
+
+
+# ---------------------------------------------------------------------------
+# Password-based registration / login (unified marketplace member)
+# ---------------------------------------------------------------------------
+
+def _member_read(am: AllianceMember, token: str) -> PublicMemberRead:
+    return PublicMemberRead(
+        id=am.id,
+        name=am.name or am.phone,
+        phone=am.phone,
+        points=am.points,
+        level_id=None,
+        token=token,
+        alliance_member_id=am.id,
+        cross_store_points=am.points,
+        email=am.email,
+        birthday=am.birthday,
+    )
+
+
+async def _apply_referral_at_signup(db: DbSession, alliance_id: str, am: AllianceMember, code: str) -> None:
+    """Best-effort referral reward on registration. Invalid codes are ignored
+    so a typo never blocks signup (members can re-apply later in the center)."""
+    code = code.strip().upper()
+    if not code:
+        return
+    referrer = (
+        await db.execute(
+            select(AllianceMember).where(
+                AllianceMember.referral_code == code,
+                AllianceMember.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if not referrer or referrer.id == am.id:
+        return
+    referrer.points += REFERRAL_REWARD_POINTS
+    am.points += REFERRAL_REWARD_POINTS
+    db.add(
+        MemberReferral(
+            alliance_id=alliance_id,
+            referrer_member_id=referrer.id,
+            referee_member_id=am.id,
+            code=code,
+            reward_points=REFERRAL_REWARD_POINTS,
+            status="rewarded",
+        )
+    )
+    db.add_all(
+        [
+            AlliancePointLedger(
+                alliance_id=alliance_id,
+                alliance_member_id=referrer.id,
+                delta=REFERRAL_REWARD_POINTS,
+                reason="referral_reward",
+            ),
+            AlliancePointLedger(
+                alliance_id=alliance_id,
+                alliance_member_id=am.id,
+                delta=REFERRAL_REWARD_POINTS,
+                reason="referral_signup",
+            ),
+        ]
+    )
+
+
+@router.post("/register", response_model=PublicMemberRead)
+@per_ip("10/minute")
+async def register_member(request: Request, payload: MemberRegister, db: DbSession):
+    phone = payload.phone.strip()
+    if not phone:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "手機號碼必填")
+    if not payload.terms_accepted:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "請先同意服務條款")
+    if len(payload.password) < MIN_PASSWORD_LEN:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"密碼至少需 {MIN_PASSWORD_LEN} 碼")
+
+    net = await get_or_create_marketplace_alliance(db)
+    existing = (
+        await db.execute(
+            select(AllianceMember).where(
+                AllianceMember.alliance_id == net.id,
+                AllianceMember.phone == phone,
+                AllianceMember.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        if existing.password_hash:
+            raise HTTPException(status.HTTP_409_CONFLICT, "此手機已註冊，請直接登入")
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "此手機已有帳號，請改用驗證碼登入後於會員中心設定密碼",
+        )
+
+    now = datetime.now(timezone.utc)
+    am = AllianceMember(
+        alliance_id=net.id,
+        phone=phone,
+        name=payload.name.strip()[:64] or None,
+        email=(payload.email.strip()[:128] or None) if payload.email else None,
+        birthday=(payload.birthday.strip()[:10] or None) if payload.birthday else None,
+        password_hash=hash_password(payload.password),
+        terms_accepted_at=now,
+        verified_at=now,
+    )
+    db.add(am)
+    await db.flush()
+    if payload.referral_code:
+        await _apply_referral_at_signup(db, net.id, am, payload.referral_code)
+    token, _ = issue_member_token(am)
+    await db.commit()
+    await db.refresh(am)
+    return _member_read(am, token)
+
+
+@router.post("/login", response_model=PublicMemberRead)
+@per_ip("20/minute")
+async def login_member(request: Request, payload: MemberPasswordLogin, db: DbSession):
+    phone = payload.phone.strip()
+    net = await get_or_create_marketplace_alliance(db)
+    am = (
+        await db.execute(
+            select(AllianceMember).where(
+                AllianceMember.alliance_id == net.id,
+                AllianceMember.phone == phone,
+                AllianceMember.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if am is not None and not am.password_hash:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "此帳號尚未設定密碼，請改用驗證碼登入")
+    if am is None or not verify_password(payload.password, am.password_hash):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "手機或密碼錯誤")
+    token, _ = issue_member_token(am)
+    return _member_read(am, token)
 
 
 # ---------------------------------------------------------------------------

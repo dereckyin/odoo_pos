@@ -32,6 +32,10 @@ class AllianceMember(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     email: Mapped[str | None] = mapped_column(String(128), nullable=True)
     points: Mapped[int] = mapped_column(Integer, default=0)
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # bcrypt hash for password-based marketplace login (None for OTP-only accounts).
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # When the member accepted the terms of service at registration.
+    terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # Personal referral code, lazily generated on first member-center load.
     referral_code: Mapped[str | None] = mapped_column(String(16), index=True, nullable=True)
     birthday: Mapped[str | None] = mapped_column(String(10), nullable=True)  # YYYY-MM-DD

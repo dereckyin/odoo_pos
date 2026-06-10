@@ -218,10 +218,12 @@ export interface MemberProfile {
   alliance_member_id: string
   name: string | null
   phone: string
+  email: string | null
   points: number
   birthday: string | null
   referral_code: string | null
   wallet_balance_cents: number
+  has_password: boolean
 }
 
 export interface PointEntry {
@@ -269,4 +271,6 @@ export interface PublicMember {
   token?: string | null
   alliance_member_id?: string | null
   cross_store_points?: number | null
+  email?: string | null
+  birthday?: string | null
 }

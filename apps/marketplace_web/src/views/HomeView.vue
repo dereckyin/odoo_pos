@@ -4,9 +4,9 @@
       <div class="container">
         <div class="head-top">
           <h1>點餐趣美食市集</h1>
-          <button class="member-btn" type="button" @click="$router.push({ name: 'member' })">
+          <button class="member-btn" type="button" @click="onMemberClick">
             <span class="ic">👤</span>
-            <span>{{ memberStore.isLoggedIn ? `${memberStore.points} 點` : '會員登入' }}</span>
+            <span>{{ memberStore.isLoggedIn ? `${memberStore.points} 點` : '登入 / 註冊' }}</span>
           </button>
         </div>
 
@@ -111,6 +111,8 @@
       v-model:open-now="openNow"
       @close="filterOpen = false"
     />
+
+    <MemberLoginModal :open="authOpen" :store-slug="''" :initial-mode="authMode" @close="authOpen = false" />
   </div>
 </template>
 
@@ -124,6 +126,7 @@ import FulfillmentTabs from '@/components/FulfillmentTabs.vue'
 import FilterSheet from '@/components/FilterSheet.vue'
 import FilterControls from '@/components/FilterControls.vue'
 import BannerCarousel from '@/components/BannerCarousel.vue'
+import MemberLoginModal from '@/components/MemberLoginModal.vue'
 import type { MarketplaceBanner, MarketplaceProductCard, MarketplaceStoreSummary } from '@/types'
 import { useCartStore } from '@/stores/cart'
 import { useMemberStore } from '@/stores/member'
@@ -149,6 +152,17 @@ const prices = ref<number[]>([])
 const openNow = ref(false)
 const coords = ref<{ lat: number; lng: number } | null>(null)
 const filterOpen = ref(false)
+const authOpen = ref(false)
+const authMode = ref<'login' | 'register'>('login')
+
+function onMemberClick() {
+  if (memberStore.isLoggedIn) {
+    router.push({ name: 'member' })
+  } else {
+    authMode.value = 'login'
+    authOpen.value = true
+  }
+}
 
 const knownCuisines = ref<string[]>([])
 

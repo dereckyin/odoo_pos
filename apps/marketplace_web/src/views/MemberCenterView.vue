@@ -8,7 +8,8 @@
 
     <main v-if="!memberStore.isLoggedIn" class="state-page">
       <p>登入後即可查看訂單、點數與優惠券</p>
-      <button class="submit" @click="loginOpen = true">會員登入</button>
+      <button class="submit" @click="openAuth('login')">會員登入</button>
+      <button class="submit ghost" @click="openAuth('register')">註冊新會員</button>
     </main>
 
     <main v-else class="body">
@@ -123,14 +124,18 @@
           <h3>個人資料</h3>
           <label>暱稱</label>
           <input v-model="editName" placeholder="暱稱" />
+          <label>Email</label>
+          <input v-model="editEmail" type="email" placeholder="Email（選填）" />
           <label>生日（領取生日禮）</label>
           <input v-model="editBirthday" type="date" />
+          <label>{{ profile?.has_password ? '變更密碼' : '設定密碼' }}</label>
+          <input v-model="editPassword" type="password" :placeholder="profile?.has_password ? '輸入新密碼（至少 8 碼）' : '設定密碼後可用手機+密碼登入'" autocomplete="new-password" />
           <button class="submit" @click="saveProfile">儲存</button>
         </div>
       </section>
     </main>
 
-    <MemberLoginModal :open="loginOpen" :store-slug="''" @close="onLoginClose" />
+    <MemberLoginModal :open="loginOpen" :store-slug="''" :initial-mode="authMode" @close="onLoginClose" />
   </div>
 </template>
 
@@ -178,6 +183,12 @@ const tabs = [
 ] as const
 const tab = ref<(typeof tabs)[number]['key']>('orders')
 const loginOpen = ref(false)
+const authMode = ref<'login' | 'register'>('login')
+
+function openAuth(m: 'login' | 'register') {
+  authMode.value = m
+  loginOpen.value = true
+}
 
 const profile = ref<MemberProfile | null>(null)
 const orders = ref<MarketplaceOrderRead[]>([])
@@ -189,6 +200,8 @@ const referral = ref<ReferralInfo | null>(null)
 const applyCode = ref('')
 const editName = ref('')
 const editBirthday = ref('')
+const editEmail = ref('')
+const editPassword = ref('')
 
 function formatDate(s: string) {
   return new Date(s).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -234,6 +247,8 @@ async function loadAll() {
     referral.value = ref_.data
     editName.value = p.data.name || ''
     editBirthday.value = p.data.birthday || ''
+    editEmail.value = p.data.email || ''
+    editPassword.value = ''
     memberStore.updatePoints(p.data.points)
   } catch {
     /* token may be expired */
@@ -279,9 +294,24 @@ async function doApplyReferral() {
 }
 
 async function saveProfile() {
-  const { data } = await updateMyProfile({ name: editName.value || null, birthday: editBirthday.value || null })
-  profile.value = data
-  alert('已儲存')
+  if (editPassword.value && editPassword.value.length < 8) {
+    alert('密碼至少需 8 碼')
+    return
+  }
+  try {
+    const { data } = await updateMyProfile({
+      name: editName.value || null,
+      birthday: editBirthday.value || null,
+      email: editEmail.value || null,
+      password: editPassword.value || null,
+    })
+    profile.value = data
+    editPassword.value = ''
+    alert('已儲存')
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { detail?: string } } }
+    alert(err.response?.data?.detail || '儲存失敗')
+  }
 }
 
 function doLogout() {
@@ -340,4 +370,5 @@ onMounted(loadAll)
 .apply { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
 .apply input { flex: 1; }
 .submit { width: 100%; border: 0; background: var(--accent); color: #fff; padding: 12px; border-radius: 8px; font-weight: 600; margin-top: 12px; }
+.submit.ghost { background: #fff; color: var(--accent); border: 1px solid var(--accent); margin-top: 8px; }
 </style>

@@ -159,6 +159,24 @@ export function verifyMemberOtp(storeSlug: string, phone: string, code: string, 
   })
 }
 
+export interface MemberRegisterPayload {
+  phone: string
+  password: string
+  name: string
+  email?: string | null
+  birthday?: string | null
+  referral_code?: string | null
+  terms_accepted: boolean
+}
+
+export function registerMember(payload: MemberRegisterPayload) {
+  return client.post<PublicMember>('/public/members/register', payload)
+}
+
+export function loginMemberPassword(phone: string, password: string) {
+  return client.post<PublicMember>('/public/members/login', { phone, password })
+}
+
 // --- Multi-store checkout ---
 export interface BatchStoreCart {
   store_slug: string
@@ -246,6 +264,11 @@ export function fetchMyReferral() {
 export function applyReferral(code: string) {
   return client.post<ReferralInfo>('/public/members/me/referral/apply', { code })
 }
-export function updateMyProfile(payload: { name?: string | null; birthday?: string | null }) {
+export function updateMyProfile(payload: {
+  name?: string | null
+  birthday?: string | null
+  email?: string | null
+  password?: string | null
+}) {
   return client.patch<MemberProfile>('/public/members/me', payload)
 }
