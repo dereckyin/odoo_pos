@@ -2,7 +2,12 @@
   <div>
     <a-page-header title="會員等級管理">
       <template #extra>
-        <a-button type="primary" @click="openModal()">新增等級</a-button>
+        <a-space>
+          <a-popconfirm title="建立 一般／尊榮／永久 三個預設等級（已存在的名稱會略過）？" @confirm="seedDefaults">
+            <a-button :loading="seeding">建立預設等級</a-button>
+          </a-popconfirm>
+          <a-button type="primary" @click="openModal()">新增等級</a-button>
+        </a-space>
       </template>
     </a-page-header>
 
@@ -44,13 +49,14 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { listMemberLevels, createMemberLevel, updateMemberLevel, deleteMemberLevel } from '@/api/members'
+import { listMemberLevels, createMemberLevel, updateMemberLevel, deleteMemberLevel, seedDefaultMemberLevels } from '@/api/members'
 import type { MemberLevelRead } from '@/types'
 
 const levels = ref<MemberLevelRead[]>([])
 const loading = ref(false)
 const modalOpen = ref(false)
 const saving = ref(false)
+const seeding = ref(false)
 const editingId = ref<string | null>(null)
 
 const form = reactive({
@@ -108,6 +114,19 @@ async function handleSave() {
     message.error(e.response?.data?.detail || '操作失敗')
   } finally {
     saving.value = false
+  }
+}
+
+async function seedDefaults() {
+  seeding.value = true
+  try {
+    await seedDefaultMemberLevels()
+    message.success('已建立預設等級')
+    fetchData()
+  } catch (e: any) {
+    message.error(e.response?.data?.detail || '建立失敗')
+  } finally {
+    seeding.value = false
   }
 }
 

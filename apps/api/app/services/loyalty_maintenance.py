@@ -16,8 +16,10 @@ from ..models import (
     AlliancePointLedger,
     Member,
     PointTransaction,
+    Tenant,
     TenantMemberLink,
 )
+from .loyalty_engine import loyalty_settings
 from .marketplace_member import MARKETPLACE_ALLIANCE_CODE
 
 BIRTHDAY_REWARD_POINTS = 100
@@ -151,6 +153,72 @@ async def run_birthday_rewards(
                 alliance_member_id=am.id,
                 delta=points,
                 reason="birthday_bonus",
+            )
+        )
+        rewarded += 1
+    await db.commit()
+    return rewarded
+
+
+async def run_tenant_birthday_rewards(db: AsyncSession) -> int:
+    """Grant in-store (tenant-local) members a birthday bonus today.
+
+    Each tenant's bonus amount comes from its loyalty settings
+    (``birthday_bonus_points``); tenants with 0 are skipped. Idempotent per
+    member per year via a ``birthday:<year>`` ledger marker.
+    """
+    now = datetime.now(timezone.utc)
+    year = now.year
+    today_month = now.month
+    today_day = now.day
+
+    members = (
+        await db.execute(
+            select(Member).where(
+                Member.deleted_at.is_(None),
+                Member.birthday.is_not(None),
+            )
+        )
+    ).scalars().all()
+    if not members:
+        return 0
+
+    bonus_by_tenant: dict[str, int] = {}
+
+    async def _bonus_for(tenant_id: str) -> int:
+        if tenant_id not in bonus_by_tenant:
+            tenant = await db.get(Tenant, tenant_id)
+            settings = loyalty_settings(tenant)
+            bonus_by_tenant[tenant_id] = int(settings.get("birthday_bonus_points") or 0)
+        return bonus_by_tenant[tenant_id]
+
+    rewarded = 0
+    for m in members:
+        if not m.birthday:
+            continue
+        if m.birthday.month != today_month or m.birthday.day != today_day:
+            continue
+        points = await _bonus_for(m.tenant_id)
+        if points <= 0:
+            continue
+        marker = f"birthday:{year}"
+        already = (
+            await db.execute(
+                select(PointTransaction.id).where(
+                    PointTransaction.member_id == m.id,
+                    PointTransaction.reason == marker,
+                ).limit(1)
+            )
+        ).first()
+        if already:
+            continue
+        m.points = (m.points or 0) + points
+        db.add(
+            PointTransaction(
+                tenant_id=m.tenant_id,
+                member_id=m.id,
+                delta=points,
+                reason=marker,
             )
         )
         rewarded += 1

@@ -110,6 +110,22 @@
           />
           <div class="field-hint">餐飲門店寄賣二手書、分帳結算</div>
         </a-form-item>
+        <a-form-item label="LINE 官方帳號">
+          <a-switch
+            v-model:checked="editForm.line"
+            checked-children="啟用"
+            un-checked-children="停用"
+          />
+          <div class="field-hint">LINE 登入綁定、通知推播</div>
+        </a-form-item>
+        <a-form-item label="活動報名/票券">
+          <a-switch
+            v-model:checked="editForm.events"
+            checked-children="啟用"
+            un-checked-children="停用"
+          />
+          <div class="field-hint">活動建立、報名、票券核銷</div>
+        </a-form-item>
       </a-form>
     </a-modal>
 
@@ -213,6 +229,8 @@ const editForm = ref<{
   marketplace: boolean
   business_intelligence: boolean
   consignment_books: boolean
+  line: boolean
+  events: boolean
 }>({
   name: '',
   contact_email: '',
@@ -223,6 +241,8 @@ const editForm = ref<{
   marketplace: false,
   business_intelligence: false,
   consignment_books: true,
+  line: false,
+  events: false,
 })
 const createForm = ref({
   company_name: '',
@@ -298,6 +318,8 @@ function openEdit(rec: TenantRead) {
     marketplace: false,
     business_intelligence: false,
     consignment_books: true,
+    line: false,
+    events: false,
   }
   editVisible.value = true
   platformApi.getTenantModules(rec.id).then(({ data }) => {
@@ -306,6 +328,8 @@ function openEdit(rec: TenantRead) {
       editForm.value.marketplace = data.marketplace
       editForm.value.business_intelligence = data.business_intelligence
       editForm.value.consignment_books = data.consignment_books
+      editForm.value.line = (data as any).line ?? false
+      editForm.value.events = (data as any).events ?? false
     }
   }).catch(() => {
     message.warning('無法載入模組設定，將使用預設值')
@@ -328,6 +352,8 @@ async function submitEdit() {
       marketplace: editForm.value.marketplace,
       business_intelligence: editForm.value.business_intelligence,
       consignment_books: editForm.value.consignment_books,
+      line: editForm.value.line,
+      events: editForm.value.events,
     })
     message.success('已更新')
     editVisible.value = false

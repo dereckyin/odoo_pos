@@ -685,11 +685,20 @@ async def run_loyalty_maintenance(db: DbSession, _: PlatformSuperDep):
 
     Intended to be hit by a daily cron / scheduled task.
     """
-    from ...services.loyalty_maintenance import run_birthday_rewards, run_point_expiry
+    from ...services.loyalty_maintenance import (
+        run_birthday_rewards,
+        run_point_expiry,
+        run_tenant_birthday_rewards,
+    )
 
     expired = await run_point_expiry(db)
     birthdays = await run_birthday_rewards(db)
-    return {"expired_points_entries": expired, "birthday_rewards": birthdays}
+    tenant_birthdays = await run_tenant_birthday_rewards(db)
+    return {
+        "expired_points_entries": expired,
+        "birthday_rewards": birthdays,
+        "tenant_birthday_rewards": tenant_birthdays,
+    }
 
 
 @router.post("/marketplace/applications/{listing_id}/suspend")

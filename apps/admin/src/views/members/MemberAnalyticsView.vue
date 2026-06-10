@@ -34,6 +34,15 @@
         </a-table>
       </a-card>
 
+      <a-card title="會員消費分類分析 (近一年)" style="margin-bottom: 24px">
+        <a-alert v-if="catError" type="warning" :message="catError" show-icon style="margin-bottom: 12px" />
+        <a-table v-else :columns="catColumns" :data-source="categoryStats" row-key="category_id" size="small" :pagination="false">
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'rev'">{{ formatMoney(record.revenue_cents) }}</template>
+          </template>
+        </a-table>
+      </a-card>
+
       <a-card title="流失風險名單 (90天未消費)">
         <a-table :columns="churnColumns" :data-source="churn" row-key="member_id" size="small">
           <template #bodyCell="{ column, record }">
@@ -51,10 +60,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import {
-  getMemberOverview, getMemberLevelStats, getMemberRfm, getChurnRisk,
+  getMemberOverview, getMemberLevelStats, getMemberRfm, getChurnRisk, getConsumptionByCategory,
 } from '@/api/memberAnalytics'
 import { formatMoney } from '@/utils/formatMoney'
-import type { MemberOverview, LevelStat, RfmCell, ChurnMember } from '@/types'
+import type { MemberOverview, LevelStat, RfmCell, ChurnMember, CategoryConsumption } from '@/types'
 
 const loading = ref(false)
 const overview = ref<MemberOverview | null>(null)
@@ -62,6 +71,15 @@ const levelStats = ref<LevelStat[]>([])
 const rfm = ref<(RfmCell & { key: string })[]>([])
 const churn = ref<ChurnMember[]>([])
 const rfmError = ref('')
+const categoryStats = ref<CategoryConsumption[]>([])
+const catError = ref('')
+
+const catColumns = [
+  { title: '分類', dataIndex: 'category_name' },
+  { title: '營收', key: 'rev' },
+  { title: '數量', dataIndex: 'qty' },
+  { title: '明細數', dataIndex: 'line_count' },
+]
 
 const levelColumns = [
   { title: '等級', dataIndex: 'level_name' },
@@ -100,6 +118,12 @@ onMounted(async () => {
       rfm.value = r.data.map(x => ({ ...x, key: `${x.recency_bucket}-${x.frequency_bucket}` }))
     } catch (e: any) {
       rfmError.value = e.response?.data?.detail || '需 Pro 方案才能使用 RFM 分析'
+    }
+    try {
+      const cc = await getConsumptionByCategory({ days: 365 })
+      categoryStats.value = cc.data
+    } catch (e: any) {
+      catError.value = e.response?.data?.detail || '無法載入消費分類分析'
     }
   } finally {
     loading.value = false

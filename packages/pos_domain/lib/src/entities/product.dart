@@ -20,6 +20,9 @@ class Product {
     this.hideFromPublicOrdering = false,
     this.hideFromPosBrowse = false,
     this.productKind = 'regular',
+    this.memberDiscountEligible,
+    this.pointsEarnEligible,
+    this.pointsRedeemEligible,
     this.bookAuthor,
     this.optionConfigs = const [],
   });
@@ -44,6 +47,11 @@ class Product {
   final bool hideFromPublicOrdering;
   final bool hideFromPosBrowse;
   final String productKind;
+
+  /// Loyalty eligibility overrides (null = inherit from the category chain).
+  final bool? memberDiscountEligible;
+  final bool? pointsEarnEligible;
+  final bool? pointsRedeemEligible;
   final String? bookAuthor;
   final List<ProductOptionConfig> optionConfigs;
 
@@ -67,6 +75,9 @@ class Product {
     bool? hideFromPublicOrdering,
     bool? hideFromPosBrowse,
     String? productKind,
+    bool? memberDiscountEligible,
+    bool? pointsEarnEligible,
+    bool? pointsRedeemEligible,
     String? bookAuthor,
     List<ProductOptionConfig>? optionConfigs,
   }) =>
@@ -87,6 +98,9 @@ class Product {
         hideFromPublicOrdering: hideFromPublicOrdering ?? this.hideFromPublicOrdering,
         hideFromPosBrowse: hideFromPosBrowse ?? this.hideFromPosBrowse,
         productKind: productKind ?? this.productKind,
+        memberDiscountEligible: memberDiscountEligible ?? this.memberDiscountEligible,
+        pointsEarnEligible: pointsEarnEligible ?? this.pointsEarnEligible,
+        pointsRedeemEligible: pointsRedeemEligible ?? this.pointsRedeemEligible,
         bookAuthor: bookAuthor ?? this.bookAuthor,
         optionConfigs: optionConfigs ?? this.optionConfigs,
       );

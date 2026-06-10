@@ -82,6 +82,7 @@ export interface LoyaltySettings {
   max_redeem_pct: number
   point_expiry_days: number
   auto_level: boolean
+  birthday_bonus_points: number
 }
 
 export interface LoyaltyRuleRead {
@@ -153,6 +154,24 @@ export interface ChurnMember {
   points: number
 }
 
+export interface CategoryConsumption {
+  category_id: string | null
+  category_name: string
+  revenue_cents: number
+  qty: number
+  line_count: number
+}
+
+export interface MemberBroadcast {
+  id: string
+  channel: string
+  message: string
+  audience_count: number
+  sent_count: number
+  failed_count: number
+  created_at: string
+}
+
 export interface AllianceNetworkRead {
   id: string
   name: string
@@ -210,6 +229,9 @@ export interface CategoryRead {
   icon: string | null
   hide_from_public_ordering: boolean
   hide_from_pos_browse: boolean
+  member_discount_eligible: boolean
+  points_earn_eligible: boolean
+  points_redeem_eligible: boolean
   updated_at: string
   deleted_at: string | null
   depth?: number
@@ -230,6 +252,9 @@ export interface CategoryCreate {
   icon?: string | null
   hide_from_public_ordering?: boolean
   hide_from_pos_browse?: boolean
+  member_discount_eligible?: boolean
+  points_earn_eligible?: boolean
+  points_redeem_eligible?: boolean
 }
 
 export type CategoryUpdate = Partial<CategoryCreate>
@@ -249,6 +274,9 @@ export interface ProductRead {
   description: string | null
   hide_from_public_ordering: boolean
   hide_from_pos_browse: boolean
+  member_discount_eligible: boolean | null
+  points_earn_eligible: boolean | null
+  points_redeem_eligible: boolean | null
   track_inventory: boolean
   product_kind?: string
   marketplace_category_id: string | null
@@ -271,6 +299,9 @@ export interface ProductCreate {
   description?: string | null
   hide_from_public_ordering?: boolean
   hide_from_pos_browse?: boolean
+  member_discount_eligible?: boolean | null
+  points_earn_eligible?: boolean | null
+  points_redeem_eligible?: boolean | null
   track_inventory?: boolean
   marketplace_category_id?: string | null
   barcodes?: string[]
@@ -428,9 +459,12 @@ export interface MemberLevelCreate {
 export interface MemberRead {
   id: string
   phone: string
+  member_no: string | null
   name: string
   email: string | null
   birthday: string | null
+  marketing_opt_in: boolean
+  marketing_opt_in_at: string | null
   points: number
   total_spent_cents: number
   level_id: string | null
@@ -447,9 +481,11 @@ export interface MemberCreate {
   name: string
   email?: string | null
   birthday?: string | null
+  marketing_opt_in?: boolean
   points?: number
   level_id?: string | null
   qr_code?: string | null
+  member_no?: string | null
   note?: string | null
 }
 

@@ -30,6 +30,9 @@ class ProductRepositoryImpl {
               icon: r.icon,
               hideFromPublicOrdering: r.hideFromPublicOrdering,
               hideFromPosBrowse: r.hideFromPosBrowse,
+              memberDiscountEligible: r.memberDiscountEligible,
+              pointsEarnEligible: r.pointsEarnEligible,
+              pointsRedeemEligible: r.pointsRedeemEligible,
             ))
         .toList(growable: false);
     return enrichCategories(flat);
@@ -182,6 +185,9 @@ class ProductRepositoryImpl {
               hideFromPublicOrdering: r.hideFromPublicOrdering,
               hideFromPosBrowse: r.hideFromPosBrowse,
               productKind: r.productKind,
+              memberDiscountEligible: r.memberDiscountEligible,
+              pointsEarnEligible: r.pointsEarnEligible,
+              pointsRedeemEligible: r.pointsRedeemEligible,
               bookAuthor: authorByProduct[r.id],
               optionConfigs: optionConfigs[r.id] ?? const [],
             ))
@@ -334,6 +340,9 @@ class CategoryRepositoryImpl {
               icon: r.icon,
               hideFromPublicOrdering: r.hideFromPublicOrdering,
               hideFromPosBrowse: r.hideFromPosBrowse,
+              memberDiscountEligible: r.memberDiscountEligible,
+              pointsEarnEligible: r.pointsEarnEligible,
+              pointsRedeemEligible: r.pointsRedeemEligible,
             ))
         .toList(growable: false);
     return enrichCategories(flat);
@@ -355,6 +364,9 @@ class CategoryRepositoryImpl {
                     icon: r.icon,
                     hideFromPublicOrdering: r.hideFromPublicOrdering,
                     hideFromPosBrowse: r.hideFromPosBrowse,
+                    memberDiscountEligible: r.memberDiscountEligible,
+                    pointsEarnEligible: r.pointsEarnEligible,
+                    pointsRedeemEligible: r.pointsRedeemEligible,
                   ))
               .toList(growable: false);
           return enrichCategories(flat);

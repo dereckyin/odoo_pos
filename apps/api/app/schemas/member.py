@@ -81,15 +81,19 @@ class LoyaltySettings(BaseModel):
     max_redeem_pct: int = 50
     point_expiry_days: int = 365
     auto_level: bool = True
+    birthday_bonus_points: int = 0
 
 
 class MemberRead(ORMModel):
     id: str
     tenant_id: str
     phone: str
+    member_no: str | None
     name: str
     email: str | None
     birthday: date | None
+    marketing_opt_in: bool
+    marketing_opt_in_at: datetime | None
     points: int
     total_spent_cents: int
     level_id: str | None
@@ -106,9 +110,11 @@ class MemberCreate(BaseModel):
     name: str
     email: str | None = None
     birthday: date | None = None
+    marketing_opt_in: bool = False
     points: int = 0
     level_id: str | None = None
     qr_code: str | None = None
+    member_no: str | None = None
     note: str | None = None
 
 
@@ -117,9 +123,11 @@ class MemberUpdate(BaseModel):
     name: str | None = None
     email: str | None = None
     birthday: date | None = None
+    marketing_opt_in: bool | None = None
     points: int | None = None
     level_id: str | None = None
     qr_code: str | None = None
+    member_no: str | None = None
     note: str | None = None
 
 

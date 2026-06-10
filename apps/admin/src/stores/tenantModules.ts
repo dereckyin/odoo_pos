@@ -7,6 +7,8 @@ export const useTenantModulesStore = defineStore('tenantModules', () => {
   const marketplace = ref(false)
   const businessIntelligence = ref(false)
   const consignmentBooks = ref(false)
+  const line = ref(false)
+  const events = ref(false)
   const loaded = ref(false)
   const loading = ref(false)
 
@@ -22,12 +24,16 @@ export const useTenantModulesStore = defineStore('tenantModules', () => {
       marketplace.value = data.marketplace
       businessIntelligence.value = data.business_intelligence
       consignmentBooks.value = data.consignment_books
+      line.value = (data as any).line ?? false
+      events.value = (data as any).events ?? false
       loaded.value = true
     } catch {
       onlineOrdering.value = false
       marketplace.value = false
       businessIntelligence.value = false
       consignmentBooks.value = false
+      line.value = false
+      events.value = false
       loaded.value = false
     } finally {
       loading.value = false
@@ -39,6 +45,8 @@ export const useTenantModulesStore = defineStore('tenantModules', () => {
     marketplace.value = false
     businessIntelligence.value = false
     consignmentBooks.value = false
+    line.value = false
+    events.value = false
     loaded.value = false
   }
 
@@ -47,6 +55,8 @@ export const useTenantModulesStore = defineStore('tenantModules', () => {
     marketplace,
     businessIntelligence,
     consignmentBooks,
+    line,
+    events,
     guestOrdersEnabled,
     loaded,
     loading,

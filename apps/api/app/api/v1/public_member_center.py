@@ -27,6 +27,7 @@ from ...models import (
 )
 from ...schemas.marketplace import MarketplaceOrderRead, MarketplaceStoreSummary
 from ...services.marketplace import listing_to_summary
+from ...services.line_oa import fetch_line_profile
 from ...services.marketplace_member import ensure_referral_code, get_or_create_marketplace_alliance
 from .public_marketplace import _to_marketplace_read
 from .public_members import MarketplaceMemberDep, load_alliance_member
@@ -79,6 +80,7 @@ class MemberProfile(BaseModel):
     referral_code: str | None
     wallet_balance_cents: int
     has_password: bool
+    line_linked: bool = False
 
 
 class ProfileUpdate(BaseModel):
@@ -99,6 +101,7 @@ def _profile(am, code: str, wallet) -> "MemberProfile":
         referral_code=code,
         wallet_balance_cents=wallet.balance_cents,
         has_password=bool(am.password_hash),
+        line_linked=bool(getattr(am, "line_user_id", None)),
     )
 
 
@@ -129,6 +132,52 @@ async def update_profile(payload: ProfileUpdate, db: DbSession, ctx: Marketplace
     await db.commit()
     await db.refresh(am)
     return _profile(am, code, wallet)
+
+
+class LineBindRequest(BaseModel):
+    access_token: str = Field(min_length=1)
+
+
+class LineBindResult(BaseModel):
+    line_linked: bool
+    display_name: str | None = None
+
+
+@router.post("/line/bind", response_model=LineBindResult)
+async def bind_line(payload: LineBindRequest, db: DbSession, ctx: MarketplaceMemberDep):
+    """Bind the member's LINE account using a LIFF user access token.
+
+    The frontend obtains the token via ``liff.getAccessToken()`` and posts it
+    here; we resolve the LINE ``userId`` from the LINE profile API and store it.
+    """
+    profile = await fetch_line_profile(payload.access_token)
+    if not profile or not profile.get("userId"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "無法驗證 LINE 帳號")
+    line_user_id = profile["userId"]
+
+    existing = (
+        await db.execute(
+            select(AllianceMember).where(
+                AllianceMember.line_user_id == line_user_id,
+                AllianceMember.id != ctx.alliance_member_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing:
+        raise HTTPException(status.HTTP_409_CONFLICT, "此 LINE 帳號已綁定其他會員")
+
+    am = await load_alliance_member(db, ctx)
+    am.line_user_id = line_user_id
+    await db.commit()
+    return LineBindResult(line_linked=True, display_name=profile.get("displayName"))
+
+
+@router.delete("/line/bind", response_model=LineBindResult)
+async def unbind_line(db: DbSession, ctx: MarketplaceMemberDep):
+    am = await load_alliance_member(db, ctx)
+    am.line_user_id = None
+    await db.commit()
+    return LineBindResult(line_linked=False)
 
 
 # ---------------------------------------------------------------------------

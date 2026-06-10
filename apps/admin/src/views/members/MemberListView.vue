@@ -6,7 +6,7 @@
       </template>
     </a-page-header>
 
-    <a-input-search v-model:value="search" placeholder="搜尋姓名/電話" style="width: 300px; margin-bottom: 16px" allow-clear @search="fetchData" />
+    <a-input-search v-model:value="search" placeholder="搜尋姓名/電話/會員編號" style="width: 300px; margin-bottom: 16px" allow-clear @search="fetchData" />
 
     <a-table :columns="columns" :data-source="members" :loading="loading" row-key="id">
       <template #bodyCell="{ column, record }">
@@ -32,6 +32,10 @@
             <a-select-option v-for="l in levels" :key="l.id" :value="l.id">{{ l.name }}</a-select-option>
           </a-select>
         </a-form-item>
+        <a-form-item label="行銷同意">
+          <a-switch v-model:checked="form.marketing_opt_in" />
+          <span style="margin-left:8px;color:#999;font-size:12px">同意接收行銷簡訊／活動通知</span>
+        </a-form-item>
       </a-form>
     </a-modal>
   </div>
@@ -50,7 +54,7 @@ const loading = ref(false)
 const saving = ref(false)
 const search = ref('')
 const createOpen = ref(false)
-const form = reactive({ phone: '', name: '', email: null as string | null, level_id: null as string | null })
+const form = reactive({ phone: '', name: '', email: null as string | null, level_id: null as string | null, marketing_opt_in: false })
 
 const levelMap = computed(() => {
   const map: Record<string, string> = {}
@@ -59,6 +63,7 @@ const levelMap = computed(() => {
 })
 
 const columns = [
+  { title: '編號', dataIndex: 'member_no', key: 'member_no', width: 110 },
   { title: '姓名', dataIndex: 'name', key: 'name' },
   { title: '電話', dataIndex: 'phone', key: 'phone' },
   { title: '等級', key: 'level', width: 100 },
@@ -82,6 +87,7 @@ function openCreate() {
   form.name = ''
   form.email = null
   form.level_id = null
+  form.marketing_opt_in = false
   createOpen.value = true
 }
 
@@ -89,7 +95,7 @@ async function handleCreate() {
   if (!form.phone || !form.name) return message.warning('請填寫手機與姓名')
   saving.value = true
   try {
-    await createMember({ phone: form.phone, name: form.name, email: form.email, level_id: form.level_id })
+    await createMember({ phone: form.phone, name: form.name, email: form.email, level_id: form.level_id, marketing_opt_in: form.marketing_opt_in })
     message.success('已建立')
     createOpen.value = false
     fetchData()

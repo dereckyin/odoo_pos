@@ -1,6 +1,7 @@
 import 'package:pos_core/pos_core.dart';
 
 import '../entities/cart.dart';
+import '../entities/product.dart';
 import '../entities/promotion.dart';
 import '../entities/member.dart';
 import '../entities/category_tree.dart';
@@ -51,7 +52,7 @@ class PromotionEngine {
     }
 
     // Member-level auto discount (implicit: walks cart subtotal once).
-    final memberPromo = _evaluateMemberLevel(workingCart);
+    final memberPromo = _evaluateMemberLevel(workingCart, categoryTree);
     if (memberPromo != null) {
       workingCart = workingCart.copyWith(
         appliedPromotions: [...workingCart.appliedPromotions, memberPromo],
@@ -259,18 +260,61 @@ class PromotionEngine {
     );
   }
 
-  AppliedPromotion? _evaluateMemberLevel(Cart cart) {
+  AppliedPromotion? _evaluateMemberLevel(Cart cart, CategoryTree? categoryTree) {
     final level = cart.member?.level;
     if (level == null) return null;
     if (level.discountRate >= 1.0) return null;
     final off = 1.0 - level.discountRate;
-    final discount = (cart.subtotal - cart.orderLevelDiscountAmount) * off;
+
+    // Only count lines whose product is member-discount eligible. Scale the
+    // order-level base by the eligible share so the result matches the previous
+    // whole-cart behaviour when every line is eligible.
+    var eligibleCents = 0;
+    var fullCents = 0;
+    for (final line in cart.lines) {
+      final net = line.net.cents;
+      fullCents += net;
+      if (memberDiscountEligibleFor(line.product, categoryTree)) {
+        eligibleCents += net;
+      }
+    }
+    if (eligibleCents <= 0) return null;
+
+    final base = cart.subtotal - cart.orderLevelDiscountAmount;
+    final ratio = fullCents > 0 ? eligibleCents / fullCents : 1.0;
+    final discount = base * (off * ratio);
     if (!discount.isPositive) return null;
     return AppliedPromotion(
       promotionId: 'member_level:${level.id}',
       label: '${level.name}會員 ${(level.discountRate * 100).toStringAsFixed(0)}折',
       discountAmount: discount,
     );
+  }
+
+  /// Resolves whether [product] participates in member-level discounts:
+  /// product override wins; otherwise the category chain; default true.
+  static bool memberDiscountEligibleFor(Product product, CategoryTree? tree) {
+    if (product.isConsignmentBook) return false;
+    final override = product.memberDiscountEligible;
+    if (override != null) return override;
+    if (tree == null) return true;
+    return tree.memberDiscountAllowedForCategory(product.categoryId);
+  }
+
+  /// Resolves whether [product] can earn loyalty points.
+  static bool pointsEarnEligibleFor(Product product, CategoryTree? tree) {
+    final override = product.pointsEarnEligible;
+    if (override != null) return override;
+    if (tree == null) return true;
+    return tree.pointsEarnAllowedForCategory(product.categoryId);
+  }
+
+  /// Resolves whether [product] can be paid for with redeemed points.
+  static bool pointsRedeemEligibleFor(Product product, CategoryTree? tree) {
+    final override = product.pointsRedeemEligible;
+    if (override != null) return override;
+    if (tree == null) return true;
+    return tree.pointsRedeemAllowedForCategory(product.categoryId);
   }
 }
 

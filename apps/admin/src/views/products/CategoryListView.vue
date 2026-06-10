@@ -82,6 +82,17 @@
           <a-switch v-model:checked="form.hide_from_pos_browse" />
           <div style="color: #888; font-size: 12px">店員仍可點進此分類或掃碼結帳。</div>
         </a-form-item>
+        <a-divider style="margin: 12px 0">會員適用規則（子分類／商品可繼承）</a-divider>
+        <a-form-item label="可享會員折扣">
+          <a-switch v-model:checked="form.member_discount_eligible" />
+          <div style="color: #888; font-size: 12px">關閉後此分類（含子分類）商品不計會員等級折扣。</div>
+        </a-form-item>
+        <a-form-item label="可累積點數">
+          <a-switch v-model:checked="form.points_earn_eligible" />
+        </a-form-item>
+        <a-form-item label="可使用點數折抵">
+          <a-switch v-model:checked="form.points_redeem_eligible" />
+        </a-form-item>
       </a-form>
     </a-modal>
   </div>
@@ -114,6 +125,9 @@ const form = reactive({
   icon: null as string | null,
   hide_from_public_ordering: false,
   hide_from_pos_browse: false,
+  member_discount_eligible: true,
+  points_earn_eligible: true,
+  points_redeem_eligible: true,
 })
 
 const columns = [
@@ -174,6 +188,9 @@ function openModal(record?: CategoryRead, parentId?: string) {
     form.icon = record.icon
     form.hide_from_public_ordering = record.hide_from_public_ordering ?? false
     form.hide_from_pos_browse = record.hide_from_pos_browse ?? false
+    form.member_discount_eligible = record.member_discount_eligible ?? true
+    form.points_earn_eligible = record.points_earn_eligible ?? true
+    form.points_redeem_eligible = record.points_redeem_eligible ?? true
   } else {
     editingId.value = null
     form.name = ''
@@ -183,6 +200,9 @@ function openModal(record?: CategoryRead, parentId?: string) {
     form.icon = null
     form.hide_from_public_ordering = false
     form.hide_from_pos_browse = false
+    form.member_discount_eligible = true
+    form.points_earn_eligible = true
+    form.points_redeem_eligible = true
   }
   modalOpen.value = true
 }

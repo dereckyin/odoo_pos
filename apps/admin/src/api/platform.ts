@@ -91,6 +91,8 @@ export interface TenantModulesRead {
   marketplace: boolean
   business_intelligence: boolean
   consignment_books: boolean
+  line: boolean
+  events: boolean
 }
 
 export interface TenantModulesUpdate {
@@ -98,6 +100,8 @@ export interface TenantModulesUpdate {
   marketplace?: boolean
   business_intelligence?: boolean
   consignment_books?: boolean
+  line?: boolean
+  events?: boolean
 }
 
 export function getTenantModules(id: string) {

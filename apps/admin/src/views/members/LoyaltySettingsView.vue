@@ -11,6 +11,10 @@
           <a-form-item label="每點折抵金額"><a-input-number v-model:value="form.point_value_cents" :min="1" /></a-form-item>
           <a-form-item label="單筆最高兌點比例 (%)"><a-input-number v-model:value="form.max_redeem_pct" :min="0" :max="100" /></a-form-item>
           <a-form-item label="點數有效天數"><a-input-number v-model:value="form.point_expiry_days" :min="0" /></a-form-item>
+          <a-form-item label="生日禮點數">
+            <a-input-number v-model:value="form.birthday_bonus_points" :min="0" />
+            <div style="color: #888; font-size: 12px">會員生日當天自動贈送（每年一次，0 = 不贈送）。需排程每日執行維護工作。</div>
+          </a-form-item>
           <a-button type="primary" :loading="saving" @click="saveSettings">儲存設定</a-button>
         </a-form>
       </a-card>
@@ -67,6 +71,7 @@ const form = reactive<LoyaltySettings>({
   max_redeem_pct: 50,
   point_expiry_days: 365,
   auto_level: true,
+  birthday_bonus_points: 0,
 })
 const rules = ref<LoyaltyRuleRead[]>([])
 const ruleOpen = ref(false)

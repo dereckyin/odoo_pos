@@ -52,6 +52,8 @@ from .dining_table import DiningTable
 from .guest_order import GuestOrder, GuestOrderLine
 from .marketplace import MarketplaceListing, MarketplaceReview
 from .marketplace_banner import MarketplaceBanner
+from .member_broadcast import MemberBroadcast
+from .event import Event, EventRegistration
 from .marketplace_category import MarketplaceCategory, MarketplaceCategoryAlias
 from .member_extras import (
     MemberFavoriteStore,
@@ -120,6 +122,9 @@ __all__ = [
     "MarketplaceListing",
     "MarketplaceReview",
     "MarketplaceBanner",
+    "MemberBroadcast",
+    "Event",
+    "EventRegistration",
     "MarketplaceCategory",
     "MarketplaceCategoryAlias",
     "MemberFavoriteStore",

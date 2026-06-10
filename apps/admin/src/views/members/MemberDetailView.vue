@@ -8,19 +8,38 @@
     </a-page-header>
 
     <a-spin :spinning="loading">
-      <a-descriptions bordered :column="2" v-if="member">
-        <a-descriptions-item label="姓名">{{ member.name }}</a-descriptions-item>
-        <a-descriptions-item label="電話">{{ member.phone }}</a-descriptions-item>
-        <a-descriptions-item label="Email">{{ member.email || '-' }}</a-descriptions-item>
-        <a-descriptions-item label="生日">{{ member.birthday || '-' }}</a-descriptions-item>
-        <a-descriptions-item label="等級">{{ levelName }}</a-descriptions-item>
-        <a-descriptions-item label="點數">{{ member.points }}</a-descriptions-item>
-        <a-descriptions-item label="累計消費">{{ formatMoney(member.total_spent_cents) }}</a-descriptions-item>
-        <a-descriptions-item label="QR">{{ member.qr_code || '-' }}</a-descriptions-item>
-        <a-descriptions-item label="加入日期">{{ member.joined_at?.slice(0, 10) }}</a-descriptions-item>
-        <a-descriptions-item label="最後消費">{{ member.last_visit_at?.slice(0, 10) || '-' }}</a-descriptions-item>
-        <a-descriptions-item label="備註" :span="2">{{ member.note || '-' }}</a-descriptions-item>
-      </a-descriptions>
+      <a-row :gutter="16" v-if="member">
+        <a-col :flex="1">
+          <a-descriptions bordered :column="2">
+            <a-descriptions-item label="會員編號">{{ member.member_no || '-' }}</a-descriptions-item>
+            <a-descriptions-item label="姓名">{{ member.name }}</a-descriptions-item>
+            <a-descriptions-item label="電話">{{ member.phone }}</a-descriptions-item>
+            <a-descriptions-item label="Email">{{ member.email || '-' }}</a-descriptions-item>
+            <a-descriptions-item label="生日">{{ member.birthday || '-' }}</a-descriptions-item>
+            <a-descriptions-item label="等級">{{ levelName }}</a-descriptions-item>
+            <a-descriptions-item label="點數">{{ member.points }}</a-descriptions-item>
+            <a-descriptions-item label="累計消費">{{ formatMoney(member.total_spent_cents) }}</a-descriptions-item>
+            <a-descriptions-item label="行銷同意">
+              <a-tag :color="member.marketing_opt_in ? 'green' : 'default'">
+                {{ member.marketing_opt_in ? '已同意' : '未同意' }}
+              </a-tag>
+              <span v-if="member.marketing_opt_in_at" class="opt-at">
+                （{{ member.marketing_opt_in_at.slice(0, 10) }}）
+              </span>
+            </a-descriptions-item>
+            <a-descriptions-item label="QR / 條碼">{{ member.qr_code || '-' }}</a-descriptions-item>
+            <a-descriptions-item label="加入日期">{{ member.joined_at?.slice(0, 10) }}</a-descriptions-item>
+            <a-descriptions-item label="最後消費">{{ member.last_visit_at?.slice(0, 10) || '-' }}</a-descriptions-item>
+            <a-descriptions-item label="備註" :span="2">{{ member.note || '-' }}</a-descriptions-item>
+          </a-descriptions>
+        </a-col>
+        <a-col v-if="qrValue" flex="180px">
+          <div class="member-qr">
+            <qrcode-vue :value="qrValue" :size="150" level="M" render-as="svg" />
+            <div class="member-qr-label">{{ qrValue }}</div>
+          </div>
+        </a-col>
+      </a-row>
 
       <a-divider>點數流水</a-divider>
       <a-table :columns="ptColumns" :data-source="points" row-key="id" size="small" :pagination="{ pageSize: 10 }" />
@@ -56,6 +75,10 @@
             <a-select-option v-for="l in levels" :key="l.id" :value="l.id">{{ l.name }}</a-select-option>
           </a-select>
         </a-form-item>
+        <a-form-item label="行銷同意">
+          <a-switch v-model:checked="editForm.marketing_opt_in" />
+          <span class="opt-hint">同意接收行銷簡訊／活動通知</span>
+        </a-form-item>
         <a-form-item label="備註"><a-textarea v-model:value="editForm.note" /></a-form-item>
       </a-form>
     </a-modal>
@@ -75,6 +98,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
+import QrcodeVue from 'qrcode.vue'
 import {
   getMember, updateMember, listCoupons, listMemberLevels,
   listPointTransactions, listMemberOrders, adjustPoints,
@@ -94,12 +118,14 @@ const editOpen = ref(false)
 const pointsOpen = ref(false)
 const pointsDelta = ref(0)
 const pointsReason = ref('手動調整')
-const editForm = reactive({ name: '', email: null as string | null, level_id: null as string | null, note: null as string | null })
+const editForm = reactive({ name: '', email: null as string | null, level_id: null as string | null, marketing_opt_in: false, note: null as string | null })
 
 const levelName = computed(() => {
   if (!member.value?.level_id) return '-'
   return levels.value.find(l => l.id === member.value!.level_id)?.name || member.value.level_id
 })
+
+const qrValue = computed(() => member.value?.qr_code || member.value?.member_no || '')
 
 const ptColumns = [
   { title: '時間', dataIndex: 'created_at', customRender: ({ text }: { text: string }) => text?.slice(0, 19) },
@@ -141,6 +167,7 @@ async function loadAll() {
       editForm.name = member.value.name
       editForm.email = member.value.email
       editForm.level_id = member.value.level_id
+      editForm.marketing_opt_in = member.value.marketing_opt_in
       editForm.note = member.value.note
     }
   } finally {
@@ -180,3 +207,29 @@ async function savePoints() {
 
 onMounted(loadAll)
 </script>
+
+<style scoped>
+.member-qr {
+  text-align: center;
+  padding: 12px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  background: #fff;
+}
+.member-qr-label {
+  margin-top: 8px;
+  font-family: monospace;
+  font-size: 13px;
+  color: #555;
+}
+.opt-at {
+  margin-left: 6px;
+  color: #999;
+  font-size: 12px;
+}
+.opt-hint {
+  margin-left: 8px;
+  color: #999;
+  font-size: 12px;
+}
+</style>

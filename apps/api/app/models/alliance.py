@@ -40,6 +40,8 @@ class AllianceMember(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     referral_code: Mapped[str | None] = mapped_column(String(16), index=True, nullable=True)
     birthday: Mapped[str | None] = mapped_column(String(10), nullable=True)  # YYYY-MM-DD
     birthday_reward_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # LINE Official Account binding (LIFF login). Unique within an alliance.
+    line_user_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
 
 
 class AllianceTenant(Base, UUIDPrimaryKey, Timestamped):

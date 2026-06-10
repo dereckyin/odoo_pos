@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -56,6 +58,20 @@ final loggerProvider = Provider<AppLogger>((ref) => AppLogger.named('app'));
 final promotionEngineProvider = Provider<PromotionEngine>(
   (ref) => PromotionEngine(clock: ref.read(clockProvider)),
 );
+
+/// Tenant loyalty settings synced from the server into local KvMeta. Drives the
+/// POS point-value, max-redeem percentage and redeem-enabled behaviour so the
+/// checkout no longer assumes 1 point = 1 cent.
+final loyaltySettingsProvider = FutureProvider<LoyaltySettingsDto>((ref) async {
+  final db = ref.read(databaseProvider);
+  final raw = await db.getMeta('loyalty.settings');
+  if (raw == null || raw.isEmpty) return LoyaltySettingsDto();
+  try {
+    return LoyaltySettingsDto.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+  } catch (_) {
+    return LoyaltySettingsDto();
+  }
+});
 
 const _maxRefreshAttempts = 5;
 

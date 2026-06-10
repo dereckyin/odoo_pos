@@ -50,6 +50,7 @@ const merchantChildren: RouteRecordRaw[] = [
   { path: 'member-levels', name: 'member-levels', component: () => import('@/views/members/MemberLevelView.vue') },
   { path: 'loyalty-settings', name: 'loyalty-settings', component: () => import('@/views/members/LoyaltySettingsView.vue') },
   { path: 'member-webhooks', name: 'member-webhooks', component: () => import('@/views/members/WebhookSettingsView.vue') },
+  { path: 'member-broadcast', name: 'member-broadcast', component: () => import('@/views/members/MemberBroadcastView.vue') },
   // Inventory
   { path: 'inventory', name: 'inventory', component: () => import('@/views/inventory/InventoryLevelView.vue') },
   { path: 'transfers', name: 'transfers', component: () => import('@/views/inventory/TransferListView.vue') },
@@ -78,6 +79,9 @@ const merchantChildren: RouteRecordRaw[] = [
   { path: 'analytics/members', name: 'analytics-members', component: () => import('@/views/members/MemberAnalyticsView.vue') },
   { path: 'tenant-settings', name: 'tenant-settings', component: () => import('@/views/tenant/TenantSettingsView.vue') },
   { path: 'marketplace-settings', name: 'marketplace-settings', component: () => import('@/views/tenant/MarketplaceSettingsView.vue') },
+  { path: 'line-settings', name: 'line-settings', component: () => import('@/views/settings/LineSettingsView.vue') },
+  // Events
+  { path: 'events', name: 'events', component: () => import('@/views/events/EventListView.vue') },
 ]
 
 const platformChildren: RouteRecordRaw[] = [

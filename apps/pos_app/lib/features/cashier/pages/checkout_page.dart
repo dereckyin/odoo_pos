@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,8 +7,10 @@ import 'package:pos_core/pos_core.dart';
 import 'package:pos_domain/pos_domain.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
+import '../../../core/providers.dart';
 import '../../../data/printer/printer_providers.dart';
 import '../../../data/api/dto.dart';
+import '../../products/providers/product_providers.dart';
 import '../providers/cart_controller.dart';
 import '../providers/checkout_controller.dart';
 
@@ -27,10 +31,15 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   final _carrierCtl = TextEditingController();
   final _taxIdCtl = TextEditingController();
 
-  int get _pointsToRedeem => _pointsBuffer.asNum.toInt();
-  int get _pointsDiscountCents => _pointsToRedeem;
+  int _pointValue = 1;
+  int _couponDiscountCents = 0;
+  String? _couponMsg;
 
-  Money _payable(Cart cart) => cart.total - Money(_pointsDiscountCents);
+  int get _pointsToRedeem => _pointsBuffer.asNum.toInt();
+  int get _pointsDiscountCents => _pointsToRedeem * _pointValue;
+
+  Money _payable(Cart cart) =>
+      cart.total - Money(_pointsDiscountCents) - Money(_couponDiscountCents);
 
   @override
   void dispose() {
@@ -44,11 +53,31 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   Widget build(BuildContext context) {
     final cart = ref.watch(cartControllerProvider);
     final theme = Theme.of(context);
+    final settings = ref.watch(loyaltySettingsProvider).valueOrNull;
+    final categoryTree = ref.watch(categoryTreeProvider);
+    _pointValue = math.max(1, settings?.pointValueCents ?? 1);
+    final redeemEnabled = settings?.redeemEnabled ?? true;
+    final maxRedeemPct = settings?.maxRedeemPct ?? 50;
+
+    // Points may only offset the redeem-eligible portion of the cart.
+    var redeemableCents = 0;
+    for (final line in cart.lines) {
+      if (PromotionEngine.pointsRedeemEligibleFor(line.product, categoryTree)) {
+        redeemableCents += line.net.cents;
+      }
+    }
+    final maxByPct = (redeemableCents * maxRedeemPct ~/ 100) ~/ _pointValue;
+    final maxPoints = redeemEnabled
+        ? math.min(cart.member?.points ?? 0, math.max(0, maxByPct))
+        : 0;
+    if (_pointsToRedeem > maxPoints) {
+      _pointsBuffer.set(maxPoints.toString());
+    }
+
     final payable = _payable(cart);
     final tendered = Money.fromMajor(_tenderedBuffer.asNum);
     final change = (tendered - payable);
     final canPay = _method != PaymentMethod.cash || tendered >= payable;
-    final maxPoints = cart.member?.points ?? 0;
 
     return LoadingOverlay(
       busy: _busy,
@@ -85,13 +114,37 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                               children: [
                                 Text('會員 ${cart.member!.name}（${cart.member!.points} 點）'),
                                 const SizedBox(height: 8),
-                                TextField(
-                                  controller: _couponCtl,
-                                  decoration: const InputDecoration(
-                                    labelText: '優惠券代碼',
-                                    isDense: true,
-                                  ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _couponCtl,
+                                        decoration: const InputDecoration(
+                                          labelText: '優惠券代碼',
+                                          isDense: true,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    OutlinedButton(
+                                      onPressed: () => _applyCoupon(cart),
+                                      child: const Text('套用'),
+                                    ),
+                                  ],
                                 ),
+                                if (_couponMsg != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      _couponMsg!,
+                                      style: TextStyle(
+                                        color: _couponDiscountCents > 0
+                                            ? theme.colorScheme.primary
+                                            : theme.colorScheme.error,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
                                 const SizedBox(height: 8),
                                 Row(
                                   children: [
@@ -290,6 +343,37 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         ),
       );
 
+  Future<void> _applyCoupon(Cart cart) async {
+    final code = _couponCtl.text.trim();
+    if (code.isEmpty) {
+      setState(() {
+        _couponDiscountCents = 0;
+        _couponMsg = null;
+      });
+      return;
+    }
+    try {
+      final preview = await ref.read(posApiProvider).previewCoupon(
+            code: code,
+            orderTotalCents: cart.total.cents,
+            memberId: cart.member?.id,
+          );
+      if (!mounted) return;
+      setState(() {
+        _couponDiscountCents = preview.discountCents;
+        _couponMsg = preview.discountCents > 0
+            ? '優惠券折抵 ${Money(preview.discountCents).format()}'
+            : '優惠券已套用（無折抵金額）';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _couponDiscountCents = 0;
+        _couponMsg = '優惠券無效或不適用';
+      });
+    }
+  }
+
   Future<void> _doCheckout(Cart cart, Money payable, Money tendered, Money change) async {
     setState(() => _busy = true);
     try {
@@ -319,6 +403,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
         taxId: _taxIdCtl.text.trim().isEmpty ? null : _taxIdCtl.text.trim(),
         invoiceGateway: 'ezpay',
         pointsRedeemed: _pointsToRedeem,
+        pointsDiscountCents: _pointsDiscountCents,
+        couponDiscountCents: _couponDiscountCents,
         couponCode: _couponCtl.text.trim().isEmpty ? null : _couponCtl.text.trim(),
         note: cart.note,
       );

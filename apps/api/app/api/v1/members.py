@@ -29,6 +29,7 @@ from ...schemas.member import (
 )
 from ...schemas.order import OrderListItem, OrderListResponse
 from ...services.loyalty_engine import loyalty_settings
+from ...services.member_no import next_member_no
 from ...services.order_query import enrich_order_item, load_order_display_maps
 from ...services.webhooks import emit_webhook
 
@@ -64,6 +65,50 @@ async def create_level(payload: MemberLevelCreate, db: DbSession, scope: StoreAd
     await db.commit()
     await db.refresh(lvl)
     return lvl
+
+
+DEFAULT_LEVELS = [
+    {"name": "一般會員", "discount_rate": 1.0, "min_spend": 0, "min_points": 0, "sort_order": 0, "color": "#9CA3AF"},
+    {"name": "尊榮會員", "discount_rate": 0.95, "min_spend": 1000000, "min_points": 0, "sort_order": 1, "color": "#F59E0B"},
+    {"name": "永久會員", "discount_rate": 0.9, "min_spend": 0, "min_points": 0, "sort_order": 2, "color": "#7C3AED"},
+]
+
+
+@router.post("/levels/seed-defaults", response_model=list[MemberLevelRead])
+async def seed_default_levels(db: DbSession, scope: StoreAdminDep):
+    """Create the 一般／尊榮／永久 default member levels (skips existing names).
+
+    永久會員 is intended to be assigned manually (`PATCH /members/{id}` level_id);
+    尊榮會員 auto-upgrades by spend when ``auto_level`` is on.
+    """
+    existing = set(
+        (
+            await db.execute(
+                select(MemberLevel.name).where(
+                    MemberLevel.tenant_id == scope.tenant_id,
+                    MemberLevel.deleted_at.is_(None),
+                )
+            )
+        ).scalars().all()
+    )
+    created: list[MemberLevel] = []
+    for spec in DEFAULT_LEVELS:
+        if spec["name"] in existing:
+            continue
+        lvl = MemberLevel(tenant_id=scope.tenant_id, **spec)
+        db.add(lvl)
+        created.append(lvl)
+    if created:
+        await audit(
+            db, scope, action="member_levels_seed_defaults", resource_type="member_level", flush=False
+        )
+        await db.commit()
+        for lvl in created:
+            await db.refresh(lvl)
+    stmt = apply_tenant(
+        select(MemberLevel).where(MemberLevel.deleted_at.is_(None)), MemberLevel, scope
+    ).order_by(MemberLevel.sort_order)
+    return (await db.execute(stmt)).scalars().all()
 
 
 @router.patch("/levels/{lid}", response_model=MemberLevelRead)
@@ -172,7 +217,12 @@ async def search_members(
     if q:
         like = f"%{q}%"
         stmt = stmt.where(
-            or_(Member.phone.ilike(like), Member.name.ilike(like), Member.qr_code == q)
+            or_(
+                Member.phone.ilike(like),
+                Member.name.ilike(like),
+                Member.member_no.ilike(like),
+                Member.qr_code == q,
+            )
         )
     stmt = stmt.order_by(Member.last_visit_at.desc().nullslast()).limit(limit)
     return (await db.execute(stmt)).scalars().all()
@@ -192,10 +242,17 @@ async def create_member(payload: MemberCreate, db: DbSession, scope: TenantScope
     ).scalar_one_or_none()
     if existing:
         raise HTTPException(status.HTTP_409_CONFLICT, "phone already registered")
+    data = payload.model_dump()
+    opt_in = bool(data.get("marketing_opt_in"))
+    member_no = data.pop("member_no", None) or await next_member_no(db, scope.tenant_id)
+    qr_code = data.pop("qr_code", None) or member_no
     m = Member(
         tenant_id=scope.tenant_id,
         joined_at=datetime.now(timezone.utc),
-        **payload.model_dump(),
+        member_no=member_no,
+        qr_code=qr_code,
+        marketing_opt_in_at=datetime.now(timezone.utc) if opt_in else None,
+        **data,
     )
     db.add(m)
     await audit(db, scope, action="member_create", resource_type="member", flush=False)
@@ -218,6 +275,22 @@ async def find_by_phone(phone: str, db: DbSession, scope: TenantScope):
             select(Member).where(
                 Member.tenant_id == scope.tenant_id,
                 Member.phone == phone,
+                Member.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if not m:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    return m
+
+
+@router.get("/by-no/{no}", response_model=MemberRead)
+async def find_by_no(no: str, db: DbSession, scope: TenantScope):
+    m = (
+        await db.execute(
+            select(Member).where(
+                Member.tenant_id == scope.tenant_id,
+                Member.member_no == no,
                 Member.deleted_at.is_(None),
             )
         )
@@ -258,7 +331,14 @@ async def update_member(mid: str, payload: MemberUpdate, db: DbSession, scope: T
     if not m or m.deleted_at:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     ensure_same_tenant(scope, m)
-    for k, v in payload.model_dump(exclude_unset=True).items():
+    changes = payload.model_dump(exclude_unset=True)
+    if "marketing_opt_in" in changes:
+        new_opt = bool(changes["marketing_opt_in"])
+        if new_opt and not m.marketing_opt_in:
+            m.marketing_opt_in_at = datetime.now(timezone.utc)
+        elif not new_opt:
+            m.marketing_opt_in_at = None
+    for k, v in changes.items():
         setattr(m, k, v)
     await audit(db, scope, action="member_update", resource_type="member", resource_id=mid, flush=False)
     await db.commit()

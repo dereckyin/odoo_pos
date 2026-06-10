@@ -38,6 +38,12 @@ class Categories extends Table {
   BoolColumn get hideFromPublicOrdering =>
       boolean().withDefault(const Constant(false))();
   BoolColumn get hideFromPosBrowse => boolean().withDefault(const Constant(false))();
+  BoolColumn get memberDiscountEligible =>
+      boolean().withDefault(const Constant(true))();
+  BoolColumn get pointsEarnEligible =>
+      boolean().withDefault(const Constant(true))();
+  BoolColumn get pointsRedeemEligible =>
+      boolean().withDefault(const Constant(true))();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
 
@@ -64,6 +70,9 @@ class Products extends Table {
   BoolColumn get hideFromPosBrowse => boolean().withDefault(const Constant(false))();
   BoolColumn get trackInventory => boolean().withDefault(const Constant(true))();
   TextColumn get productKind => text().withDefault(const Constant('regular'))();
+  BoolColumn get memberDiscountEligible => boolean().nullable()();
+  BoolColumn get pointsEarnEligible => boolean().nullable()();
+  BoolColumn get pointsRedeemEligible => boolean().nullable()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
 

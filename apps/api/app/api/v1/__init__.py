@@ -19,6 +19,7 @@ from . import (
     reports,
     analytics,
     member_analytics,
+    member_broadcast,
     dashboard,
     dining_tables,
     guest_orders,
@@ -38,6 +39,8 @@ from . import (
     alliance,
     webhooks,
     books,
+    events,
+    line,
 )
 
 api_router = APIRouter()
@@ -62,6 +65,7 @@ api_router.include_router(users.router)
 api_router.include_router(reports.router)
 api_router.include_router(analytics.router)
 api_router.include_router(member_analytics.router)
+api_router.include_router(member_broadcast.router)
 api_router.include_router(dashboard.router)
 api_router.include_router(dining_tables.router)
 api_router.include_router(guest_orders.router)
@@ -79,3 +83,5 @@ api_router.include_router(platform.router)
 api_router.include_router(alliance.router)
 api_router.include_router(webhooks.router)
 api_router.include_router(books.router)
+api_router.include_router(events.router)
+api_router.include_router(line.router)

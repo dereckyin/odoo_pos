@@ -76,6 +76,17 @@
           </div>
         </a-form-item>
 
+        <a-form-item label="可享會員折扣">
+          <a-select v-model:value="form.member_discount_eligible" :options="eligibilityOptions" style="width: 200px" />
+          <div style="color: #888; font-size: 12px">特價／簽名書等可設「不適用」；留「繼承分類」則依分類設定。</div>
+        </a-form-item>
+        <a-form-item label="可累積點數">
+          <a-select v-model:value="form.points_earn_eligible" :options="eligibilityOptions" style="width: 200px" />
+        </a-form-item>
+        <a-form-item label="可使用點數折抵">
+          <a-select v-model:value="form.points_redeem_eligible" :options="eligibilityOptions" style="width: 200px" />
+        </a-form-item>
+
         <a-form-item label="商品圖片">
           <a-upload
             :before-upload="handleUpload"
@@ -171,6 +182,12 @@ const optionGroupOptions = computed(() =>
   optionGroups.value.map((g) => ({ label: g.name, value: g.id })),
 )
 
+const eligibilityOptions = [
+  { label: '繼承分類', value: null },
+  { label: '適用', value: true },
+  { label: '不適用', value: false },
+]
+
 const form = reactive({
   name: '',
   sku: '',
@@ -181,6 +198,9 @@ const form = reactive({
   is_active: true,
   hide_from_public_ordering: false,
   hide_from_pos_browse: false,
+  member_discount_eligible: null as boolean | null,
+  points_earn_eligible: null as boolean | null,
+  points_redeem_eligible: null as boolean | null,
   track_inventory: true,
   image_url: '' as string | null,
   description: '' as string | null,
@@ -241,6 +261,9 @@ async function handleSubmit() {
       description: form.description?.trim() ? form.description.trim() : null,
       hide_from_public_ordering: form.hide_from_public_ordering,
       hide_from_pos_browse: form.hide_from_pos_browse,
+      member_discount_eligible: form.member_discount_eligible,
+      points_earn_eligible: form.points_earn_eligible,
+      points_redeem_eligible: form.points_redeem_eligible,
       track_inventory: isConsignmentBook.value ? true : form.track_inventory,
       marketplace_category_id: marketplaceCategoryId.value ?? null,
       barcodes: barcodes.value.map((b) => b.trim()).filter(Boolean),
@@ -305,6 +328,9 @@ onMounted(async () => {
       form.is_active = data.is_active
       form.hide_from_public_ordering = data.hide_from_public_ordering ?? false
       form.hide_from_pos_browse = data.hide_from_pos_browse ?? false
+      form.member_discount_eligible = data.member_discount_eligible ?? null
+      form.points_earn_eligible = data.points_earn_eligible ?? null
+      form.points_redeem_eligible = data.points_redeem_eligible ?? null
       form.track_inventory = data.track_inventory ?? true
       productKind.value = data.product_kind ?? 'regular'
       form.image_url = data.image_url

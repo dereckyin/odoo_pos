@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy import select
 
 from ...core.audit import audit
@@ -12,8 +13,45 @@ from ...core.deps import (
 )
 from ...models import Coupon
 from ...schemas.member import CouponCreate, CouponRead
+from ...services.loyalty_engine import coupon_discount_cents, preview_coupon
 
 router = APIRouter(prefix="/coupons", tags=["coupons"])
+
+
+class CouponPreviewRequest(BaseModel):
+    code: str
+    order_total_cents: int
+    member_id: str | None = None
+
+
+class CouponPreviewResponse(BaseModel):
+    code: str
+    type: str
+    value: float
+    discount_cents: int
+
+
+@router.post("/preview", response_model=CouponPreviewResponse)
+async def preview_coupon_endpoint(
+    payload: CouponPreviewRequest, db: DbSession, scope: TenantScope
+):
+    """Validate a coupon and return the discount it would apply (no consumption)."""
+    coupon = await preview_coupon(
+        db,
+        tenant_id=scope.tenant_id,
+        code=payload.code,
+        member_id=payload.member_id,
+        order_total_cents=payload.order_total_cents,
+    )
+    if not coupon:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "coupon not found")
+    discount = coupon_discount_cents(coupon, payload.order_total_cents)
+    return CouponPreviewResponse(
+        code=coupon.code,
+        type=coupon.type,
+        value=coupon.value,
+        discount_cents=discount,
+    )
 
 
 @router.get("", response_model=list[CouponRead])

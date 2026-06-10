@@ -15,12 +15,16 @@ MODULE_ONLINE_ORDERING = "online_ordering"
 MODULE_MARKETPLACE = "marketplace"
 MODULE_BUSINESS_INTELLIGENCE = "business_intelligence"
 MODULE_CONSIGNMENT_BOOKS = "consignment_books"
+MODULE_LINE = "line"
+MODULE_EVENTS = "events"
 
 ALL_MODULES = (
     MODULE_ONLINE_ORDERING,
     MODULE_MARKETPLACE,
     MODULE_BUSINESS_INTELLIGENCE,
     MODULE_CONSIGNMENT_BOOKS,
+    MODULE_LINE,
+    MODULE_EVENTS,
 )
 
 DEFAULT_MODULES: dict[str, bool] = {
@@ -28,6 +32,8 @@ DEFAULT_MODULES: dict[str, bool] = {
     MODULE_MARKETPLACE: False,
     MODULE_BUSINESS_INTELLIGENCE: False,
     MODULE_CONSIGNMENT_BOOKS: True,
+    MODULE_LINE: False,
+    MODULE_EVENTS: False,
 }
 
 MODULE_LABELS: dict[str, str] = {
@@ -35,30 +41,15 @@ MODULE_LABELS: dict[str, str] = {
     MODULE_MARKETPLACE: "市集上架",
     MODULE_BUSINESS_INTELLIGENCE: "商業智慧",
     MODULE_CONSIGNMENT_BOOKS: "寄賣書籍",
+    MODULE_LINE: "LINE 官方帳號",
+    MODULE_EVENTS: "活動報名/票券",
 }
 
 
 def read_modules_from_settings(settings: dict | None) -> dict[str, bool]:
     raw = (settings or {}).get("modules") or {}
     return {
-        MODULE_ONLINE_ORDERING: bool(
-            raw.get(MODULE_ONLINE_ORDERING, DEFAULT_MODULES[MODULE_ONLINE_ORDERING])
-        ),
-        MODULE_MARKETPLACE: bool(
-            raw.get(MODULE_MARKETPLACE, DEFAULT_MODULES[MODULE_MARKETPLACE])
-        ),
-        MODULE_BUSINESS_INTELLIGENCE: bool(
-            raw.get(
-                MODULE_BUSINESS_INTELLIGENCE,
-                DEFAULT_MODULES[MODULE_BUSINESS_INTELLIGENCE],
-            )
-        ),
-        MODULE_CONSIGNMENT_BOOKS: bool(
-            raw.get(
-                MODULE_CONSIGNMENT_BOOKS,
-                DEFAULT_MODULES[MODULE_CONSIGNMENT_BOOKS],
-            )
-        ),
+        key: bool(raw.get(key, DEFAULT_MODULES[key])) for key in ALL_MODULES
     }
 
 
@@ -117,6 +108,16 @@ async def require_guest_order_admin(db: DbSession, scope: TenantScope) -> None:
 async def require_business_intelligence(db: DbSession, scope: TenantScope) -> None:
     if scope.tenant_id:
         await assert_tenant_module(db, scope.tenant_id, MODULE_BUSINESS_INTELLIGENCE)
+
+
+async def require_line(db: DbSession, scope: TenantScope) -> None:
+    if scope.tenant_id:
+        await assert_tenant_module(db, scope.tenant_id, MODULE_LINE)
+
+
+async def require_events(db: DbSession, scope: TenantScope) -> None:
+    if scope.tenant_id:
+        await assert_tenant_module(db, scope.tenant_id, MODULE_EVENTS)
 
 
 def online_ordering_dep():

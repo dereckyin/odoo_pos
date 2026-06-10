@@ -40,6 +40,10 @@ export function deleteMemberLevel(id: string) {
   return client.delete(`/members/levels/${id}`)
 }
 
+export function seedDefaultMemberLevels() {
+  return client.post<MemberLevelRead[]>('/members/levels/seed-defaults')
+}
+
 export function adjustPoints(data: { member_id: string; delta: number; reason: string; order_id?: string }) {
   return client.post<PointTransactionRead>('/members/points', data)
 }

@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import Coupon, LoyaltyRule, Member, MemberLevel, PointTransaction, Tenant
+from .loyalty_eligibility import LineEligibility
 
 DEFAULT_LOYALTY = {
     "earn_enabled": True,
@@ -16,6 +17,7 @@ DEFAULT_LOYALTY = {
     "max_redeem_pct": 50,
     "point_expiry_days": 365,
     "auto_level": True,
+    "birthday_bonus_points": 0,
 }
 
 
@@ -81,6 +83,40 @@ def max_redeemable_points(
 
 def points_discount_cents(points: int, settings: dict) -> int:
     return points * max(1, int(settings.get("point_value_cents", 1)))
+
+
+def eligible_subtotals(
+    order_total_cents: int,
+    lines: list,
+    eligibility: dict[str, LineEligibility] | None,
+) -> tuple[int, int]:
+    """Scale ``order_total_cents`` to the earn-/redeem-eligible portions.
+
+    The scaling is proportional to each line's ``line_total_cents`` so taxes and
+    order-level discounts baked into ``order_total_cents`` stay consistent: when
+    every line is eligible the ratio is 1 and the full order total is returned
+    (matching the previous whole-order behaviour).
+    """
+    if not lines or eligibility is None:
+        return order_total_cents, order_total_cents
+    full = 0
+    earn_sum = 0
+    redeem_sum = 0
+    for ln in lines:
+        amt = int(getattr(ln, "line_total_cents", 0) or 0)
+        if amt <= 0:
+            continue
+        full += amt
+        elig = eligibility.get(getattr(ln, "product_id", None)) or LineEligibility()
+        if elig.points_earn:
+            earn_sum += amt
+        if elig.points_redeem:
+            redeem_sum += amt
+    if full <= 0:
+        return order_total_cents, order_total_cents
+    earn_cents = round(order_total_cents * earn_sum / full)
+    redeem_cents = round(order_total_cents * redeem_sum / full)
+    return int(earn_cents), int(redeem_cents)
 
 
 def coupon_discount_cents(coupon: Coupon, items_total_cents: int) -> int:
@@ -202,13 +238,24 @@ async def apply_order_loyalty(
     order_total_cents: int,
     points_redeemed: int = 0,
     coupon_code: str | None = None,
+    lines: list | None = None,
+    eligibility: dict[str, LineEligibility] | None = None,
 ) -> tuple[int, int]:
-    """Returns (earned_points, redeemed_points). Mutates member + writes ledger."""
+    """Returns (earned_points, redeemed_points). Mutates member + writes ledger.
+
+    When ``lines`` and ``eligibility`` are provided, earn/redeem use only the
+    eligible portion of the order (per Phase 2 product-type rules); otherwise
+    the whole order total is used.
+    """
     settings = loyalty_settings(tenant)
     now = datetime.now(timezone.utc)
     expiry = None
     if settings.get("point_expiry_days"):
         expiry = now + timedelta(days=int(settings["point_expiry_days"]))
+
+    earn_eligible_cents, redeem_eligible_cents = eligible_subtotals(
+        order_total_cents, lines or [], eligibility
+    )
 
     if coupon_code:
         await validate_and_redeem_coupon(
@@ -224,7 +271,7 @@ async def apply_order_loyalty(
     if points_redeemed > 0:
         if not settings.get("redeem_enabled"):
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "point redemption disabled")
-        cap = max_redeemable_points(member.points, order_total_cents, settings)
+        cap = max_redeemable_points(member.points, redeem_eligible_cents, settings)
         if points_redeemed > cap:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
@@ -250,7 +297,7 @@ async def apply_order_loyalty(
             lvl = await db.get(MemberLevel, member.level_id)
             if lvl and lvl.discount_rate < 1.0:
                 level_mult = max(1.0, 2.0 - lvl.discount_rate)
-        earned = calculate_earn_points(order_total_cents, rules, level_mult)
+        earned = calculate_earn_points(earn_eligible_cents, rules, level_mult)
         if earned > 0:
             member.points = member.points + earned
             db.add(

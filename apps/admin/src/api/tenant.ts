@@ -134,8 +134,32 @@ export interface TenantModulesRead {
   marketplace: boolean
   business_intelligence: boolean
   consignment_books: boolean
+  line: boolean
+  events: boolean
 }
 
 export function getModules() {
   return client.get<TenantModulesRead>('/tenant/modules')
+}
+
+export interface LineSettingsRead {
+  channel_id: string
+  liff_id: string
+  has_channel_secret: boolean
+  has_access_token: boolean
+}
+
+export interface LineSettingsUpdate {
+  channel_id?: string
+  liff_id?: string
+  channel_secret?: string
+  access_token?: string
+}
+
+export function getLineSettings() {
+  return client.get<LineSettingsRead>('/tenant/line-settings')
+}
+
+export function updateLineSettings(payload: LineSettingsUpdate) {
+  return client.put<LineSettingsRead>('/tenant/line-settings', payload)
 }

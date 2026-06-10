@@ -1,6 +1,16 @@
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..core.db import Base
@@ -25,11 +35,17 @@ class Member(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     __table_args__ = (
         UniqueConstraint("tenant_id", "phone", name="uq_member_tenant_phone"),
         UniqueConstraint("tenant_id", "qr_code", name="uq_member_tenant_qr"),
+        UniqueConstraint("tenant_id", "member_no", name="uq_member_tenant_no"),
     )
 
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True, nullable=False)
     phone: Mapped[str] = mapped_column(String(32), index=True)
+    member_no: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     name: Mapped[str] = mapped_column(String(128))
+    marketing_opt_in: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    marketing_opt_in_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     email: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     birthday: Mapped[date | None] = mapped_column(Date, nullable=True)
     points: Mapped[int] = mapped_column(Integer, default=0)

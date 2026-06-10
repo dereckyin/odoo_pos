@@ -8,6 +8,9 @@ class Category {
     this.icon,
     this.hideFromPublicOrdering = false,
     this.hideFromPosBrowse = false,
+    this.memberDiscountEligible = true,
+    this.pointsEarnEligible = true,
+    this.pointsRedeemEligible = true,
     this.depth = 0,
     this.pathLabel = '',
     this.hasChildren = false,
@@ -21,6 +24,9 @@ class Category {
   final String? icon;
   final bool hideFromPublicOrdering;
   final bool hideFromPosBrowse;
+  final bool memberDiscountEligible;
+  final bool pointsEarnEligible;
+  final bool pointsRedeemEligible;
   final int depth;
   final String pathLabel;
   final bool hasChildren;

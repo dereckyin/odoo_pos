@@ -15,6 +15,9 @@ class CategoryRead(ORMModel):
     icon: str | None
     hide_from_public_ordering: bool = False
     hide_from_pos_browse: bool = False
+    member_discount_eligible: bool = True
+    points_earn_eligible: bool = True
+    points_redeem_eligible: bool = True
     updated_at: datetime
     deleted_at: datetime | None
     depth: int = 0
@@ -38,6 +41,9 @@ class CategoryCreate(BaseModel):
     icon: str | None = None
     hide_from_public_ordering: bool = False
     hide_from_pos_browse: bool = False
+    member_discount_eligible: bool = True
+    points_earn_eligible: bool = True
+    points_redeem_eligible: bool = True
 
 
 class CategoryUpdate(BaseModel):
@@ -48,6 +54,9 @@ class CategoryUpdate(BaseModel):
     icon: str | None = None
     hide_from_public_ordering: bool | None = None
     hide_from_pos_browse: bool | None = None
+    member_discount_eligible: bool | None = None
+    points_earn_eligible: bool | None = None
+    points_redeem_eligible: bool | None = None
 
 
 class ProductRead(ORMModel):
@@ -66,6 +75,9 @@ class ProductRead(ORMModel):
     description: str | None
     hide_from_public_ordering: bool = False
     hide_from_pos_browse: bool = False
+    member_discount_eligible: bool | None = None
+    points_earn_eligible: bool | None = None
+    points_redeem_eligible: bool | None = None
     track_inventory: bool = True
     product_kind: str = "regular"
     marketplace_category_id: str | None = None
@@ -91,6 +103,9 @@ class ProductRead(ORMModel):
             description=p.description,
             hide_from_public_ordering=getattr(p, "hide_from_public_ordering", False),
             hide_from_pos_browse=getattr(p, "hide_from_pos_browse", False),
+            member_discount_eligible=getattr(p, "member_discount_eligible", None),
+            points_earn_eligible=getattr(p, "points_earn_eligible", None),
+            points_redeem_eligible=getattr(p, "points_redeem_eligible", None),
             track_inventory=getattr(p, "track_inventory", True),
             product_kind=getattr(p, "product_kind", "regular"),
             marketplace_category_id=getattr(p, "marketplace_category_id", None),
@@ -114,6 +129,9 @@ class ProductCreate(BaseModel):
     description: str | None = None
     hide_from_public_ordering: bool = False
     hide_from_pos_browse: bool = False
+    member_discount_eligible: bool | None = None
+    points_earn_eligible: bool | None = None
+    points_redeem_eligible: bool | None = None
     track_inventory: bool = True
     marketplace_category_id: str | None = None
     barcodes: list[str] = []
@@ -133,6 +151,9 @@ class ProductUpdate(BaseModel):
     description: str | None = None
     hide_from_public_ordering: bool | None = None
     hide_from_pos_browse: bool | None = None
+    member_discount_eligible: bool | None = None
+    points_earn_eligible: bool | None = None
+    points_redeem_eligible: bool | None = None
     track_inventory: bool | None = None
     marketplace_category_id: str | None = None
     barcodes: list[str] | None = None

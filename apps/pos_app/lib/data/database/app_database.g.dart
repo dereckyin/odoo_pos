@@ -796,6 +796,36 @@ class $CategoriesTable extends Categories
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("hide_from_pos_browse" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _memberDiscountEligibleMeta =
+      const VerificationMeta('memberDiscountEligible');
+  @override
+  late final GeneratedColumn<bool> memberDiscountEligible =
+      GeneratedColumn<bool>('member_discount_eligible', aliasedName, false,
+          type: DriftSqlType.bool,
+          requiredDuringInsert: false,
+          defaultConstraints: GeneratedColumn.constraintIsAlways(
+              'CHECK ("member_discount_eligible" IN (0, 1))'),
+          defaultValue: const Constant(true));
+  static const VerificationMeta _pointsEarnEligibleMeta =
+      const VerificationMeta('pointsEarnEligible');
+  @override
+  late final GeneratedColumn<bool> pointsEarnEligible = GeneratedColumn<bool>(
+      'points_earn_eligible', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("points_earn_eligible" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _pointsRedeemEligibleMeta =
+      const VerificationMeta('pointsRedeemEligible');
+  @override
+  late final GeneratedColumn<bool> pointsRedeemEligible = GeneratedColumn<bool>(
+      'points_redeem_eligible', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("points_redeem_eligible" IN (0, 1))'),
+      defaultValue: const Constant(true));
   static const VerificationMeta _updatedAtMeta =
       const VerificationMeta('updatedAt');
   @override
@@ -818,6 +848,9 @@ class $CategoriesTable extends Categories
         icon,
         hideFromPublicOrdering,
         hideFromPosBrowse,
+        memberDiscountEligible,
+        pointsEarnEligible,
+        pointsRedeemEligible,
         updatedAt,
         deletedAt
       ];
@@ -870,6 +903,24 @@ class $CategoriesTable extends Categories
           hideFromPosBrowse.isAcceptableOrUnknown(
               data['hide_from_pos_browse']!, _hideFromPosBrowseMeta));
     }
+    if (data.containsKey('member_discount_eligible')) {
+      context.handle(
+          _memberDiscountEligibleMeta,
+          memberDiscountEligible.isAcceptableOrUnknown(
+              data['member_discount_eligible']!, _memberDiscountEligibleMeta));
+    }
+    if (data.containsKey('points_earn_eligible')) {
+      context.handle(
+          _pointsEarnEligibleMeta,
+          pointsEarnEligible.isAcceptableOrUnknown(
+              data['points_earn_eligible']!, _pointsEarnEligibleMeta));
+    }
+    if (data.containsKey('points_redeem_eligible')) {
+      context.handle(
+          _pointsRedeemEligibleMeta,
+          pointsRedeemEligible.isAcceptableOrUnknown(
+              data['points_redeem_eligible']!, _pointsRedeemEligibleMeta));
+    }
     if (data.containsKey('updated_at')) {
       context.handle(_updatedAtMeta,
           updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
@@ -906,6 +957,13 @@ class $CategoriesTable extends Categories
           data['${effectivePrefix}hide_from_public_ordering'])!,
       hideFromPosBrowse: attachedDatabase.typeMapping.read(
           DriftSqlType.bool, data['${effectivePrefix}hide_from_pos_browse'])!,
+      memberDiscountEligible: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool,
+          data['${effectivePrefix}member_discount_eligible'])!,
+      pointsEarnEligible: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}points_earn_eligible'])!,
+      pointsRedeemEligible: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}points_redeem_eligible'])!,
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
       deletedAt: attachedDatabase.typeMapping
@@ -928,6 +986,9 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
   final String? icon;
   final bool hideFromPublicOrdering;
   final bool hideFromPosBrowse;
+  final bool memberDiscountEligible;
+  final bool pointsEarnEligible;
+  final bool pointsRedeemEligible;
   final DateTime updatedAt;
   final DateTime? deletedAt;
   const CategoryRow(
@@ -939,6 +1000,9 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       this.icon,
       required this.hideFromPublicOrdering,
       required this.hideFromPosBrowse,
+      required this.memberDiscountEligible,
+      required this.pointsEarnEligible,
+      required this.pointsRedeemEligible,
       required this.updatedAt,
       this.deletedAt});
   @override
@@ -958,6 +1022,9 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
     }
     map['hide_from_public_ordering'] = Variable<bool>(hideFromPublicOrdering);
     map['hide_from_pos_browse'] = Variable<bool>(hideFromPosBrowse);
+    map['member_discount_eligible'] = Variable<bool>(memberDiscountEligible);
+    map['points_earn_eligible'] = Variable<bool>(pointsEarnEligible);
+    map['points_redeem_eligible'] = Variable<bool>(pointsRedeemEligible);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
@@ -978,6 +1045,9 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
       hideFromPublicOrdering: Value(hideFromPublicOrdering),
       hideFromPosBrowse: Value(hideFromPosBrowse),
+      memberDiscountEligible: Value(memberDiscountEligible),
+      pointsEarnEligible: Value(pointsEarnEligible),
+      pointsRedeemEligible: Value(pointsRedeemEligible),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
@@ -998,6 +1068,11 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       hideFromPublicOrdering:
           serializer.fromJson<bool>(json['hideFromPublicOrdering']),
       hideFromPosBrowse: serializer.fromJson<bool>(json['hideFromPosBrowse']),
+      memberDiscountEligible:
+          serializer.fromJson<bool>(json['memberDiscountEligible']),
+      pointsEarnEligible: serializer.fromJson<bool>(json['pointsEarnEligible']),
+      pointsRedeemEligible:
+          serializer.fromJson<bool>(json['pointsRedeemEligible']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
@@ -1014,6 +1089,9 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       'icon': serializer.toJson<String?>(icon),
       'hideFromPublicOrdering': serializer.toJson<bool>(hideFromPublicOrdering),
       'hideFromPosBrowse': serializer.toJson<bool>(hideFromPosBrowse),
+      'memberDiscountEligible': serializer.toJson<bool>(memberDiscountEligible),
+      'pointsEarnEligible': serializer.toJson<bool>(pointsEarnEligible),
+      'pointsRedeemEligible': serializer.toJson<bool>(pointsRedeemEligible),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
@@ -1028,6 +1106,9 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           Value<String?> icon = const Value.absent(),
           bool? hideFromPublicOrdering,
           bool? hideFromPosBrowse,
+          bool? memberDiscountEligible,
+          bool? pointsEarnEligible,
+          bool? pointsRedeemEligible,
           DateTime? updatedAt,
           Value<DateTime?> deletedAt = const Value.absent()}) =>
       CategoryRow(
@@ -1040,6 +1121,10 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
         hideFromPublicOrdering:
             hideFromPublicOrdering ?? this.hideFromPublicOrdering,
         hideFromPosBrowse: hideFromPosBrowse ?? this.hideFromPosBrowse,
+        memberDiscountEligible:
+            memberDiscountEligible ?? this.memberDiscountEligible,
+        pointsEarnEligible: pointsEarnEligible ?? this.pointsEarnEligible,
+        pointsRedeemEligible: pointsRedeemEligible ?? this.pointsRedeemEligible,
         updatedAt: updatedAt ?? this.updatedAt,
         deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
       );
@@ -1057,6 +1142,15 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       hideFromPosBrowse: data.hideFromPosBrowse.present
           ? data.hideFromPosBrowse.value
           : this.hideFromPosBrowse,
+      memberDiscountEligible: data.memberDiscountEligible.present
+          ? data.memberDiscountEligible.value
+          : this.memberDiscountEligible,
+      pointsEarnEligible: data.pointsEarnEligible.present
+          ? data.pointsEarnEligible.value
+          : this.pointsEarnEligible,
+      pointsRedeemEligible: data.pointsRedeemEligible.present
+          ? data.pointsRedeemEligible.value
+          : this.pointsRedeemEligible,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
@@ -1073,6 +1167,9 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           ..write('icon: $icon, ')
           ..write('hideFromPublicOrdering: $hideFromPublicOrdering, ')
           ..write('hideFromPosBrowse: $hideFromPosBrowse, ')
+          ..write('memberDiscountEligible: $memberDiscountEligible, ')
+          ..write('pointsEarnEligible: $pointsEarnEligible, ')
+          ..write('pointsRedeemEligible: $pointsRedeemEligible, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt')
           ..write(')'))
@@ -1080,8 +1177,20 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
   }
 
   @override
-  int get hashCode => Object.hash(id, name, parentId, sortOrder, color, icon,
-      hideFromPublicOrdering, hideFromPosBrowse, updatedAt, deletedAt);
+  int get hashCode => Object.hash(
+      id,
+      name,
+      parentId,
+      sortOrder,
+      color,
+      icon,
+      hideFromPublicOrdering,
+      hideFromPosBrowse,
+      memberDiscountEligible,
+      pointsEarnEligible,
+      pointsRedeemEligible,
+      updatedAt,
+      deletedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1094,6 +1203,9 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           other.icon == this.icon &&
           other.hideFromPublicOrdering == this.hideFromPublicOrdering &&
           other.hideFromPosBrowse == this.hideFromPosBrowse &&
+          other.memberDiscountEligible == this.memberDiscountEligible &&
+          other.pointsEarnEligible == this.pointsEarnEligible &&
+          other.pointsRedeemEligible == this.pointsRedeemEligible &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt);
 }
@@ -1107,6 +1219,9 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
   final Value<String?> icon;
   final Value<bool> hideFromPublicOrdering;
   final Value<bool> hideFromPosBrowse;
+  final Value<bool> memberDiscountEligible;
+  final Value<bool> pointsEarnEligible;
+  final Value<bool> pointsRedeemEligible;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<int> rowid;
@@ -1119,6 +1234,9 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     this.icon = const Value.absent(),
     this.hideFromPublicOrdering = const Value.absent(),
     this.hideFromPosBrowse = const Value.absent(),
+    this.memberDiscountEligible = const Value.absent(),
+    this.pointsEarnEligible = const Value.absent(),
+    this.pointsRedeemEligible = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1132,6 +1250,9 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     this.icon = const Value.absent(),
     this.hideFromPublicOrdering = const Value.absent(),
     this.hideFromPosBrowse = const Value.absent(),
+    this.memberDiscountEligible = const Value.absent(),
+    this.pointsEarnEligible = const Value.absent(),
+    this.pointsRedeemEligible = const Value.absent(),
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1147,6 +1268,9 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     Expression<String>? icon,
     Expression<bool>? hideFromPublicOrdering,
     Expression<bool>? hideFromPosBrowse,
+    Expression<bool>? memberDiscountEligible,
+    Expression<bool>? pointsEarnEligible,
+    Expression<bool>? pointsRedeemEligible,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<int>? rowid,
@@ -1161,6 +1285,12 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       if (hideFromPublicOrdering != null)
         'hide_from_public_ordering': hideFromPublicOrdering,
       if (hideFromPosBrowse != null) 'hide_from_pos_browse': hideFromPosBrowse,
+      if (memberDiscountEligible != null)
+        'member_discount_eligible': memberDiscountEligible,
+      if (pointsEarnEligible != null)
+        'points_earn_eligible': pointsEarnEligible,
+      if (pointsRedeemEligible != null)
+        'points_redeem_eligible': pointsRedeemEligible,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (rowid != null) 'rowid': rowid,
@@ -1176,6 +1306,9 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       Value<String?>? icon,
       Value<bool>? hideFromPublicOrdering,
       Value<bool>? hideFromPosBrowse,
+      Value<bool>? memberDiscountEligible,
+      Value<bool>? pointsEarnEligible,
+      Value<bool>? pointsRedeemEligible,
       Value<DateTime>? updatedAt,
       Value<DateTime?>? deletedAt,
       Value<int>? rowid}) {
@@ -1189,6 +1322,10 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       hideFromPublicOrdering:
           hideFromPublicOrdering ?? this.hideFromPublicOrdering,
       hideFromPosBrowse: hideFromPosBrowse ?? this.hideFromPosBrowse,
+      memberDiscountEligible:
+          memberDiscountEligible ?? this.memberDiscountEligible,
+      pointsEarnEligible: pointsEarnEligible ?? this.pointsEarnEligible,
+      pointsRedeemEligible: pointsRedeemEligible ?? this.pointsRedeemEligible,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       rowid: rowid ?? this.rowid,
@@ -1223,6 +1360,17 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     if (hideFromPosBrowse.present) {
       map['hide_from_pos_browse'] = Variable<bool>(hideFromPosBrowse.value);
     }
+    if (memberDiscountEligible.present) {
+      map['member_discount_eligible'] =
+          Variable<bool>(memberDiscountEligible.value);
+    }
+    if (pointsEarnEligible.present) {
+      map['points_earn_eligible'] = Variable<bool>(pointsEarnEligible.value);
+    }
+    if (pointsRedeemEligible.present) {
+      map['points_redeem_eligible'] =
+          Variable<bool>(pointsRedeemEligible.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -1246,6 +1394,9 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
           ..write('icon: $icon, ')
           ..write('hideFromPublicOrdering: $hideFromPublicOrdering, ')
           ..write('hideFromPosBrowse: $hideFromPosBrowse, ')
+          ..write('memberDiscountEligible: $memberDiscountEligible, ')
+          ..write('pointsEarnEligible: $pointsEarnEligible, ')
+          ..write('pointsRedeemEligible: $pointsRedeemEligible, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('rowid: $rowid')
@@ -1380,6 +1531,33 @@ class $ProductsTable extends Products
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant('regular'));
+  static const VerificationMeta _memberDiscountEligibleMeta =
+      const VerificationMeta('memberDiscountEligible');
+  @override
+  late final GeneratedColumn<bool> memberDiscountEligible =
+      GeneratedColumn<bool>('member_discount_eligible', aliasedName, true,
+          type: DriftSqlType.bool,
+          requiredDuringInsert: false,
+          defaultConstraints: GeneratedColumn.constraintIsAlways(
+              'CHECK ("member_discount_eligible" IN (0, 1))'));
+  static const VerificationMeta _pointsEarnEligibleMeta =
+      const VerificationMeta('pointsEarnEligible');
+  @override
+  late final GeneratedColumn<bool> pointsEarnEligible = GeneratedColumn<bool>(
+      'points_earn_eligible', aliasedName, true,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("points_earn_eligible" IN (0, 1))'));
+  static const VerificationMeta _pointsRedeemEligibleMeta =
+      const VerificationMeta('pointsRedeemEligible');
+  @override
+  late final GeneratedColumn<bool> pointsRedeemEligible = GeneratedColumn<bool>(
+      'points_redeem_eligible', aliasedName, true,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("points_redeem_eligible" IN (0, 1))'));
   static const VerificationMeta _updatedAtMeta =
       const VerificationMeta('updatedAt');
   @override
@@ -1410,6 +1588,9 @@ class $ProductsTable extends Products
         hideFromPosBrowse,
         trackInventory,
         productKind,
+        memberDiscountEligible,
+        pointsEarnEligible,
+        pointsRedeemEligible,
         updatedAt,
         deletedAt
       ];
@@ -1508,6 +1689,24 @@ class $ProductsTable extends Products
           productKind.isAcceptableOrUnknown(
               data['product_kind']!, _productKindMeta));
     }
+    if (data.containsKey('member_discount_eligible')) {
+      context.handle(
+          _memberDiscountEligibleMeta,
+          memberDiscountEligible.isAcceptableOrUnknown(
+              data['member_discount_eligible']!, _memberDiscountEligibleMeta));
+    }
+    if (data.containsKey('points_earn_eligible')) {
+      context.handle(
+          _pointsEarnEligibleMeta,
+          pointsEarnEligible.isAcceptableOrUnknown(
+              data['points_earn_eligible']!, _pointsEarnEligibleMeta));
+    }
+    if (data.containsKey('points_redeem_eligible')) {
+      context.handle(
+          _pointsRedeemEligibleMeta,
+          pointsRedeemEligible.isAcceptableOrUnknown(
+              data['points_redeem_eligible']!, _pointsRedeemEligibleMeta));
+    }
     if (data.containsKey('updated_at')) {
       context.handle(_updatedAtMeta,
           updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
@@ -1560,6 +1759,13 @@ class $ProductsTable extends Products
           .read(DriftSqlType.bool, data['${effectivePrefix}track_inventory'])!,
       productKind: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}product_kind'])!,
+      memberDiscountEligible: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool,
+          data['${effectivePrefix}member_discount_eligible']),
+      pointsEarnEligible: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}points_earn_eligible']),
+      pointsRedeemEligible: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}points_redeem_eligible']),
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
       deletedAt: attachedDatabase.typeMapping
@@ -1590,6 +1796,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   final bool hideFromPosBrowse;
   final bool trackInventory;
   final String productKind;
+  final bool? memberDiscountEligible;
+  final bool? pointsEarnEligible;
+  final bool? pointsRedeemEligible;
   final DateTime updatedAt;
   final DateTime? deletedAt;
   const ProductRow(
@@ -1609,6 +1818,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       required this.hideFromPosBrowse,
       required this.trackInventory,
       required this.productKind,
+      this.memberDiscountEligible,
+      this.pointsEarnEligible,
+      this.pointsRedeemEligible,
       required this.updatedAt,
       this.deletedAt});
   @override
@@ -1638,6 +1850,15 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     map['hide_from_pos_browse'] = Variable<bool>(hideFromPosBrowse);
     map['track_inventory'] = Variable<bool>(trackInventory);
     map['product_kind'] = Variable<String>(productKind);
+    if (!nullToAbsent || memberDiscountEligible != null) {
+      map['member_discount_eligible'] = Variable<bool>(memberDiscountEligible);
+    }
+    if (!nullToAbsent || pointsEarnEligible != null) {
+      map['points_earn_eligible'] = Variable<bool>(pointsEarnEligible);
+    }
+    if (!nullToAbsent || pointsRedeemEligible != null) {
+      map['points_redeem_eligible'] = Variable<bool>(pointsRedeemEligible);
+    }
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
@@ -1671,6 +1892,15 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       hideFromPosBrowse: Value(hideFromPosBrowse),
       trackInventory: Value(trackInventory),
       productKind: Value(productKind),
+      memberDiscountEligible: memberDiscountEligible == null && nullToAbsent
+          ? const Value.absent()
+          : Value(memberDiscountEligible),
+      pointsEarnEligible: pointsEarnEligible == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pointsEarnEligible),
+      pointsRedeemEligible: pointsRedeemEligible == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pointsRedeemEligible),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
@@ -1699,6 +1929,12 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       hideFromPosBrowse: serializer.fromJson<bool>(json['hideFromPosBrowse']),
       trackInventory: serializer.fromJson<bool>(json['trackInventory']),
       productKind: serializer.fromJson<String>(json['productKind']),
+      memberDiscountEligible:
+          serializer.fromJson<bool?>(json['memberDiscountEligible']),
+      pointsEarnEligible:
+          serializer.fromJson<bool?>(json['pointsEarnEligible']),
+      pointsRedeemEligible:
+          serializer.fromJson<bool?>(json['pointsRedeemEligible']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
@@ -1723,6 +1959,10 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       'hideFromPosBrowse': serializer.toJson<bool>(hideFromPosBrowse),
       'trackInventory': serializer.toJson<bool>(trackInventory),
       'productKind': serializer.toJson<String>(productKind),
+      'memberDiscountEligible':
+          serializer.toJson<bool?>(memberDiscountEligible),
+      'pointsEarnEligible': serializer.toJson<bool?>(pointsEarnEligible),
+      'pointsRedeemEligible': serializer.toJson<bool?>(pointsRedeemEligible),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
@@ -1745,6 +1985,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           bool? hideFromPosBrowse,
           bool? trackInventory,
           String? productKind,
+          Value<bool?> memberDiscountEligible = const Value.absent(),
+          Value<bool?> pointsEarnEligible = const Value.absent(),
+          Value<bool?> pointsRedeemEligible = const Value.absent(),
           DateTime? updatedAt,
           Value<DateTime?> deletedAt = const Value.absent()}) =>
       ProductRow(
@@ -1765,6 +2008,15 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
         hideFromPosBrowse: hideFromPosBrowse ?? this.hideFromPosBrowse,
         trackInventory: trackInventory ?? this.trackInventory,
         productKind: productKind ?? this.productKind,
+        memberDiscountEligible: memberDiscountEligible.present
+            ? memberDiscountEligible.value
+            : this.memberDiscountEligible,
+        pointsEarnEligible: pointsEarnEligible.present
+            ? pointsEarnEligible.value
+            : this.pointsEarnEligible,
+        pointsRedeemEligible: pointsRedeemEligible.present
+            ? pointsRedeemEligible.value
+            : this.pointsRedeemEligible,
         updatedAt: updatedAt ?? this.updatedAt,
         deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
       );
@@ -1797,6 +2049,15 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           : this.trackInventory,
       productKind:
           data.productKind.present ? data.productKind.value : this.productKind,
+      memberDiscountEligible: data.memberDiscountEligible.present
+          ? data.memberDiscountEligible.value
+          : this.memberDiscountEligible,
+      pointsEarnEligible: data.pointsEarnEligible.present
+          ? data.pointsEarnEligible.value
+          : this.pointsEarnEligible,
+      pointsRedeemEligible: data.pointsRedeemEligible.present
+          ? data.pointsRedeemEligible.value
+          : this.pointsRedeemEligible,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
@@ -1821,6 +2082,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ..write('hideFromPosBrowse: $hideFromPosBrowse, ')
           ..write('trackInventory: $trackInventory, ')
           ..write('productKind: $productKind, ')
+          ..write('memberDiscountEligible: $memberDiscountEligible, ')
+          ..write('pointsEarnEligible: $pointsEarnEligible, ')
+          ..write('pointsRedeemEligible: $pointsRedeemEligible, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt')
           ..write(')'))
@@ -1828,25 +2092,29 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      sku,
-      name,
-      priceCents,
-      costCents,
-      categoryId,
-      imageUrl,
-      taxRate,
-      isWeighted,
-      unit,
-      isActive,
-      description,
-      hideFromPublicOrdering,
-      hideFromPosBrowse,
-      trackInventory,
-      productKind,
-      updatedAt,
-      deletedAt);
+  int get hashCode => Object.hashAll([
+        id,
+        sku,
+        name,
+        priceCents,
+        costCents,
+        categoryId,
+        imageUrl,
+        taxRate,
+        isWeighted,
+        unit,
+        isActive,
+        description,
+        hideFromPublicOrdering,
+        hideFromPosBrowse,
+        trackInventory,
+        productKind,
+        memberDiscountEligible,
+        pointsEarnEligible,
+        pointsRedeemEligible,
+        updatedAt,
+        deletedAt
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1867,6 +2135,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           other.hideFromPosBrowse == this.hideFromPosBrowse &&
           other.trackInventory == this.trackInventory &&
           other.productKind == this.productKind &&
+          other.memberDiscountEligible == this.memberDiscountEligible &&
+          other.pointsEarnEligible == this.pointsEarnEligible &&
+          other.pointsRedeemEligible == this.pointsRedeemEligible &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt);
 }
@@ -1888,6 +2159,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
   final Value<bool> hideFromPosBrowse;
   final Value<bool> trackInventory;
   final Value<String> productKind;
+  final Value<bool?> memberDiscountEligible;
+  final Value<bool?> pointsEarnEligible;
+  final Value<bool?> pointsRedeemEligible;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<int> rowid;
@@ -1908,6 +2182,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.hideFromPosBrowse = const Value.absent(),
     this.trackInventory = const Value.absent(),
     this.productKind = const Value.absent(),
+    this.memberDiscountEligible = const Value.absent(),
+    this.pointsEarnEligible = const Value.absent(),
+    this.pointsRedeemEligible = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1929,6 +2206,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.hideFromPosBrowse = const Value.absent(),
     this.trackInventory = const Value.absent(),
     this.productKind = const Value.absent(),
+    this.memberDiscountEligible = const Value.absent(),
+    this.pointsEarnEligible = const Value.absent(),
+    this.pointsRedeemEligible = const Value.absent(),
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1953,6 +2233,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Expression<bool>? hideFromPosBrowse,
     Expression<bool>? trackInventory,
     Expression<String>? productKind,
+    Expression<bool>? memberDiscountEligible,
+    Expression<bool>? pointsEarnEligible,
+    Expression<bool>? pointsRedeemEligible,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<int>? rowid,
@@ -1975,6 +2258,12 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       if (hideFromPosBrowse != null) 'hide_from_pos_browse': hideFromPosBrowse,
       if (trackInventory != null) 'track_inventory': trackInventory,
       if (productKind != null) 'product_kind': productKind,
+      if (memberDiscountEligible != null)
+        'member_discount_eligible': memberDiscountEligible,
+      if (pointsEarnEligible != null)
+        'points_earn_eligible': pointsEarnEligible,
+      if (pointsRedeemEligible != null)
+        'points_redeem_eligible': pointsRedeemEligible,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (rowid != null) 'rowid': rowid,
@@ -1998,6 +2287,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       Value<bool>? hideFromPosBrowse,
       Value<bool>? trackInventory,
       Value<String>? productKind,
+      Value<bool?>? memberDiscountEligible,
+      Value<bool?>? pointsEarnEligible,
+      Value<bool?>? pointsRedeemEligible,
       Value<DateTime>? updatedAt,
       Value<DateTime?>? deletedAt,
       Value<int>? rowid}) {
@@ -2019,6 +2311,10 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       hideFromPosBrowse: hideFromPosBrowse ?? this.hideFromPosBrowse,
       trackInventory: trackInventory ?? this.trackInventory,
       productKind: productKind ?? this.productKind,
+      memberDiscountEligible:
+          memberDiscountEligible ?? this.memberDiscountEligible,
+      pointsEarnEligible: pointsEarnEligible ?? this.pointsEarnEligible,
+      pointsRedeemEligible: pointsRedeemEligible ?? this.pointsRedeemEligible,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       rowid: rowid ?? this.rowid,
@@ -2077,6 +2373,17 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     if (productKind.present) {
       map['product_kind'] = Variable<String>(productKind.value);
     }
+    if (memberDiscountEligible.present) {
+      map['member_discount_eligible'] =
+          Variable<bool>(memberDiscountEligible.value);
+    }
+    if (pointsEarnEligible.present) {
+      map['points_earn_eligible'] = Variable<bool>(pointsEarnEligible.value);
+    }
+    if (pointsRedeemEligible.present) {
+      map['points_redeem_eligible'] =
+          Variable<bool>(pointsRedeemEligible.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -2108,6 +2415,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
           ..write('hideFromPosBrowse: $hideFromPosBrowse, ')
           ..write('trackInventory: $trackInventory, ')
           ..write('productKind: $productKind, ')
+          ..write('memberDiscountEligible: $memberDiscountEligible, ')
+          ..write('pointsEarnEligible: $pointsEarnEligible, ')
+          ..write('pointsRedeemEligible: $pointsRedeemEligible, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('rowid: $rowid')
@@ -14628,6 +14938,9 @@ typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
   Value<String?> icon,
   Value<bool> hideFromPublicOrdering,
   Value<bool> hideFromPosBrowse,
+  Value<bool> memberDiscountEligible,
+  Value<bool> pointsEarnEligible,
+  Value<bool> pointsRedeemEligible,
   required DateTime updatedAt,
   Value<DateTime?> deletedAt,
   Value<int> rowid,
@@ -14641,6 +14954,9 @@ typedef $$CategoriesTableUpdateCompanionBuilder = CategoriesCompanion Function({
   Value<String?> icon,
   Value<bool> hideFromPublicOrdering,
   Value<bool> hideFromPosBrowse,
+  Value<bool> memberDiscountEligible,
+  Value<bool> pointsEarnEligible,
+  Value<bool> pointsRedeemEligible,
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
   Value<int> rowid,
@@ -14679,6 +14995,18 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<bool> get hideFromPosBrowse => $composableBuilder(
       column: $table.hideFromPosBrowse,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get memberDiscountEligible => $composableBuilder(
+      column: $table.memberDiscountEligible,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get pointsEarnEligible => $composableBuilder(
+      column: $table.pointsEarnEligible,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get pointsRedeemEligible => $composableBuilder(
+      column: $table.pointsRedeemEligible,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
@@ -14723,6 +15051,18 @@ class $$CategoriesTableOrderingComposer
       column: $table.hideFromPosBrowse,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get memberDiscountEligible => $composableBuilder(
+      column: $table.memberDiscountEligible,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get pointsEarnEligible => $composableBuilder(
+      column: $table.pointsEarnEligible,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get pointsRedeemEligible => $composableBuilder(
+      column: $table.pointsRedeemEligible,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
@@ -14763,6 +15103,15 @@ class $$CategoriesTableAnnotationComposer
   GeneratedColumn<bool> get hideFromPosBrowse => $composableBuilder(
       column: $table.hideFromPosBrowse, builder: (column) => column);
 
+  GeneratedColumn<bool> get memberDiscountEligible => $composableBuilder(
+      column: $table.memberDiscountEligible, builder: (column) => column);
+
+  GeneratedColumn<bool> get pointsEarnEligible => $composableBuilder(
+      column: $table.pointsEarnEligible, builder: (column) => column);
+
+  GeneratedColumn<bool> get pointsRedeemEligible => $composableBuilder(
+      column: $table.pointsRedeemEligible, builder: (column) => column);
+
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
@@ -14801,6 +15150,9 @@ class $$CategoriesTableTableManager extends RootTableManager<
             Value<String?> icon = const Value.absent(),
             Value<bool> hideFromPublicOrdering = const Value.absent(),
             Value<bool> hideFromPosBrowse = const Value.absent(),
+            Value<bool> memberDiscountEligible = const Value.absent(),
+            Value<bool> pointsEarnEligible = const Value.absent(),
+            Value<bool> pointsRedeemEligible = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<DateTime?> deletedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -14814,6 +15166,9 @@ class $$CategoriesTableTableManager extends RootTableManager<
             icon: icon,
             hideFromPublicOrdering: hideFromPublicOrdering,
             hideFromPosBrowse: hideFromPosBrowse,
+            memberDiscountEligible: memberDiscountEligible,
+            pointsEarnEligible: pointsEarnEligible,
+            pointsRedeemEligible: pointsRedeemEligible,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
             rowid: rowid,
@@ -14827,6 +15182,9 @@ class $$CategoriesTableTableManager extends RootTableManager<
             Value<String?> icon = const Value.absent(),
             Value<bool> hideFromPublicOrdering = const Value.absent(),
             Value<bool> hideFromPosBrowse = const Value.absent(),
+            Value<bool> memberDiscountEligible = const Value.absent(),
+            Value<bool> pointsEarnEligible = const Value.absent(),
+            Value<bool> pointsRedeemEligible = const Value.absent(),
             required DateTime updatedAt,
             Value<DateTime?> deletedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -14840,6 +15198,9 @@ class $$CategoriesTableTableManager extends RootTableManager<
             icon: icon,
             hideFromPublicOrdering: hideFromPublicOrdering,
             hideFromPosBrowse: hideFromPosBrowse,
+            memberDiscountEligible: memberDiscountEligible,
+            pointsEarnEligible: pointsEarnEligible,
+            pointsRedeemEligible: pointsRedeemEligible,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
             rowid: rowid,
@@ -14880,6 +15241,9 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   Value<bool> hideFromPosBrowse,
   Value<bool> trackInventory,
   Value<String> productKind,
+  Value<bool?> memberDiscountEligible,
+  Value<bool?> pointsEarnEligible,
+  Value<bool?> pointsRedeemEligible,
   required DateTime updatedAt,
   Value<DateTime?> deletedAt,
   Value<int> rowid,
@@ -14901,6 +15265,9 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<bool> hideFromPosBrowse,
   Value<bool> trackInventory,
   Value<String> productKind,
+  Value<bool?> memberDiscountEligible,
+  Value<bool?> pointsEarnEligible,
+  Value<bool?> pointsRedeemEligible,
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
   Value<int> rowid,
@@ -15039,6 +15406,18 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<String> get productKind => $composableBuilder(
       column: $table.productKind, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get memberDiscountEligible => $composableBuilder(
+      column: $table.memberDiscountEligible,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get pointsEarnEligible => $composableBuilder(
+      column: $table.pointsEarnEligible,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get pointsRedeemEligible => $composableBuilder(
+      column: $table.pointsRedeemEligible,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
@@ -15194,6 +15573,18 @@ class $$ProductsTableOrderingComposer
   ColumnOrderings<String> get productKind => $composableBuilder(
       column: $table.productKind, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get memberDiscountEligible => $composableBuilder(
+      column: $table.memberDiscountEligible,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get pointsEarnEligible => $composableBuilder(
+      column: $table.pointsEarnEligible,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get pointsRedeemEligible => $composableBuilder(
+      column: $table.pointsRedeemEligible,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
@@ -15257,6 +15648,15 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<String> get productKind => $composableBuilder(
       column: $table.productKind, builder: (column) => column);
+
+  GeneratedColumn<bool> get memberDiscountEligible => $composableBuilder(
+      column: $table.memberDiscountEligible, builder: (column) => column);
+
+  GeneratedColumn<bool> get pointsEarnEligible => $composableBuilder(
+      column: $table.pointsEarnEligible, builder: (column) => column);
+
+  GeneratedColumn<bool> get pointsRedeemEligible => $composableBuilder(
+      column: $table.pointsRedeemEligible, builder: (column) => column);
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -15397,6 +15797,9 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<bool> hideFromPosBrowse = const Value.absent(),
             Value<bool> trackInventory = const Value.absent(),
             Value<String> productKind = const Value.absent(),
+            Value<bool?> memberDiscountEligible = const Value.absent(),
+            Value<bool?> pointsEarnEligible = const Value.absent(),
+            Value<bool?> pointsRedeemEligible = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<DateTime?> deletedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -15418,6 +15821,9 @@ class $$ProductsTableTableManager extends RootTableManager<
             hideFromPosBrowse: hideFromPosBrowse,
             trackInventory: trackInventory,
             productKind: productKind,
+            memberDiscountEligible: memberDiscountEligible,
+            pointsEarnEligible: pointsEarnEligible,
+            pointsRedeemEligible: pointsRedeemEligible,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
             rowid: rowid,
@@ -15439,6 +15845,9 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<bool> hideFromPosBrowse = const Value.absent(),
             Value<bool> trackInventory = const Value.absent(),
             Value<String> productKind = const Value.absent(),
+            Value<bool?> memberDiscountEligible = const Value.absent(),
+            Value<bool?> pointsEarnEligible = const Value.absent(),
+            Value<bool?> pointsRedeemEligible = const Value.absent(),
             required DateTime updatedAt,
             Value<DateTime?> deletedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -15460,6 +15869,9 @@ class $$ProductsTableTableManager extends RootTableManager<
             hideFromPosBrowse: hideFromPosBrowse,
             trackInventory: trackInventory,
             productKind: productKind,
+            memberDiscountEligible: memberDiscountEligible,
+            pointsEarnEligible: pointsEarnEligible,
+            pointsRedeemEligible: pointsRedeemEligible,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
             rowid: rowid,

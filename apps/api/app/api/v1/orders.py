@@ -38,6 +38,7 @@ from ...services.order_query import (
     load_order_display_maps,
 )
 from ...services.loyalty_engine import apply_order_loyalty
+from ...services.loyalty_eligibility import resolve_product_eligibility
 from ...services.alliance_service import earn_alliance_points, tenant_alliance
 from ...services.member_metrics import upsert_member_metrics_for_order
 from ...services.webhooks import emit_webhook
@@ -170,6 +171,7 @@ async def upload_order(
     consignment_cfg = await get_consignment_settings(db, scope.tenant_id)
     book_share_pct = consignment_cfg["book_share_pct"]
 
+    created_lines: list[OrderLine] = []
     for ln_data in validated_lines:
         p = products_by_id.get(ln_data["product_id"])
         kind = getattr(p, "product_kind", "regular") if p else "regular"
@@ -184,7 +186,9 @@ async def upload_order(
         else:
             ln_data["consignment_book_share_cents"] = 0
             ln_data["consignment_restaurant_share_cents"] = 0
-        db.add(OrderLine(order_id=order.id, **ln_data))
+        line_obj = OrderLine(order_id=order.id, **ln_data)
+        db.add(line_obj)
+        created_lines.append(line_obj)
         if ln_data.get("sku") == "MARKETPLACE-DELIVERY-FEE":
             continue
         if not product_tracks_inventory(p):
@@ -227,6 +231,9 @@ async def upload_order(
         member = await db.get(Member, order.member_id)
         tenant = await db.get(Tenant, scope.tenant_id)
         if member and tenant:
+            eligibility = await resolve_product_eligibility(
+                db, scope.tenant_id, [ln.product_id for ln in created_lines]
+            )
             earned, _ = await apply_order_loyalty(
                 db,
                 tenant=tenant,
@@ -235,6 +242,8 @@ async def upload_order(
                 order_total_cents=order.total_cents,
                 points_redeemed=payload.points_redeemed,
                 coupon_code=payload.coupon_code,
+                lines=created_lines,
+                eligibility=eligibility,
             )
             await upsert_member_metrics_for_order(
                 db,

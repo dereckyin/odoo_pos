@@ -7,6 +7,7 @@ are exposed). Decryption happens in the gateway driver layer right before
 calling the upstream API.
 """
 from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy import select
 
 from ...core.audit import audit
@@ -16,6 +17,7 @@ from ...core.deps import (
     TenantAdminDep,
 )
 from ...core.usage import get_active_plan, get_usage
+from ...services.line_oa import apply_line_patch, read_line_settings
 from ...services.tenant_modules import get_tenant_modules
 from ...models import (
     AuditLog,
@@ -71,6 +73,60 @@ async def update_general_settings(
 async def get_my_modules(db: DbSession, scope: TenantAdminDep):
     mods = await get_tenant_modules(db, scope.tenant_id)
     return TenantModulesRead(**mods)
+
+
+# ---------------------------------------------------------------------------
+# LINE Official Account settings
+# ---------------------------------------------------------------------------
+
+class LineSettingsRead(BaseModel):
+    channel_id: str
+    liff_id: str
+    has_channel_secret: bool
+    has_access_token: bool
+
+
+class LineSettingsUpdate(BaseModel):
+    channel_id: str | None = None
+    liff_id: str | None = None
+    channel_secret: str | None = None
+    access_token: str | None = None
+
+
+def _line_read(settings: dict | None) -> LineSettingsRead:
+    cfg = read_line_settings(settings)
+    return LineSettingsRead(
+        channel_id=cfg["channel_id"],
+        liff_id=cfg["liff_id"],
+        has_channel_secret=bool(cfg["channel_secret"]),
+        has_access_token=bool(cfg["access_token"]),
+    )
+
+
+@router.get("/line-settings", response_model=LineSettingsRead)
+async def get_line_settings(db: DbSession, scope: TenantAdminDep):
+    tenant = await db.get(Tenant, scope.tenant_id)
+    if not tenant:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    return _line_read(tenant.settings)
+
+
+@router.put("/line-settings", response_model=LineSettingsRead)
+async def update_line_settings(
+    payload: LineSettingsUpdate, db: DbSession, scope: TenantAdminDep
+):
+    tenant = await db.get(Tenant, scope.tenant_id)
+    if not tenant:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    tenant.settings = apply_line_patch(
+        tenant.settings, payload.model_dump(exclude_unset=True)
+    )
+    await audit(
+        db, scope, action="line_settings_update", resource_type="tenant", flush=False
+    )
+    await db.commit()
+    await db.refresh(tenant)
+    return _line_read(tenant.settings)
 
 
 # ---------------------------------------------------------------------------

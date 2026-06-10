@@ -91,6 +91,9 @@ class CategoryDto {
     this.deletedAt,
     this.hideFromPublicOrdering = false,
     this.hideFromPosBrowse = false,
+    this.memberDiscountEligible = true,
+    this.pointsEarnEligible = true,
+    this.pointsRedeemEligible = true,
   });
   factory CategoryDto.fromJson(Map<String, dynamic> j) => CategoryDto(
         id: j['id'] as String,
@@ -103,6 +106,9 @@ class CategoryDto {
         deletedAt: j['deleted_at'] == null ? null : DateTime.parse(j['deleted_at'] as String),
         hideFromPublicOrdering: j['hide_from_public_ordering'] as bool? ?? false,
         hideFromPosBrowse: j['hide_from_pos_browse'] as bool? ?? false,
+        memberDiscountEligible: j['member_discount_eligible'] as bool? ?? true,
+        pointsEarnEligible: j['points_earn_eligible'] as bool? ?? true,
+        pointsRedeemEligible: j['points_redeem_eligible'] as bool? ?? true,
       );
   final String id, name;
   final String? parentId, color, icon;
@@ -111,6 +117,9 @@ class CategoryDto {
   final DateTime? deletedAt;
   final bool hideFromPublicOrdering;
   final bool hideFromPosBrowse;
+  final bool memberDiscountEligible;
+  final bool pointsEarnEligible;
+  final bool pointsRedeemEligible;
 }
 
 class ProductDto {
@@ -134,6 +143,9 @@ class ProductDto {
     this.hideFromPosBrowse = false,
     this.trackInventory = true,
     this.productKind = 'regular',
+    this.memberDiscountEligible,
+    this.pointsEarnEligible,
+    this.pointsRedeemEligible,
   });
 
   factory ProductDto.fromJson(Map<String, dynamic> j) => ProductDto(
@@ -156,6 +168,9 @@ class ProductDto {
         hideFromPosBrowse: j['hide_from_pos_browse'] as bool? ?? false,
         trackInventory: j['track_inventory'] as bool? ?? true,
         productKind: j['product_kind'] as String? ?? 'regular',
+        memberDiscountEligible: j['member_discount_eligible'] as bool?,
+        pointsEarnEligible: j['points_earn_eligible'] as bool?,
+        pointsRedeemEligible: j['points_redeem_eligible'] as bool?,
       );
 
   final String id, sku, name, unit;
@@ -171,6 +186,9 @@ class ProductDto {
   final bool hideFromPosBrowse;
   final bool trackInventory;
   final String productKind;
+  final bool? memberDiscountEligible;
+  final bool? pointsEarnEligible;
+  final bool? pointsRedeemEligible;
 }
 
 class BookDetailDto {
@@ -374,6 +392,58 @@ class MemberLevelDto {
   final double discountRate;
   final int minSpend, minPoints, sortOrder;
   final String? color;
+}
+
+class LoyaltySettingsDto {
+  LoyaltySettingsDto({
+    this.earnEnabled = true,
+    this.redeemEnabled = true,
+    this.pointValueCents = 1,
+    this.maxRedeemPct = 50,
+    this.pointExpiryDays = 365,
+    this.autoLevel = true,
+  });
+
+  factory LoyaltySettingsDto.fromJson(Map<String, dynamic> j) => LoyaltySettingsDto(
+        earnEnabled: j['earn_enabled'] as bool? ?? true,
+        redeemEnabled: j['redeem_enabled'] as bool? ?? true,
+        pointValueCents: (j['point_value_cents'] as num?)?.toInt() ?? 1,
+        maxRedeemPct: (j['max_redeem_pct'] as num?)?.toInt() ?? 50,
+        pointExpiryDays: (j['point_expiry_days'] as num?)?.toInt() ?? 365,
+        autoLevel: j['auto_level'] as bool? ?? true,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'earn_enabled': earnEnabled,
+        'redeem_enabled': redeemEnabled,
+        'point_value_cents': pointValueCents,
+        'max_redeem_pct': maxRedeemPct,
+        'point_expiry_days': pointExpiryDays,
+        'auto_level': autoLevel,
+      };
+
+  final bool earnEnabled, redeemEnabled, autoLevel;
+  final int pointValueCents, maxRedeemPct, pointExpiryDays;
+}
+
+class CouponPreviewDto {
+  CouponPreviewDto({
+    required this.code,
+    required this.type,
+    required this.value,
+    required this.discountCents,
+  });
+
+  factory CouponPreviewDto.fromJson(Map<String, dynamic> j) => CouponPreviewDto(
+        code: j['code'] as String,
+        type: j['type'] as String,
+        value: (j['value'] as num).toDouble(),
+        discountCents: (j['discount_cents'] as num?)?.toInt() ?? 0,
+      );
+
+  final String code, type;
+  final double value;
+  final int discountCents;
 }
 
 class CouponDto {

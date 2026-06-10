@@ -28,6 +28,9 @@ class _CatRow:
     icon: str | None
     hide_from_public_ordering: bool
     hide_from_pos_browse: bool
+    member_discount_eligible: bool
+    points_earn_eligible: bool
+    points_redeem_eligible: bool
     updated_at: object
     deleted_at: object | None
 
@@ -43,6 +46,9 @@ def _as_row(c: Category) -> _CatRow:
         icon=c.icon,
         hide_from_public_ordering=c.hide_from_public_ordering,
         hide_from_pos_browse=c.hide_from_pos_browse,
+        member_discount_eligible=getattr(c, "member_discount_eligible", True),
+        points_earn_eligible=getattr(c, "points_earn_eligible", True),
+        points_redeem_eligible=getattr(c, "points_redeem_eligible", True),
         updated_at=c.updated_at,
         deleted_at=c.deleted_at,
     )
@@ -94,6 +100,9 @@ def category_to_read(
         icon=row.icon,
         hide_from_public_ordering=row.hide_from_public_ordering,
         hide_from_pos_browse=row.hide_from_pos_browse,
+        member_discount_eligible=row.member_discount_eligible,
+        points_earn_eligible=row.points_earn_eligible,
+        points_redeem_eligible=row.points_redeem_eligible,
         updated_at=row.updated_at,  # type: ignore[arg-type]
         deleted_at=row.deleted_at,  # type: ignore[arg-type]
         depth=depth,

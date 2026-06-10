@@ -98,6 +98,7 @@ class DeltaPuller {
       _pull('promotions', failures, _pullPromotions),
       _pull('book_details', failures, _pullBookDetails),
       _pull('inventory_levels', failures, () => _pullInventory(storeId: sid)),
+      _pull('loyalty_settings', failures, _pullLoyaltySettings),
     ]);
 
     final result = DeltaPullResult(failures: failures);
@@ -136,6 +137,11 @@ class DeltaPuller {
   Future<void> _writeSince(String key, DateTime t) =>
       db.setMeta('sync.since.$key', t.toUtc().toIso8601String());
 
+  Future<void> _pullLoyaltySettings() async {
+    final settings = await api.getLoyaltySettings();
+    await db.setMeta('loyalty.settings', jsonEncode(settings.toJson()));
+  }
+
   Future<void> _pullProducts() async {
     final since = await _readSince('products');
     final page = await api.syncProducts(since);
@@ -166,6 +172,9 @@ class DeltaPuller {
             hideFromPosBrowse: Value(p.hideFromPosBrowse),
             trackInventory: Value(p.trackInventory),
             productKind: Value(p.productKind),
+            memberDiscountEligible: Value(p.memberDiscountEligible),
+            pointsEarnEligible: Value(p.pointsEarnEligible),
+            pointsRedeemEligible: Value(p.pointsRedeemEligible),
           ),
           mode: InsertMode.insertOrReplace,
         );
@@ -204,6 +213,9 @@ class DeltaPuller {
             deletedAt: Value(c.deletedAt),
             hideFromPublicOrdering: Value(c.hideFromPublicOrdering),
             hideFromPosBrowse: Value(c.hideFromPosBrowse),
+            memberDiscountEligible: Value(c.memberDiscountEligible),
+            pointsEarnEligible: Value(c.pointsEarnEligible),
+            pointsRedeemEligible: Value(c.pointsRedeemEligible),
           ),
             mode: InsertMode.insertOrReplace,
           );

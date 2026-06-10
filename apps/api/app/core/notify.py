@@ -85,6 +85,39 @@ async def send_sms(to: str, body: str) -> bool:
     return False
 
 
+async def send_line_push(access_token: str, to: str, text: str) -> bool:
+    """Push a text message to a LINE user via the Messaging API.
+
+    Returns True on success. Falls back to a stub log (and returns False) when
+    no ``access_token`` is configured, mirroring the SMS dev fallback.
+    """
+    if not access_token or not to:
+        logger.info("[stub-line] to=%s text=%s", to, text)
+        return False
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                "https://api.line.me/v2/bot/message/push",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Content-Type": "application/json",
+                },
+                json={"to": to, "messages": [{"type": "text", "text": text}]},
+            )
+        if resp.status_code >= 400:
+            logger.error(
+                "line push failed to=%s status=%s body=%s",
+                to,
+                resp.status_code,
+                resp.text,
+            )
+            return False
+        return True
+    except Exception:  # noqa: BLE001
+        logger.exception("failed to push line message to=%s", to)
+        return False
+
+
 async def _send_via_resend(*, to: str, subject: str, body: str) -> None:
     settings = get_settings()
     payload = {

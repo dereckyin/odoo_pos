@@ -32,6 +32,8 @@ class CheckoutController {
     String invoiceGateway = 'ezpay',
     int taxType = 1,
     int pointsRedeemed = 0,
+    int pointsDiscountCents = 0,
+    int couponDiscountCents = 0,
     String? couponCode,
     String? note,
   }) async {
@@ -147,7 +149,9 @@ class CheckoutController {
           sourceGuestOrderId: sourceGuestOrderId,
           pointsRedeemed: pointsRedeemed,
           couponCode: couponCode,
-          extraDiscountCents: pointsRedeemed,
+          extraDiscountCents:
+              (pointsDiscountCents > 0 ? pointsDiscountCents : pointsRedeemed) +
+                  couponDiscountCents,
         ),
       );
 

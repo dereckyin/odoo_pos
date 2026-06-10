@@ -70,6 +70,27 @@ class CategoryTree {
     return false;
   }
 
+  /// True unless [categoryId] or any ancestor disables member discount.
+  bool memberDiscountAllowedForCategory(String? categoryId) =>
+      _chainAllows(categoryId, (c) => c.memberDiscountEligible);
+
+  /// True unless [categoryId] or any ancestor disables points earning.
+  bool pointsEarnAllowedForCategory(String? categoryId) =>
+      _chainAllows(categoryId, (c) => c.pointsEarnEligible);
+
+  /// True unless [categoryId] or any ancestor disables points redemption.
+  bool pointsRedeemAllowedForCategory(String? categoryId) =>
+      _chainAllows(categoryId, (c) => c.pointsRedeemEligible);
+
+  bool _chainAllows(String? categoryId, bool Function(Category) flag) {
+    var cur = categoryId == null ? null : _byId[categoryId];
+    while (cur != null) {
+      if (!flag(cur)) return false;
+      cur = cur.parentId == null ? null : _byId[cur.parentId];
+    }
+    return true;
+  }
+
   /// True if [categoryId] or any ancestor has hideFromPublicOrdering.
   bool isHiddenFromPublicByAncestor(String? categoryId) {
     var cur = categoryId == null ? null : _byId[categoryId];
@@ -98,6 +119,9 @@ List<Category> enrichCategories(List<Category> flat) {
           icon: c.icon,
           hideFromPublicOrdering: c.hideFromPublicOrdering,
           hideFromPosBrowse: c.hideFromPosBrowse,
+          memberDiscountEligible: c.memberDiscountEligible,
+          pointsEarnEligible: c.pointsEarnEligible,
+          pointsRedeemEligible: c.pointsRedeemEligible,
           depth: path.length - 1,
           pathLabel: path.map((p) => p.name).join(' / '),
           hasChildren: tree.hasChildren(c.id),

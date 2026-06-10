@@ -19,6 +19,10 @@ class Category(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     icon: Mapped[str | None] = mapped_column(String(32), nullable=True)
     hide_from_public_ordering: Mapped[bool] = mapped_column(Boolean, default=False)
     hide_from_pos_browse: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Loyalty eligibility (default true, inherited by descendants & products).
+    member_discount_eligible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    points_earn_eligible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    points_redeem_eligible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
 
 class Product(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
@@ -41,6 +45,10 @@ class Product(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     hide_from_pos_browse: Mapped[bool] = mapped_column(Boolean, default=False)
     track_inventory: Mapped[bool] = mapped_column(Boolean, default=True)
     product_kind: Mapped[str] = mapped_column(String(32), default="regular", index=True)
+    # Loyalty eligibility overrides (null = inherit from category chain, then true).
+    member_discount_eligible: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    points_earn_eligible: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    points_redeem_eligible: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     marketplace_category_id: Mapped[str | None] = mapped_column(
         ForeignKey("marketplace_categories.id"), nullable=True, index=True
     )

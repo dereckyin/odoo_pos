@@ -30,6 +30,8 @@
           <a-menu-item key="members" @click="$router.push({ name: 'members' })">會員列表</a-menu-item>
           <a-menu-item key="member-levels" @click="$router.push({ name: 'member-levels' })">等級管理</a-menu-item>
           <a-menu-item key="loyalty-settings" @click="$router.push({ name: 'loyalty-settings' })">忠誠度設定</a-menu-item>
+          <a-menu-item key="member-broadcast" @click="$router.push({ name: 'member-broadcast' })">簡訊群發</a-menu-item>
+          <a-menu-item v-if="modules.line" key="line-settings" @click="$router.push({ name: 'line-settings' })">LINE 設定</a-menu-item>
           <a-menu-item key="member-webhooks" @click="$router.push({ name: 'member-webhooks' })">Webhook</a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="inventory-group">
@@ -69,6 +71,11 @@
           >
             網路訂單
           </a-menu-item>
+        </a-sub-menu>
+        <a-sub-menu v-if="modules.events" key="events-group">
+          <template #icon><CalendarOutlined /></template>
+          <template #title>活動管理</template>
+          <a-menu-item key="events" @click="$router.push({ name: 'events' })">活動列表</a-menu-item>
         </a-sub-menu>
         <a-sub-menu v-if="modules.consignmentBooks" key="books-group">
           <template #icon><BookOutlined /></template>
@@ -156,7 +163,7 @@ import {
   DashboardOutlined, ShoppingOutlined, GiftOutlined, TeamOutlined,
   InboxOutlined, ShopOutlined, FileTextOutlined, BarChartOutlined, UserOutlined,
   MenuFoldOutlined, MenuUnfoldOutlined, QrcodeOutlined,
-  SafetyOutlined, BookOutlined,
+  SafetyOutlined, BookOutlined, CalendarOutlined,
 } from '@ant-design/icons-vue'
 
 const collapsed = ref(false)
@@ -171,7 +178,8 @@ const nameMap: Record<string, string> = {
   categories: '分類管理', 'option-groups': '選項庫',
   promotions: '促銷活動', 'promotion-create': '新增活動', 'promotion-edit': '編輯活動',
   coupons: '優惠券', 'coupon-create': '新增優惠券',
-  members: '會員列表', 'member-detail': '會員詳情', 'member-levels': '等級管理',
+  members: '會員列表', 'member-detail': '會員詳情', 'member-levels': '等級管理', 'member-broadcast': '簡訊群發',
+  'line-settings': 'LINE 設定', events: '活動管理',
   inventory: '庫存水位', transfers: '調撥管理',
   'supplier-list': '供應商', 'purchase-orders': '採購單', 'purchase-order-detail': '採購單詳情',
   stores: '門店管理', users: '使用者管理',

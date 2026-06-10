@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
+from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
@@ -12,6 +13,7 @@ from ...models import (
     AllianceMember,
     GuestOrder,
     GuestOrderLine,
+    Event,
     MarketplaceBanner,
     MarketplaceListing,
     MarketplaceReview,
@@ -70,6 +72,17 @@ router = APIRouter(prefix="/public/marketplace", tags=["public-marketplace"])
 
 FULFILLMENT_TYPES = ("pickup", "delivery", "dine_in")
 PAYMENT_METHODS = ("counter", "online")
+
+
+class MarketplaceEventPublic(BaseModel):
+    id: str
+    title: str
+    description: str | None = None
+    location: str | None = None
+    image_url: str | None = None
+    starts_at: datetime | None = None
+    ends_at: datetime | None = None
+    price_cents: int = 0
 
 
 async def _resolve_tenant_member_id(
@@ -332,6 +345,39 @@ async def list_banners(request: Request, db: DbSession):
             )
         )
     return out
+
+
+@router.get("/events", response_model=list[MarketplaceEventPublic])
+@per_ip("60/minute")
+async def list_marketplace_events(request: Request, db: DbSession):
+    """Published events that tenants chose to list on the marketplace."""
+    now = datetime.now(timezone.utc)
+    rows = (
+        await db.execute(
+            select(Event)
+            .where(
+                Event.deleted_at.is_(None),
+                Event.is_published.is_(True),
+                Event.list_on_marketplace.is_(True),
+                or_(Event.ends_at.is_(None), Event.ends_at >= now),
+            )
+            .order_by(Event.starts_at.asc().nullslast())
+            .limit(100)
+        )
+    ).scalars().all()
+    return [
+        MarketplaceEventPublic(
+            id=e.id,
+            title=e.title,
+            description=e.description,
+            location=e.location,
+            image_url=e.image_url,
+            starts_at=e.starts_at,
+            ends_at=e.ends_at,
+            price_cents=e.price_cents,
+        )
+        for e in rows
+    ]
 
 
 @router.get("/stores/{slug}", response_model=MarketplaceStoreDetail)

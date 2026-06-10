@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 
 from ...core.deps import DbSession, TenantScope, apply_tenant
 from ...core.usage import assert_plan_feature, get_tenant_features
-from ...models import Member, MemberLevel, Order
+from ...models import Category, Member, MemberLevel, Order, OrderLine, Product
 from ...services.reporting import SALE_STATUSES, net_revenue_expr
 from ...services.tenant_modules import require_business_intelligence
 
@@ -57,6 +57,14 @@ class ChurnMember(BaseModel):
     last_visit_at: datetime | None
     total_spent_cents: int
     points: int
+
+
+class CategoryConsumption(BaseModel):
+    category_id: str | None
+    category_name: str
+    revenue_cents: int
+    qty: float
+    line_count: int
 
 
 @router.get("/overview", response_model=MemberOverview)
@@ -258,6 +266,67 @@ async def member_cohort(db: DbSession, scope: TenantScope):
             merged[k].active_members += 1
             merged[k].revenue_cents += r.revenue_cents
     return sorted(merged.values(), key=lambda x: (x.cohort_month, x.month_offset))
+
+
+@router.get("/consumption-by-category", response_model=list[CategoryConsumption])
+async def consumption_by_category(
+    db: DbSession,
+    scope: TenantScope,
+    member_id: str | None = None,
+    days: int = Query(365, ge=1, le=3650),
+):
+    """Aggregate members' spend by product category (for marketing analysis).
+
+    Pass ``member_id`` to scope to a single member; otherwise covers all member
+    orders (``member_id IS NOT NULL``) within the trailing ``days`` window.
+    """
+    await assert_plan_feature(db, scope.tenant_id, "member_bi")
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+
+    stmt = (
+        select(
+            Product.category_id,
+            func.coalesce(func.sum(OrderLine.line_total_cents), 0),
+            func.coalesce(func.sum(OrderLine.qty), 0),
+            func.count(OrderLine.id),
+        )
+        .select_from(OrderLine)
+        .join(Order, Order.id == OrderLine.order_id)
+        .join(Product, Product.id == OrderLine.product_id)
+        .where(
+            Order.tenant_id == scope.tenant_id,
+            Order.status.in_(SALE_STATUSES),
+            Order.member_id.is_not(None),
+            Order.created_at >= since,
+        )
+        .group_by(Product.category_id)
+    )
+    if member_id:
+        stmt = stmt.where(Order.member_id == member_id)
+
+    rows = (await db.execute(stmt)).all()
+
+    cats = (
+        await db.execute(
+            select(Category.id, Category.name).where(
+                Category.tenant_id == scope.tenant_id
+            )
+        )
+    ).all()
+    name_by_id = {cid: cname for cid, cname in cats}
+
+    out = [
+        CategoryConsumption(
+            category_id=cid,
+            category_name=name_by_id.get(cid, "未分類") if cid else "未分類",
+            revenue_cents=int(rev),
+            qty=float(qty),
+            line_count=int(cnt),
+        )
+        for cid, rev, qty, cnt in rows
+    ]
+    out.sort(key=lambda x: x.revenue_cents, reverse=True)
+    return out
 
 
 @router.get("/churn-risk", response_model=list[ChurnMember])

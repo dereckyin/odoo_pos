@@ -313,6 +313,24 @@ class PosApi {
     return DeltaPage.fromJson(_asMap(r.data), BookDetailDto.fromJson);
   }
 
+  Future<LoyaltySettingsDto> getLoyaltySettings() async {
+    final r = await _dio.get('/members/loyalty/settings');
+    return LoyaltySettingsDto.fromJson(_asMap(r.data));
+  }
+
+  Future<CouponPreviewDto> previewCoupon({
+    required String code,
+    required int orderTotalCents,
+    String? memberId,
+  }) async {
+    final r = await _dio.post('/coupons/preview', data: {
+      'code': code,
+      'order_total_cents': orderTotalCents,
+      if (memberId != null) 'member_id': memberId,
+    });
+    return CouponPreviewDto.fromJson(_asMap(r.data));
+  }
+
   // helpers
   Map<String, dynamic> _asMap(dynamic data) => (data as Map).cast<String, dynamic>();
 }

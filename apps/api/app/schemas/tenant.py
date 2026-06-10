@@ -133,6 +133,8 @@ class TenantModulesRead(BaseModel):
     marketplace: bool = False
     business_intelligence: bool = False
     consignment_books: bool = True
+    line: bool = False
+    events: bool = False
 
 
 class TenantModulesUpdate(BaseModel):
@@ -140,3 +142,5 @@ class TenantModulesUpdate(BaseModel):
     marketplace: bool | None = None
     business_intelligence: bool | None = None
     consignment_books: bool | None = None
+    line: bool | None = None
+    events: bool | None = None
