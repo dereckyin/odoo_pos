@@ -238,7 +238,7 @@ watch(slug, () => void loadMenu(), { immediate: true })
 .product .desc { font-size: 12px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .product .price { color: var(--accent); font-weight: 600; margin-top: 4px; }
 @media (min-width: 900px) {
-  .store-header, .cat-bar, .cat-section { max-width: 1100px; margin-left: auto; margin-right: auto; width: 100%; }
+  .store-header, .cat-bar, .cat-section { max-width: var(--container-max); margin-left: auto; margin-right: auto; width: 100%; }
   .product-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
   .product { transition: box-shadow .15s, transform .15s; }
   .product:hover { box-shadow: 0 6px 18px rgba(15,23,42,.12); transform: translateY(-2px); }
