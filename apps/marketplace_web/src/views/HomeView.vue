@@ -373,13 +373,19 @@ onMounted(() => {
   margin: 12px 16px 0;
   overflow: hidden;
 }
-.search-bar input {
+.search-bar:focus-within {
+  border-color: var(--accent);
+}
+.search-bar input,
+.search-bar input:focus {
   flex: 1;
   min-width: 0;
   border: 0;
   outline: none;
+  box-shadow: none;
   -webkit-appearance: none;
   appearance: none;
+  -webkit-tap-highlight-color: transparent;
   border-radius: 0;
   padding: 12px 0;
   font-size: 16px;
