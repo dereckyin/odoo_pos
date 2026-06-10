@@ -51,6 +51,7 @@ from .idempotency import IdempotencyKey
 from .dining_table import DiningTable
 from .guest_order import GuestOrder, GuestOrderLine
 from .marketplace import MarketplaceListing, MarketplaceReview
+from .marketplace_banner import MarketplaceBanner
 from .marketplace_category import MarketplaceCategory, MarketplaceCategoryAlias
 from .member_extras import (
     MemberFavoriteStore,
@@ -118,6 +119,7 @@ __all__ = [
     "GuestOrderLine",
     "MarketplaceListing",
     "MarketplaceReview",
+    "MarketplaceBanner",
     "MarketplaceCategory",
     "MarketplaceCategoryAlias",
     "MemberFavoriteStore",

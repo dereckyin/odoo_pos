@@ -288,3 +288,52 @@ class PaymentInitiateResponse(BaseModel):
     payment_url: str | None = None
     payment_form_html: str | None = None
     message: str | None = None
+
+
+# --- Marketplace banners / campaigns ---
+class MarketplaceBannerPublic(BaseModel):
+    id: str
+    title: str
+    subtitle: str | None = None
+    image_url: str
+    link_type: str = "none"
+    link_target: str | None = None
+
+
+class MarketplaceBannerRead(ORMModel):
+    id: str
+    title: str
+    subtitle: str | None
+    image_url: str
+    link_type: str
+    link_target: str | None
+    sort_order: int
+    is_active: bool
+    starts_at: datetime | None
+    ends_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class MarketplaceBannerCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=128)
+    subtitle: str | None = Field(default=None, max_length=256)
+    image_url: str = Field(min_length=1, max_length=512)
+    link_type: str = Field(default="none")
+    link_target: str | None = Field(default=None, max_length=512)
+    sort_order: int = 0
+    is_active: bool = True
+    starts_at: datetime | None = None
+    ends_at: datetime | None = None
+
+
+class MarketplaceBannerUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=128)
+    subtitle: str | None = Field(default=None, max_length=256)
+    image_url: str | None = Field(default=None, min_length=1, max_length=512)
+    link_type: str | None = None
+    link_target: str | None = Field(default=None, max_length=512)
+    sort_order: int | None = None
+    is_active: bool | None = None
+    starts_at: datetime | None = None
+    ends_at: datetime | None = None

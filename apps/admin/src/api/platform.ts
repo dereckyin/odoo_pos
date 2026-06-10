@@ -146,3 +146,54 @@ export function suspendMarketplaceListing(id: string) {
     `/platform/marketplace/applications/${id}/suspend`,
   )
 }
+
+// ----- Marketplace banners --------------------------------------------------
+
+export interface MarketplaceBanner {
+  id: string
+  title: string
+  subtitle: string | null
+  image_url: string
+  link_type: string
+  link_target: string | null
+  sort_order: number
+  is_active: boolean
+  starts_at: string | null
+  ends_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface MarketplaceBannerPayload {
+  title?: string
+  subtitle?: string | null
+  image_url?: string
+  link_type?: string
+  link_target?: string | null
+  sort_order?: number
+  is_active?: boolean
+  starts_at?: string | null
+  ends_at?: string | null
+}
+
+export function listMarketplaceBanners() {
+  return client.get<MarketplaceBanner[]>('/platform/marketplace-banners')
+}
+
+export function createMarketplaceBanner(payload: MarketplaceBannerPayload) {
+  return client.post<MarketplaceBanner>('/platform/marketplace-banners', payload)
+}
+
+export function updateMarketplaceBanner(id: string, payload: MarketplaceBannerPayload) {
+  return client.patch<MarketplaceBanner>(`/platform/marketplace-banners/${id}`, payload)
+}
+
+export function deleteMarketplaceBanner(id: string) {
+  return client.delete(`/platform/marketplace-banners/${id}`)
+}
+
+export function uploadPlatformImage(file: File) {
+  const form = new FormData()
+  form.append('file', file)
+  return client.post<{ url: string }>('/platform/uploads/images', form)
+}

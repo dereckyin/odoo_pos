@@ -86,6 +86,7 @@ const platformChildren: RouteRecordRaw[] = [
   { path: 'tenants', name: 'platform-tenants', component: () => import('@/views/platform/TenantListView.vue'), meta: { platformOnly: true } },
   { path: 'plans', name: 'platform-plans', component: () => import('@/views/platform/PlanListView.vue'), meta: { platformOnly: true } },
   { path: 'marketplace', name: 'platform-marketplace', component: () => import('@/views/platform/MarketplaceApplicationsView.vue'), meta: { platformOnly: true } },
+  { path: 'marketplace-banners', name: 'platform-marketplace-banners', component: () => import('@/views/platform/MarketplaceBannerListView.vue'), meta: { platformOnly: true } },
   { path: 'alliances', name: 'platform-alliances', component: () => import('@/views/platform/AllianceListView.vue'), meta: { platformOnly: true } },
 ]
 

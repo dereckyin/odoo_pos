@@ -7,7 +7,7 @@ tenant users — guarded by ``PlatformSuperDep``.
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, HTTPException, Query, Request, status
+from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy import func, select
 
 from ...core.audit import audit
@@ -38,6 +38,11 @@ from ...schemas.auth import (
     TenantDirectCreateResponse,
     TenantApplicationRead,
     TenantApplicationReject,
+)
+from ...schemas.marketplace import (
+    MarketplaceBannerCreate,
+    MarketplaceBannerRead,
+    MarketplaceBannerUpdate,
 )
 from ...schemas.tenant import (
     PlatformDashboardStats,
@@ -713,3 +718,113 @@ async def suspend_marketplace_listing(
     await db.commit()
     await db.refresh(row)
     return _to_read(row)
+
+
+# --- Marketplace banners / campaigns (platform-managed) ---
+@router.get("/marketplace-banners", response_model=list[MarketplaceBannerRead])
+async def list_marketplace_banners(db: DbSession, _: PlatformSuperDep):
+    from ...models import MarketplaceBanner
+
+    rows = (
+        await db.execute(
+            select(MarketplaceBanner).order_by(
+                MarketplaceBanner.sort_order, MarketplaceBanner.created_at
+            )
+        )
+    ).scalars().all()
+    return rows
+
+
+@router.post("/marketplace-banners", response_model=MarketplaceBannerRead, status_code=201)
+async def create_marketplace_banner(
+    payload: MarketplaceBannerCreate, request: Request, db: DbSession, user: PlatformSuperDep
+):
+    from ...models import MarketplaceBanner
+
+    row = MarketplaceBanner(**payload.model_dump())
+    db.add(row)
+    await audit(
+        db,
+        user,
+        action="marketplace_banner_create",
+        resource_type="marketplace_banner",
+        request=request,
+        flush=False,
+    )
+    await db.commit()
+    await db.refresh(row)
+    return row
+
+
+@router.patch("/marketplace-banners/{banner_id}", response_model=MarketplaceBannerRead)
+async def update_marketplace_banner(
+    banner_id: str,
+    payload: MarketplaceBannerUpdate,
+    request: Request,
+    db: DbSession,
+    user: PlatformSuperDep,
+):
+    from ...models import MarketplaceBanner
+
+    row = await db.get(MarketplaceBanner, banner_id)
+    if not row:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    for k, v in payload.model_dump(exclude_unset=True).items():
+        setattr(row, k, v)
+    await audit(
+        db,
+        user,
+        action="marketplace_banner_update",
+        resource_type="marketplace_banner",
+        resource_id=banner_id,
+        request=request,
+        flush=False,
+    )
+    await db.commit()
+    await db.refresh(row)
+    return row
+
+
+@router.delete("/marketplace-banners/{banner_id}", status_code=204)
+async def delete_marketplace_banner(
+    banner_id: str, request: Request, db: DbSession, user: PlatformSuperDep
+):
+    from ...models import MarketplaceBanner
+
+    row = await db.get(MarketplaceBanner, banner_id)
+    if not row:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    await db.delete(row)
+    await audit(
+        db,
+        user,
+        action="marketplace_banner_delete",
+        resource_type="marketplace_banner",
+        resource_id=banner_id,
+        request=request,
+        flush=False,
+    )
+    await db.commit()
+    return None
+
+
+@router.post("/uploads/images")
+async def platform_upload_image(_: PlatformSuperDep, file: UploadFile = File(...)) -> dict:
+    """Image upload for platform-managed assets (e.g. marketplace banners)."""
+    import os
+    import uuid
+    from pathlib import Path
+
+    allowed = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+    max_size = 5 * 1024 * 1024
+    if file.content_type not in allowed:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"unsupported type: {file.content_type}")
+    data = await file.read()
+    if len(data) > max_size:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "file too large (max 5MB)")
+    ext = file.filename.rsplit(".", 1)[-1] if file.filename and "." in file.filename else "jpg"
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    base_dir = Path(os.getenv("UPLOAD_DIR", "uploads")) / "_platform"
+    base_dir.mkdir(parents=True, exist_ok=True)
+    (base_dir / filename).write_bytes(data)
+    return {"url": f"/uploads/_platform/{filename}", "filename": filename}

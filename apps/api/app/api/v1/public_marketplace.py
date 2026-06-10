@@ -1,8 +1,9 @@
 """Public marketplace endpoints (no auth): store discovery, menus, orders."""
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
 from ...core.deps import DbSession
@@ -10,6 +11,8 @@ from ...core.ratelimit import per_ip
 from ...models import (
     AllianceMember,
     GuestOrder,
+    GuestOrderLine,
+    MarketplaceBanner,
     MarketplaceListing,
     MarketplaceReview,
     Member,
@@ -21,6 +24,7 @@ from ...models import (
 )
 from ...schemas.guest_order import GuestOrderLineRead
 from ...schemas.marketplace import (
+    MarketplaceBannerPublic,
     MarketplaceBatchOrderCreated,
     MarketplaceBatchOrderItem,
     MarketplaceBatchOrderSubmit,
@@ -240,6 +244,7 @@ async def list_stores(
     rows = (await db.execute(stmt)).all()
     fav_ids = await _favorite_listing_ids(db, member_ctx)
     summaries: list[MarketplaceStoreSummary] = []
+    slug_store_id: dict[str, str] = {}
     for listing, store, tenant in rows:
         if not _marketplace_enabled_for_tenant(tenant):
             continue
@@ -257,6 +262,7 @@ async def list_stores(
         if open_now and not data["is_open"]:
             continue
         data["is_favorite"] = listing.id in fav_ids
+        slug_store_id[listing.slug] = store.id
         summaries.append(MarketplaceStoreSummary(**data))
 
     if sort == "rating":
@@ -265,6 +271,17 @@ async def list_stores(
         summaries.sort(key=lambda s: s.prep_time_min)
     elif sort == "distance":
         summaries.sort(key=lambda s: s.distance_km if s.distance_km is not None else 9999)
+    elif sort == "popular":
+        # Most marketplace orders first; ties / no-orders fall back to recommended.
+        counts = await _marketplace_store_order_counts(db)
+        summaries.sort(
+            key=lambda s: (
+                -counts.get(slug_store_id.get(s.slug, ""), 0),
+                0 if s.is_open else 1,
+                -s.rating_avg,
+                s.distance_km if s.distance_km is not None else 9999,
+            )
+        )
     elif sort == "recommended":
         # Open stores first, then higher rating, then nearer distance.
         summaries.sort(
@@ -279,6 +296,42 @@ async def list_stores(
     else:
         summaries.sort(key=lambda s: s.display_name)
     return summaries
+
+
+@router.get("/banners", response_model=list[MarketplaceBannerPublic])
+@per_ip("60/minute")
+async def list_banners(request: Request, db: DbSession):
+    """Active promotional banners for the marketplace home, within their date window."""
+    now = datetime.now(timezone.utc)
+    rows = (
+        await db.execute(
+            select(MarketplaceBanner)
+            .where(MarketplaceBanner.is_active.is_(True))
+            .order_by(MarketplaceBanner.sort_order, MarketplaceBanner.created_at)
+        )
+    ).scalars().all()
+    def _aware(dt):
+        return dt.replace(tzinfo=timezone.utc) if dt and dt.tzinfo is None else dt
+
+    out: list[MarketplaceBannerPublic] = []
+    for b in rows:
+        starts_at = _aware(b.starts_at)
+        ends_at = _aware(b.ends_at)
+        if starts_at and starts_at > now:
+            continue
+        if ends_at and ends_at < now:
+            continue
+        out.append(
+            MarketplaceBannerPublic(
+                id=b.id,
+                title=b.title,
+                subtitle=b.subtitle,
+                image_url=b.image_url,
+                link_type=b.link_type,
+                link_target=b.link_target,
+            )
+        )
+    return out
 
 
 @router.get("/stores/{slug}", response_model=MarketplaceStoreDetail)
@@ -586,6 +639,67 @@ async def search_products(
     limit: int = Query(default=30, le=100),
 ):
     return await _list_marketplace_products(db, q=q, limit=limit, open_only=False)
+
+
+POPULAR_WINDOW_DAYS = 30
+
+
+async def _marketplace_store_order_counts(db) -> dict[str, int]:
+    """Order counts per store over the recent window for marketplace orders."""
+    since = datetime.now(timezone.utc) - timedelta(days=POPULAR_WINDOW_DAYS)
+    rows = (
+        await db.execute(
+            select(GuestOrder.store_id, func.count(GuestOrder.id))
+            .where(
+                GuestOrder.channel == "marketplace",
+                GuestOrder.status != "cancelled",
+                GuestOrder.created_at >= since,
+            )
+            .group_by(GuestOrder.store_id)
+        )
+    ).all()
+    return {store_id: count for store_id, count in rows}
+
+
+@router.get("/popular-products", response_model=list[MarketplaceProductCard])
+@per_ip("60/minute")
+async def list_popular_products(
+    request: Request,
+    db: DbSession,
+    fulfillment: str | None = Query(default=None, description="pickup|delivery|dine_in"),
+    limit: int = Query(default=10, le=30),
+):
+    """Best-selling marketplace products (last 30 days); backfilled when sparse."""
+    since = datetime.now(timezone.utc) - timedelta(days=POPULAR_WINDOW_DAYS)
+    rank_rows = (
+        await db.execute(
+            select(GuestOrderLine.product_id, func.sum(GuestOrderLine.qty).label("q"))
+            .join(GuestOrder, GuestOrder.id == GuestOrderLine.order_id)
+            .where(
+                GuestOrder.channel == "marketplace",
+                GuestOrder.status != "cancelled",
+                GuestOrder.created_at >= since,
+            )
+            .group_by(GuestOrderLine.product_id)
+            .order_by(func.sum(GuestOrderLine.qty).desc())
+            .limit(200)
+        )
+    ).all()
+    rank = {pid: i for i, (pid, _q) in enumerate(rank_rows)}
+
+    cards = await _list_marketplace_products(db, fulfillment=fulfillment, limit=500, open_only=True)
+    seen: set[str] = set()
+    unique: list[MarketplaceProductCard] = []
+    for c in cards:
+        if c.product_id in seen:
+            continue
+        seen.add(c.product_id)
+        unique.append(c)
+
+    popular = [c for c in unique if c.product_id in rank]
+    popular.sort(key=lambda c: rank[c.product_id])
+    rest = [c for c in unique if c.product_id not in rank]
+    return (popular + rest)[:limit]
 
 
 @router.post("/stores/{slug}/orders", response_model=MarketplaceOrderCreated, status_code=201)

@@ -21,6 +21,7 @@
           <template #icon><QrcodeOutlined /></template>
           <template #title>美食市集</template>
           <a-menu-item key="platform-marketplace" @click="$router.push({ name: 'platform-marketplace' })">上架審核</a-menu-item>
+          <a-menu-item key="platform-marketplace-banners" @click="$router.push({ name: 'platform-marketplace-banners' })">Banner／活動</a-menu-item>
         </a-sub-menu>
         <a-menu-item key="platform-alliances" @click="$router.push({ name: 'platform-alliances' })">
           <template #icon><TeamOutlined /></template>
@@ -91,6 +92,7 @@ const nameMap: Record<string, string> = {
   'platform-tenants': '租戶管理',
   'platform-plans': '訂閱方案',
   'platform-marketplace': '市集上架審核',
+  'platform-marketplace-banners': 'Banner／活動',
   'platform-alliances': '聯盟管理',
 }
 

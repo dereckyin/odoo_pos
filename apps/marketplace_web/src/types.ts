@@ -117,6 +117,15 @@ export interface MarketplaceMenu {
   products: PublicProduct[]
 }
 
+export interface MarketplaceBanner {
+  id: string
+  title: string
+  subtitle: string | null
+  image_url: string
+  link_type: string
+  link_target: string | null
+}
+
 export interface MarketplaceProductCard {
   product_id: string
   product_name: string

@@ -1,5 +1,6 @@
 import axios from 'axios'
 import type {
+  MarketplaceBanner,
   MarketplaceFeedCategory,
   MarketplaceMenu,
   MarketplaceOrderCreated,
@@ -93,6 +94,14 @@ export function fetchProductsFeed(params?: {
 
 export function fetchFeedCategories(params?: { fulfillment?: string; cuisine?: string }) {
   return client.get<MarketplaceFeedCategory[]>('/public/marketplace/feed-categories', { params })
+}
+
+export function fetchBanners() {
+  return client.get<MarketplaceBanner[]>('/public/marketplace/banners')
+}
+
+export function fetchPopularProducts(params?: { fulfillment?: string; limit?: number }) {
+  return client.get<MarketplaceProductCard[]>('/public/marketplace/popular-products', { params })
 }
 
 export interface SubmitOrderPayload {

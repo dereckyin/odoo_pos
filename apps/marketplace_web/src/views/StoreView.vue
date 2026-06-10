@@ -45,15 +45,20 @@
         <h2>{{ categoryById[rootId]?.name }}</h2>
         <template v-for="cat in categoriesUnderRoot(rootId)" :key="cat.id">
           <h3 v-if="cat.depth === 1" class="sub-heading">{{ cat.name }}</h3>
-          <article v-for="p in productsByCat(cat.id)" :key="p.id" class="product" @click="addOne(p)">
-            <div class="info">
-              <div class="name">{{ p.name }}</div>
-              <div class="desc" v-if="p.description">{{ p.description }}</div>
-              <div class="price">${{ Math.round(p.price_cents) }}</div>
-            </div>
-            <img v-if="p.image_url" :src="resolveUploadPath(p.image_url)" alt="" />
-            <div v-else class="img-placeholder">{{ p.name.charAt(0) }}</div>
-          </article>
+          <div class="product-grid">
+            <article v-for="p in productsByCat(cat.id)" :key="p.id" class="product" @click="addOne(p)">
+              <div class="thumb">
+                <img v-if="p.image_url" :src="resolveUploadPath(p.image_url)" alt="" />
+                <div v-else class="img-placeholder">{{ p.name.charAt(0) }}</div>
+                <button class="add" type="button" @click.stop="addOne(p)">＋</button>
+              </div>
+              <div class="info">
+                <div class="name">{{ p.name }}</div>
+                <div class="desc" v-if="p.description">{{ p.description }}</div>
+                <div class="price">${{ Math.round(p.price_cents) }}</div>
+              </div>
+            </article>
+          </div>
         </template>
       </section>
     </main>
@@ -222,11 +227,20 @@ watch(slug, () => void loadMenu(), { immediate: true })
 .menu-list { flex: 1; overflow-y: auto; padding: 12px 12px 96px; }
 .cat-section h2 { font-size: 16px; margin: 16px 4px 8px; }
 .sub-heading { font-size: 14px; margin: 8px 4px; color: var(--muted); }
-.product { background: var(--surface); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; gap: 12px; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
-.product .info { flex: 1; }
-.product .name { font-weight: 600; }
-.product .desc { font-size: 12px; color: var(--muted); }
-.product .price { color: var(--accent); font-weight: 600; }
-.product img, .product .img-placeholder { width: 72px; height: 72px; border-radius: 8px; object-fit: cover; }
-.product .img-placeholder { background: var(--accent-soft); display: flex; align-items: center; justify-content: center; color: var(--accent); font-weight: 700; }
+.product-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.product { background: var(--surface); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; box-shadow: 0 1px 3px rgba(15,23,42,.06); }
+.product .thumb { position: relative; aspect-ratio: 4 / 3; background: var(--accent-soft); }
+.product .thumb img, .product .img-placeholder { width: 100%; height: 100%; object-fit: cover; }
+.product .img-placeholder { display: flex; align-items: center; justify-content: center; color: var(--accent); font-weight: 700; font-size: 32px; }
+.product .add { position: absolute; right: 8px; bottom: 8px; width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; font-size: 18px; line-height: 1; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+.product .info { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 2px; }
+.product .name { font-weight: 600; font-size: 14px; }
+.product .desc { font-size: 12px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.product .price { color: var(--accent); font-weight: 600; margin-top: 4px; }
+@media (min-width: 900px) {
+  .store-header, .cat-bar, .cat-section { max-width: 1100px; margin-left: auto; margin-right: auto; width: 100%; }
+  .product-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  .product { transition: box-shadow .15s, transform .15s; }
+  .product:hover { box-shadow: 0 6px 18px rgba(15,23,42,.12); transform: translateY(-2px); }
+}
 </style>
