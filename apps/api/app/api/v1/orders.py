@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 from ...core.audit import audit
 from ...core.deps import (
     DbSession,
-    TenantScope,
+    NonKitchenScope,
     apply_tenant,
     ensure_same_tenant,
 )
@@ -60,7 +60,7 @@ def _select_order(stmt):
 
 @router.post("", response_model=OrderRead, status_code=201)
 async def upload_order(
-    payload: OrderCreate, db: DbSession, scope: TenantScope
+    payload: OrderCreate, db: DbSession, scope: NonKitchenScope
 ) -> OrderRead:
     """Idempotent: re-uploading the same order id is a no-op (returns the
     stored one). Tenant / store / cashier are derived from the JWT;
@@ -319,7 +319,7 @@ async def upload_order(
 @router.get("", response_model=OrderListResponse)
 async def list_orders(
     db: DbSession,
-    scope: TenantScope,
+    scope: NonKitchenScope,
     member_id: str | None = None,
     terminal_id: str | None = None,
     store_id: str | None = None,
@@ -382,7 +382,7 @@ async def list_orders(
 
 
 @router.get("/{oid}", response_model=OrderListItem)
-async def get_order(oid: str, db: DbSession, scope: TenantScope):
+async def get_order(oid: str, db: DbSession, scope: NonKitchenScope):
     o = (
         await db.execute(_select_order(select(Order).where(
             (Order.id == oid) | (Order.order_no == oid)

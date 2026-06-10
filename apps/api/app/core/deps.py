@@ -140,6 +140,21 @@ async def require_active_session(
     return user
 
 
+async def require_non_kitchen_session(
+    user: Annotated[CurrentUser, Depends(require_active_session)],
+) -> CurrentUser:
+    """Active tenant session that additionally rejects the ``kitchen`` role.
+
+    Kitchen is a KDS-only role (guest orders + state transitions). Use this to
+    keep POS sales orders out of kitchen reach even at the API level, not just
+    in the POS UI router."""
+    if user.role == "kitchen":
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "kitchen role cannot access sales orders"
+        )
+    return user
+
+
 def ensure_same_tenant(scope: CurrentUser, *resources) -> None:
     """Defensive check: every passed resource must have ``tenant_id``
     attribute matching the caller's tenant. Raises 404 (NOT 403) on mismatch
@@ -187,6 +202,7 @@ async def assert_refresh_token_valid(
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 CurrentUserDep = Annotated[CurrentUser, Depends(current_user)]
 TenantScope = Annotated[CurrentUser, Depends(require_active_session)]
+NonKitchenScope = Annotated[CurrentUser, Depends(require_non_kitchen_session)]
 TenantAdminDep = Annotated[CurrentUser, Depends(require_tenant_admin)]
 StoreAdminDep = Annotated[CurrentUser, Depends(require_store_admin)]
 PlatformSuperDep = Annotated[CurrentUser, Depends(require_platform_super)]
