@@ -6,7 +6,10 @@ import 'package:pos_core/pos_core.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
 import '../../../core/providers.dart';
+import '../../../core/roles.dart';
+import '../../../core/user_facing_error.dart';
 import '../../../data/database/app_database.dart';
+import '../../auth/widgets/manager_pin_dialog.dart';
 import '../order_list_display.dart';
 
 final historyProvider = StreamProvider.autoDispose((ref) {
@@ -103,6 +106,7 @@ class HistoryPage extends ConsumerWidget {
                     ),
                     trailing: MoneyText(Money(o.totalCents)),
                     onTap: () => context.push('/refund/${o.id}'),
+                    onLongPress: () => _showOrderActions(context, ref, o),
                   ),
                   const Divider(height: 1),
                 ],
@@ -114,5 +118,84 @@ class HistoryPage extends ConsumerWidget {
         error: (e, _) => Center(child: Text('錯誤: $e')),
       ),
     );
+  }
+
+  Future<void> _showOrderActions(BuildContext context, WidgetRef ref, OrderRow o) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Wrap(children: [
+          ListTile(
+            leading: const Icon(Icons.undo),
+            title: const Text('退款'),
+            onTap: () => Navigator.pop(context, 'refund'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.block),
+            title: const Text('作廢整筆訂單'),
+            onTap: () => Navigator.pop(context, 'void'),
+          ),
+        ]),
+      ),
+    );
+    if (action == 'refund') {
+      if (context.mounted) context.push('/refund/${o.id}');
+    } else if (action == 'void') {
+      await _voidOrder(context, ref, o);
+    }
+  }
+
+  Future<void> _voidOrder(BuildContext context, WidgetRef ref, OrderRow o) async {
+    final session = ref.read(authStateProvider).session;
+    final reasonCtl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('作廢訂單'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('作廢將整筆訂單回補庫存與點數。'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: reasonCtl,
+              decoration: const InputDecoration(labelText: '作廢原因（選填）'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('確認')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    // Cashiers need a store manager's PIN to void.
+    if (session != null && !isStoreAdminRole(session.role)) {
+      if (!context.mounted) return;
+      final approval = await requestManagerApproval(
+        context,
+        ref,
+        action: 'void',
+        title: '作廢需店長授權',
+      );
+      if (approval == null) return;
+    }
+
+    try {
+      await ref.read(posApiProvider).createVoidRequest(o.id, reason: reasonCtl.text.trim());
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(
+          session != null && isStoreAdminRole(session.role) ? '訂單已作廢' : '作廢申請已送出',
+        )),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(formatUserFacingError(e, scene: UserErrorScene.general))),
+      );
+    }
   }
 }

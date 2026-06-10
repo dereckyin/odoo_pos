@@ -83,8 +83,8 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('acting_tenant_name')
   }
 
-  async function login(user: string, password: string, tenant_code?: string) {
-    const { data } = await authApi.login(user, password, tenant_code)
+  async function login(user: string, password: string, tenant_code?: string, totp_code?: string) {
+    const { data } = await authApi.login(user, password, tenant_code, totp_code)
     exitTenantMode()
     setSession(data)
   }

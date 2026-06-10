@@ -49,6 +49,16 @@ class Order(Base, UUIDPrimaryKey, Timestamped):
 
     source_guest_order_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
 
+    # Shift settlement: the POS shift this order was rung up in (nullable for legacy).
+    shift_id: Mapped[str | None] = mapped_column(ForeignKey("pos_shifts.id"), nullable=True, index=True)
+
+    # Void approval workflow (distinct from refund). When a cashier requests a
+    # void it lands as "pending"; a manager approves/rejects.
+    void_status: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
+    void_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    voided_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    voided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     client_created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     lines: Mapped[list["OrderLine"]] = relationship(back_populates="order", cascade="all, delete-orphan")
@@ -100,6 +110,13 @@ class Refund(Base, UUIDPrimaryKey, Timestamped):
     total_amount_cents: Mapped[int] = mapped_column(Integer)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     gateway_ref: Mapped[str | None] = mapped_column(String(128), nullable=True)
+
+    # Approval workflow. "approved" keeps the legacy behaviour (immediately
+    # effective); "pending" waits for a manager when the tenant requires review.
+    status: Mapped[str] = mapped_column(String(16), default="approved", index=True)
+    approver_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reject_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     lines: Mapped[list["RefundLine"]] = relationship(back_populates="refund", cascade="all, delete-orphan")
 

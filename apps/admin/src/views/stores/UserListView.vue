@@ -8,6 +8,13 @@
 
     <a-table :columns="columns" :data-source="users" :loading="loading" row-key="id">
       <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'employee_id'">
+          <span v-if="record.employee_id">
+            {{ record.employee_id }}
+            <a-tag v-if="record.has_pin" color="blue" style="margin-left: 4px">PIN</a-tag>
+          </span>
+          <span v-else style="color: rgba(0,0,0,0.35)">—</span>
+        </template>
         <template v-if="column.key === 'role'">
           <a-tag :color="userRoleTagColor(record.role)">
             {{ userRoleLabel(record.role) }}
@@ -37,6 +44,15 @@
         </a-form-item>
         <a-form-item :label="editingId ? '新密碼（留空不修改）' : '密碼'">
           <a-input-password v-model:value="form.password" />
+        </a-form-item>
+        <a-form-item label="員工 ID（門市 PIN 快速登入用）">
+          <a-input v-model:value="form.employee_id" placeholder="選填，租戶內唯一" allow-clear />
+        </a-form-item>
+        <a-form-item :label="editingId ? 'PIN（留空不修改）' : 'PIN（選填）'">
+          <a-input-password v-model:value="form.pin" placeholder="4-12 位數字" />
+          <div class="role-hint">
+            設定後，員工可在已註冊的 POS 終端以「員工 ID + PIN」快速登入或切換；店長以上的 PIN 亦可核可退貨／作廢等敏感操作。
+          </div>
         </a-form-item>
         <a-form-item label="角色">
           <a-select
@@ -102,11 +118,14 @@ const form = reactive({
   role: 'cashier' as AssignableUserRole,
   store_id: null as string | null,
   is_active: true,
+  employee_id: '' as string,
+  pin: '' as string,
 })
 
 const columns = [
   { title: '帳號', dataIndex: 'username' },
   { title: '名稱', dataIndex: 'display_name' },
+  { title: '員工 ID', key: 'employee_id', width: 100 },
   { title: '角色', key: 'role', width: 100 },
   { title: '狀態', key: 'is_active', width: 80 },
   { title: '操作', key: 'actions', width: 140 },
@@ -132,6 +151,8 @@ function openModal(record?: UserRead) {
     form.role = normalizeRoleForApi(record.role)
     form.store_id = record.store_id
     form.is_active = record.is_active
+    form.employee_id = record.employee_id || ''
+    form.pin = ''
   } else {
     editingId.value = null
     editingRoleLocked.value = false
@@ -141,6 +162,8 @@ function openModal(record?: UserRead) {
     form.role = 'cashier'
     form.store_id = null
     form.is_active = true
+    form.employee_id = ''
+    form.pin = ''
   }
   modalOpen.value = true
 }
@@ -153,13 +176,24 @@ async function handleSave() {
         display_name: form.display_name,
         store_id: form.store_id,
         is_active: form.is_active,
+        employee_id: form.employee_id.trim() || null,
       }
       if (!editingRoleLocked.value) payload.role = form.role
       if (form.password) payload.password = form.password
+      if (form.pin) payload.pin = form.pin
       await updateUser(editingId.value, payload)
       message.success('已更新')
     } else {
-      await createUser({ ...form })
+      await createUser({
+        username: form.username,
+        display_name: form.display_name,
+        password: form.password,
+        role: form.role,
+        store_id: form.store_id,
+        is_active: form.is_active,
+        employee_id: form.employee_id.trim() || null,
+        pin: form.pin || null,
+      })
       message.success('已建立')
     }
     modalOpen.value = false

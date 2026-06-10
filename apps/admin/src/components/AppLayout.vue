@@ -17,6 +17,7 @@
           <a-menu-item key="categories" @click="$router.push({ name: 'categories' })">分類管理</a-menu-item>
           <a-menu-item key="option-groups" @click="$router.push({ name: 'option-groups' })">選項庫</a-menu-item>
           <a-menu-item key="product-import" @click="$router.push({ name: 'product-import' })">CSV 匯入</a-menu-item>
+          <a-menu-item key="product-labels" @click="$router.push({ name: 'product-labels' })">條碼列印</a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="marketing-group">
           <template #icon><GiftOutlined /></template>
@@ -38,6 +39,7 @@
           <template #icon><InboxOutlined /></template>
           <template #title>庫存管理</template>
           <a-menu-item key="inventory" @click="$router.push({ name: 'inventory' })">庫存水位</a-menu-item>
+          <a-menu-item key="stocktakes" @click="$router.push({ name: 'stocktakes' })">盤點</a-menu-item>
           <a-menu-item key="transfers" @click="$router.push({ name: 'transfers' })">調撥管理</a-menu-item>
           <a-menu-item key="supplier-list" @click="$router.push({ name: 'supplier-list' })">供應商</a-menu-item>
           <a-menu-item key="purchase-orders" @click="$router.push({ name: 'purchase-orders' })">採購單</a-menu-item>
@@ -90,6 +92,7 @@
           <template #icon><FileTextOutlined /></template>
           <template #title>訂單報表</template>
           <a-menu-item key="orders" @click="$router.push({ name: 'orders' })">訂單查詢</a-menu-item>
+          <a-menu-item key="approvals" @click="$router.push({ name: 'approvals' })">退貨/作廢審核</a-menu-item>
           <a-menu-item key="reports" @click="$router.push({ name: 'reports' })">銷售報表</a-menu-item>
         </a-sub-menu>
         <a-sub-menu v-if="modules.businessIntelligence" key="bi-group">
@@ -138,6 +141,7 @@
           </a>
           <template #overlay>
             <a-menu>
+              <a-menu-item @click="$router.push({ name: 'security-settings' })">安全設定（2FA）</a-menu-item>
               <a-menu-item @click="handleLogout">登出</a-menu-item>
             </a-menu>
           </template>
@@ -175,17 +179,17 @@ const router = useRouter()
 const nameMap: Record<string, string> = {
   dashboard: '總覽',
   products: '商品列表', 'product-create': '新增商品', 'product-edit': '編輯商品', 'product-import': 'CSV 匯入',
-  categories: '分類管理', 'option-groups': '選項庫',
+  categories: '分類管理', 'option-groups': '選項庫', 'product-labels': '條碼列印',
   promotions: '促銷活動', 'promotion-create': '新增活動', 'promotion-edit': '編輯活動',
   coupons: '優惠券', 'coupon-create': '新增優惠券',
   members: '會員列表', 'member-detail': '會員詳情', 'member-levels': '等級管理', 'member-broadcast': '簡訊群發',
   'line-settings': 'LINE 設定', events: '活動管理',
-  inventory: '庫存水位', transfers: '調撥管理',
+  inventory: '庫存水位', stocktakes: '盤點', transfers: '調撥管理',
   'supplier-list': '供應商', 'purchase-orders': '採購單', 'purchase-order-detail': '採購單詳情',
-  stores: '門店管理', users: '使用者管理',
+  stores: '門店管理', users: '使用者管理', 'security-settings': '安全設定',
   tables: '桌位管理', 'tables-print': 'QR 列印',
   'guest-orders': '桌邊訂單',
-  orders: '訂單查詢', 'order-detail': '訂單詳情', reports: '銷售報表',
+  orders: '訂單查詢', 'order-detail': '訂單詳情', approvals: '退貨/作廢審核', reports: '銷售報表',
   books: '寄賣書籍', 'book-receive': '寄賣入庫', 'book-import': 'CSV 批次入庫', 'book-settings': '寄賣設定', 'book-reports': '分帳報表',
   'analytics-sales': '銷售分析', 'analytics-stores': '門店績效', 'analytics-context': '環境洞察',
   'tenant-settings': '租戶設定',
@@ -206,12 +210,12 @@ const breadcrumbs = computed(() => {
 watch(() => route.name, (name) => {
   if (name) selectedKeys.value = [name as string]
   const n = name as string
-  if (['inventory', 'transfers', 'supplier-list', 'purchase-orders', 'purchase-order-detail'].includes(n)) {
+  if (['inventory', 'stocktakes', 'transfers', 'supplier-list', 'purchase-orders', 'purchase-order-detail'].includes(n)) {
     if (!openKeys.value.includes('inventory-group')) {
       openKeys.value = [...openKeys.value, 'inventory-group']
     }
   }
-  if (['orders', 'order-detail', 'reports'].includes(n)) {
+  if (['orders', 'order-detail', 'approvals', 'reports'].includes(n)) {
     if (!openKeys.value.includes('order-group')) {
       openKeys.value = [...openKeys.value, 'order-group']
     }

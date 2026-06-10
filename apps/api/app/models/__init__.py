@@ -37,6 +37,7 @@ from .alliance import (
 )
 from .webhook import WebhookDelivery, WebhookSubscription
 from .order import Order, OrderLine, OrderSequence, Payment, Refund, RefundLine
+from .shift import PosShift
 from .inventory import (
     InventoryLevel,
     InventoryMovement,
@@ -107,6 +108,7 @@ __all__ = [
     "Payment",
     "Refund",
     "RefundLine",
+    "PosShift",
     "InventoryLevel",
     "InventoryMovement",
     "TransferOrder",

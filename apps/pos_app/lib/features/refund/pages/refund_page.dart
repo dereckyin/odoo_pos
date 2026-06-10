@@ -6,10 +6,12 @@ import 'package:pos_core/pos_core.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
 import '../../../core/providers.dart';
+import '../../../core/roles.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/database/tables.dart';
 import '../../../data/sync/sync_models.dart';
 import '../../../data/sync/sync_providers.dart';
+import '../../auth/widgets/manager_pin_dialog.dart';
 import '../../history/order_list_display.dart';
 
 class RefundPage extends ConsumerStatefulWidget {
@@ -118,8 +120,18 @@ class _RefundPageState extends ConsumerState<RefundPage> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('請選擇要退的商品數量')));
       return;
     }
-    setState(() => _busy = true);
     final session = ref.read(authStateProvider).session;
+    // Cashiers (門市人員) need a store manager to authorise refunds.
+    if (session != null && !isStoreAdminRole(session.role)) {
+      final approval = await requestManagerApproval(
+        context,
+        ref,
+        action: 'refund',
+        title: '退貨需店長授權',
+      );
+      if (approval == null) return;
+    }
+    setState(() => _busy = true);
     final now = DateTime.now();
     final refundId = newUuid();
     final lineRows = await (db.select(db.orderLines)..where((t) => t.orderId.equals(o.id))).get();

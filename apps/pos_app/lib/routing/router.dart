@@ -16,6 +16,8 @@ import '../features/cashier/pages/held_orders_page.dart';
 import '../features/cashier/pages/table_orders_page.dart';
 import '../features/history/pages/history_page.dart';
 import '../features/inventory/pages/inventory_page.dart';
+import '../features/inventory/pages/stocktake_page.dart';
+import '../features/shift/pages/shift_page.dart';
 import '../features/kds/pages/kds_board_page.dart';
 import '../features/members/pages/member_select_page.dart';
 import '../features/members/pages/members_page.dart';
@@ -74,6 +76,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/members', builder: (_, __) => const MembersPage()),
       GoRoute(path: '/members/select', builder: (_, __) => const MemberSelectPage()),
       GoRoute(path: '/inventory', builder: (_, __) => const InventoryPage()),
+      GoRoute(
+        path: '/stocktake',
+        redirect: (context, state) {
+          final auth = ref.read(authStateProvider);
+          final role = auth.session?.role ?? 'cashier';
+          if (!isStoreAdminRole(role)) return '/';
+          return null;
+        },
+        builder: (_, __) => const StocktakePage(),
+      ),
+      GoRoute(path: '/shift', builder: (_, __) => const ShiftPage()),
       GoRoute(path: '/promotions', builder: (_, __) => const PromotionsPage()),
       GoRoute(path: '/history', builder: (_, __) => const HistoryPage()),
       GoRoute(

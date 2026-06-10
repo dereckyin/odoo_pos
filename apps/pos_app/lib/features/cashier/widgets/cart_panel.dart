@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_domain/pos_domain.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
+import '../../../core/providers.dart';
+import '../../../core/roles.dart';
 import '../../../data/printer/printer_providers.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../auth/widgets/manager_pin_dialog.dart';
 import '../../kds/providers/guest_orders_controller.dart';
 import '../../books/providers/consignment_providers.dart';
 import '../providers/cart_controller.dart';
@@ -401,9 +404,29 @@ class _CartLineTile extends ConsumerWidget {
         ]),
       ),
     );
-    if (picked == 'pct10') controller.setLineDiscount(line.id, const Discount(type: DiscountType.percentage, value: 10, label: '9 折'));
-    if (picked == 'amount10') controller.setLineDiscount(line.id, const Discount(type: DiscountType.amount, value: 10, label: '折 10'));
-    if (picked == 'remove') controller.removeLine(line.id);
+    if (picked == 'remove') {
+      controller.removeLine(line.id);
+      return;
+    }
+    if (picked == 'pct10' || picked == 'amount10') {
+      final session = ref.read(authStateProvider).session;
+      // Discounts by a cashier require a store manager's PIN authorisation.
+      if (session != null && !isStoreAdminRole(session.role)) {
+        if (!context.mounted) return;
+        final approval = await requestManagerApproval(
+          context,
+          ref,
+          action: 'discount',
+          title: '折扣需店長授權',
+        );
+        if (approval == null) return;
+      }
+      if (picked == 'pct10') {
+        controller.setLineDiscount(line.id, const Discount(type: DiscountType.percentage, value: 10, label: '9 折'));
+      } else {
+        controller.setLineDiscount(line.id, const Discount(type: DiscountType.amount, value: 10, label: '折 10'));
+      }
+    }
   }
 }
 

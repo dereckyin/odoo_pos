@@ -7,12 +7,25 @@ import type {
   SubscriptionPlanRead,
 } from '@/types'
 
-export function login(username: string, password: string, tenant_code?: string) {
+export function login(username: string, password: string, tenant_code?: string, totp_code?: string) {
   return client.post<SessionRead>('/auth/admin-login', {
     username,
     password,
     tenant_code: tenant_code || undefined,
+    totp_code: totp_code || undefined,
   })
+}
+
+export function enrollTotp() {
+  return client.post<{ secret: string; otpauth_uri: string }>('/auth/2fa/enroll')
+}
+
+export function verifyTotp(code: string) {
+  return client.post('/auth/2fa/verify', { code })
+}
+
+export function disableTotp(password: string) {
+  return client.post('/auth/2fa/disable', { password })
 }
 
 export function refreshToken(refresh_token: string) {

@@ -17,6 +17,17 @@
         <a-form-item label="密碼" name="password" :rules="[{ required: true, message: '請輸入密碼' }]">
           <a-input-password v-model:value="form.password" size="large" placeholder="請輸入密碼" @pressEnter="handleLogin" />
         </a-form-item>
+        <a-form-item v-if="totpRequired" label="雙重驗證碼" name="totp_code">
+          <a-input
+            v-model:value="form.totp_code"
+            size="large"
+            placeholder="請輸入驗證器 6 位數字"
+            inputmode="numeric"
+            maxlength="6"
+            @pressEnter="handleLogin"
+          />
+          <div class="field-hint">請開啟驗證器 App 取得當前 6 位數字</div>
+        </a-form-item>
         <a-form-item>
           <a-button type="primary" html-type="submit" :loading="loading" block size="large">
             登入
@@ -82,7 +93,9 @@ const form = reactive({
   tenant_code: '',
   username: '',
   password: '',
+  totp_code: '',
 })
+const totpRequired = ref(false)
 
 const changeVisible = ref(false)
 const changing = ref(false)
@@ -95,14 +108,20 @@ async function handleLogin() {
   const user = form.username.trim()
   const pass = form.password
   try {
-    await auth.login(user, pass, tenant)
+    await auth.login(user, pass, tenant, form.totp_code.trim() || undefined)
     if (auth.mustChangePassword) {
       changeForm.old_password = pass
       changeVisible.value = true
       return
     }
     finishLogin()
-  } catch (e: unknown) {
+  } catch (e: any) {
+    const detail = e?.response?.data?.detail
+    if (detail === 'totp_required') {
+      totpRequired.value = true
+      errorMsg.value = '此帳號已啟用雙重驗證，請輸入驗證碼'
+      return
+    }
     errorMsg.value = formatApiError(e)
   } finally {
     loading.value = false

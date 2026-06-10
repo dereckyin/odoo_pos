@@ -122,10 +122,12 @@ class AuditLogRead(ORMModel):
 
 class TenantGeneralSettingsRead(BaseModel):
     timezone: str = "Asia/Taipei"
+    require_refund_approval: bool = False
 
 
 class TenantGeneralSettingsUpdate(BaseModel):
     timezone: str | None = Field(default=None, max_length=64)
+    require_refund_approval: bool | None = None
 
 
 class TenantModulesRead(BaseModel):

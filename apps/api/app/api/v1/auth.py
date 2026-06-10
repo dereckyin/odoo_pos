@@ -9,6 +9,7 @@ from ...core.deps import (
     CurrentUserDep,
     DbSession,
     StoreAdminDep,
+    TenantScope,
     assert_refresh_token_valid,
 )
 from ...core.ratelimit import per_ip
@@ -21,23 +22,40 @@ from ...core.security import (
     verify_password,
     verify_secret,
 )
-from ...models import RefreshToken, Store, Tenant, Terminal, User, STORE_ADMIN_ROLES
+from ...models import (
+    RefreshToken,
+    STORE_ADMIN_ROLES,
+    Store,
+    Tenant,
+    Terminal,
+    User,
+)
 from ...schemas.auth import (
     AdminLoginRequest,
     ChangePasswordRequest,
     HeartbeatRequest,
     LoginRequest,
     LogoutRequest,
+    PinLoginRequest,
+    PinVerifyRequest,
+    PinVerifyResponse,
     RefreshRequest,
     SessionRead,
     TerminalRegisterRequest,
     TerminalRegisterResponse,
+    TotpDisableRequest,
+    TotpEnrollResponse,
+    TotpVerifyRequest,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 ACCOUNT_LOCK_THRESHOLD = 8
 ACCOUNT_LOCK_MINUTES = 15
+PIN_LOCK_THRESHOLD = 5
+PIN_LOCK_MINUTES = 15
+# Staff allowed to authorise a manager-PIN override (layer 2 and above).
+PIN_OVERRIDE_ROLES = STORE_ADMIN_ROLES
 
 
 def _now() -> datetime:
@@ -140,6 +158,30 @@ def _check_account_lock(user: User) -> None:
         )
 
 
+async def _record_failed_pin(db, user: User) -> None:
+    user.pin_failed_count = (user.pin_failed_count or 0) + 1
+    if user.pin_failed_count >= PIN_LOCK_THRESHOLD:
+        user.pin_locked_until = _now() + timedelta(minutes=PIN_LOCK_MINUTES)
+    await db.commit()
+
+
+def _check_pin_lock(user: User) -> None:
+    if user.pin_locked_until and user.pin_locked_until > _now():
+        raise HTTPException(
+            status.HTTP_423_LOCKED,
+            f"pin locked until {user.pin_locked_until.isoformat()}",
+        )
+
+
+async def _get_user_by_employee(db, *, tenant: Tenant, employee_id: str) -> User | None:
+    stmt = select(User).where(
+        User.tenant_id == tenant.id,
+        User.employee_id == employee_id,
+        User.deleted_at.is_(None),
+    )
+    return (await db.execute(stmt)).scalar_one_or_none()
+
+
 # ---------------------------------------------------------------------------
 # POS station login (terminal-bound)
 # ---------------------------------------------------------------------------
@@ -206,6 +248,111 @@ async def login(request: Request, req: LoginRequest, db: DbSession) -> SessionRe
 
 
 # ---------------------------------------------------------------------------
+# Employee-ID + PIN fast login (terminal-bound) + manager PIN override
+# ---------------------------------------------------------------------------
+
+@router.post("/pin-login", response_model=SessionRead)
+@per_ip("30/minute")
+async def pin_login(request: Request, req: PinLoginRequest, db: DbSession) -> SessionRead:
+    tenant = await _resolve_tenant(db, req.tenant_code)
+    if not tenant:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "tenant not found")
+    if tenant.status != "active":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, f"tenant status: {tenant.status}")
+
+    store = (
+        await db.execute(
+            select(Store).where(
+                Store.tenant_id == tenant.id,
+                Store.code == req.store_code,
+                Store.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if not store:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "store not found")
+
+    terminal = (
+        await db.execute(
+            select(Terminal).where(
+                Terminal.store_id == store.id,
+                Terminal.code == req.terminal_code,
+                Terminal.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if not terminal or not verify_secret(req.terminal_api_key, terminal.api_key_hash):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid terminal credentials")
+
+    user = await _get_user_by_employee(db, tenant=tenant, employee_id=req.employee_id)
+    if not user or not user.pin_hash:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid employee or pin")
+    _check_pin_lock(user)
+    if not verify_secret(req.pin, user.pin_hash):
+        await _record_failed_pin(db, user)
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid employee or pin")
+    if not user.is_active:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "user disabled")
+    if user.store_id and user.store_id != store.id and user.role not in (
+        "tenant_owner", "tenant_admin"
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "user not assigned to this store")
+
+    user.pin_failed_count = 0
+    user.pin_locked_until = None
+    terminal.last_seen_at = _now()
+    session = await _build_session(
+        db, user=user, tenant=tenant, store_id=store.id, terminal_id=terminal.id,
+        request=request,
+    )
+    await audit(
+        db, None, action="pin_login", resource_type="user", resource_id=user.id,
+        request=request, extra={"store_id": store.id, "terminal_id": terminal.id},
+        tenant_id=tenant.id, user_id=user.id, flush=False,
+    )
+    await db.commit()
+    return session
+
+
+@router.post("/pin-verify", response_model=PinVerifyResponse)
+@per_ip("60/minute")
+async def pin_verify(
+    request: Request, req: PinVerifyRequest, db: DbSession, scope: TenantScope
+) -> PinVerifyResponse:
+    """Verify a manager's PIN to authorise a sensitive action initiated by a
+    cashier on the same terminal. Does NOT mint a session — it only confirms a
+    store-manager-or-above approved."""
+    tenant = await db.get(Tenant, scope.require_tenant())
+    if not tenant:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "tenant not found")
+    approver = await _get_user_by_employee(db, tenant=tenant, employee_id=req.employee_id)
+    if not approver or not approver.pin_hash:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid approver or pin")
+    _check_pin_lock(approver)
+    if not verify_secret(req.pin, approver.pin_hash):
+        await _record_failed_pin(db, approver)
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid approver or pin")
+    if not approver.is_active:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "approver disabled")
+    if approver.role not in PIN_OVERRIDE_ROLES:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "approver lacks override authority")
+
+    approver.pin_failed_count = 0
+    approver.pin_locked_until = None
+    await audit(
+        db, scope, action="pin_override", resource_type="user", resource_id=approver.id,
+        request=request, extra={"action": req.action}, flush=False,
+    )
+    await db.commit()
+    return PinVerifyResponse(
+        approved=True,
+        approver_id=approver.id,
+        approver_name=approver.display_name,
+        approver_role=approver.role,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Browser / admin login (no terminal)
 # ---------------------------------------------------------------------------
 
@@ -235,6 +382,14 @@ async def admin_login(
         raise HTTPException(status.HTTP_403_FORBIDDEN, "user disabled")
     if user.role not in STORE_ADMIN_ROLES:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "insufficient permissions for admin console")
+    if user.totp_enabled and user.totp_secret:
+        if not req.totp_code:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "totp_required")
+        import pyotp
+
+        if not pyotp.TOTP(user.totp_secret).verify(req.totp_code, valid_window=1):
+            await _record_failed_login(db, user)
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid totp code")
 
     if tenant is None and user.tenant_id:
         # Browser supplied no tenant_code but the user belongs to one — load it
@@ -418,3 +573,53 @@ async def heartbeat(
     terminal.last_seen_at = _now()
     await db.commit()
     return {"ok": True, "server_time": _now().isoformat()}
+
+
+# ---------------------------------------------------------------------------
+# Two-factor authentication (TOTP) — layer-1 admins
+# ---------------------------------------------------------------------------
+
+@router.post("/2fa/enroll", response_model=TotpEnrollResponse)
+async def totp_enroll(db: DbSession, user: CurrentUserDep) -> TotpEnrollResponse:
+    """Generate (or regenerate) a TOTP secret for the caller. Not yet active
+    until confirmed via ``/2fa/verify`` with a valid code."""
+    import pyotp
+
+    db_user = await db.get(User, user.user_id)
+    if not db_user:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "user not found")
+    secret = pyotp.random_base32()
+    db_user.totp_secret = secret
+    db_user.totp_enabled = False
+    await db.commit()
+    uri = pyotp.TOTP(secret).provisioning_uri(name=db_user.username, issuer_name="POS")
+    return TotpEnrollResponse(secret=secret, otpauth_uri=uri)
+
+
+@router.post("/2fa/verify", status_code=204)
+async def totp_verify(
+    req: TotpVerifyRequest, db: DbSession, user: CurrentUserDep
+) -> None:
+    """Confirm enrollment: enables 2FA once the caller proves they can generate
+    a valid code from the secret."""
+    import pyotp
+
+    db_user = await db.get(User, user.user_id)
+    if not db_user or not db_user.totp_secret:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "no pending enrollment")
+    if not pyotp.TOTP(db_user.totp_secret).verify(req.code, valid_window=1):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid totp code")
+    db_user.totp_enabled = True
+    await db.commit()
+
+
+@router.post("/2fa/disable", status_code=204)
+async def totp_disable(
+    req: TotpDisableRequest, db: DbSession, user: CurrentUserDep
+) -> None:
+    db_user = await db.get(User, user.user_id)
+    if not db_user or not verify_password(req.password, db_user.password_hash):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "password mismatch")
+    db_user.totp_enabled = False
+    db_user.totp_secret = None
+    await db.commit()

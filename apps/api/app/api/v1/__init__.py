@@ -11,6 +11,8 @@ from . import (
     inventories,
     orders,
     refunds,
+    approvals,
+    shifts,
     payments,
     invoices,
     sync,
@@ -57,6 +59,8 @@ api_router.include_router(inventories.router)
 api_router.include_router(purchasing.router)
 api_router.include_router(orders.router)
 api_router.include_router(refunds.router)
+api_router.include_router(approvals.router)
+api_router.include_router(shifts.router)
 api_router.include_router(payments.router)
 api_router.include_router(invoices.router)
 api_router.include_router(sync.router)

@@ -33,6 +33,41 @@ class PosApi {
     return SessionDto.fromJson(_asMap(r.data));
   }
 
+  /// Employee-ID + PIN fast login on a registered terminal.
+  Future<SessionDto> pinLogin({
+    required String tenantCode,
+    required String storeCode,
+    required String terminalCode,
+    required String terminalApiKey,
+    required String employeeId,
+    required String pin,
+  }) async {
+    final r = await _dio.post('/auth/pin-login', data: {
+      'tenant_code': tenantCode,
+      'store_code': storeCode,
+      'terminal_code': terminalCode,
+      'terminal_api_key': terminalApiKey,
+      'employee_id': employeeId,
+      'pin': pin,
+    });
+    return SessionDto.fromJson(_asMap(r.data));
+  }
+
+  /// Manager PIN override: confirm a store-manager-or-above authorises a
+  /// sensitive action. Returns the approver info or throws on rejection.
+  Future<Map<String, dynamic>> pinVerify({
+    required String employeeId,
+    required String pin,
+    String? action,
+  }) async {
+    final r = await _dio.post('/auth/pin-verify', data: {
+      'employee_id': employeeId,
+      'pin': pin,
+      if (action != null) 'action': action,
+    });
+    return _asMap(r.data);
+  }
+
   /// Register a new terminal or rotate an existing one's API key.
   /// Now requires an admin-level JWT (server-side enforced) — the caller
   /// must supply ``adminToken`` (e.g. from a prior /auth/admin-login call).
@@ -180,9 +215,52 @@ class PosApi {
     return (r.data as List).map((e) => (e as Map).cast<String, dynamic>()).toList();
   }
 
+  // ---- Void requests (作廢申請/審核) ----
+  Future<Map<String, dynamic>> createVoidRequest(String orderId, {String? reason}) async {
+    final r = await _dio.post('/approvals/voids', data: {
+      'order_id': orderId,
+      if (reason != null) 'reason': reason,
+    });
+    return _asMap(r.data);
+  }
+
+  // ---- Shifts (交班結帳) ----
+  Future<Map<String, dynamic>?> currentShift() async {
+    final r = await _dio.get('/shifts/current');
+    if (r.data == null) return null;
+    return _asMap(r.data);
+  }
+
+  Future<Map<String, dynamic>?> currentShiftSummary() async {
+    final r = await _dio.get('/shifts/current/summary');
+    if (r.data == null) return null;
+    return _asMap(r.data);
+  }
+
+  Future<Map<String, dynamic>> openShift({int openingCashCents = 0, String? note}) async {
+    final r = await _dio.post('/shifts/open', data: {
+      'opening_cash_cents': openingCashCents,
+      if (note != null) 'note': note,
+    });
+    return _asMap(r.data);
+  }
+
+  Future<Map<String, dynamic>> closeShift({required int countedCashCents, String? note}) async {
+    final r = await _dio.post('/shifts/close', data: {
+      'counted_cash_cents': countedCashCents,
+      if (note != null) 'note': note,
+    });
+    return _asMap(r.data);
+  }
+
   // ---- Inventory / Movements ----
   Future<void> postMovement(Map<String, dynamic> payload) async {
     await _dio.post('/inventory/movements', data: payload);
+  }
+
+  Future<Map<String, dynamic>> createStocktake(Map<String, dynamic> payload) async {
+    final r = await _dio.post('/inventory/stocktakes', data: payload);
+    return _asMap(r.data);
   }
 
   Future<void> postMovementsBatch(List<Map<String, dynamic>> payload) async {

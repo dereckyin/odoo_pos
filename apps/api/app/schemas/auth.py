@@ -21,6 +21,51 @@ class AdminLoginRequest(BaseModel):
     tenant_code: str | None = Field(default=None, max_length=32)
     username: str = Field(min_length=1, max_length=64)
     password: str = Field(min_length=1)
+    totp_code: str | None = Field(default=None, min_length=6, max_length=6)
+
+
+class PinLoginRequest(BaseModel):
+    """Employee-ID + PIN fast login on a trusted (already-registered) terminal.
+
+    The terminal must still present its ``terminal_api_key`` so an unregistered
+    device cannot ring up sales; the staff member only types their ID + PIN.
+    """
+
+    tenant_code: str = Field(min_length=1, max_length=32)
+    store_code: str = Field(min_length=1, max_length=32)
+    terminal_code: str = Field(min_length=1, max_length=64)
+    terminal_api_key: str = Field(min_length=8)
+    employee_id: str = Field(min_length=1, max_length=32)
+    pin: str = Field(min_length=4, max_length=12)
+
+
+class PinVerifyRequest(BaseModel):
+    """Manager PIN override: confirm a privileged staff member authorises a
+    sensitive action (refund / void / discount) on the cashier's terminal."""
+
+    employee_id: str = Field(min_length=1, max_length=32)
+    pin: str = Field(min_length=4, max_length=12)
+    action: str | None = Field(default=None, max_length=32)
+
+
+class PinVerifyResponse(BaseModel):
+    approved: bool
+    approver_id: str
+    approver_name: str
+    approver_role: str
+
+
+class TotpEnrollResponse(BaseModel):
+    secret: str
+    otpauth_uri: str
+
+
+class TotpVerifyRequest(BaseModel):
+    code: str = Field(min_length=6, max_length=6)
+
+
+class TotpDisableRequest(BaseModel):
+    password: str = Field(min_length=1)
 
 
 class TokenPair(BaseModel):

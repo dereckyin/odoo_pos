@@ -5,6 +5,10 @@ export function listUsers() {
   return client.get<UserRead[]>('/users')
 }
 
+export function getMe() {
+  return client.get<UserRead>('/users/me')
+}
+
 export function createUser(data: UserCreate) {
   return client.post<UserRead>('/users', data)
 }

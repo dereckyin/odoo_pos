@@ -35,6 +35,7 @@ const merchantChildren: RouteRecordRaw[] = [
   { path: 'products/create', name: 'product-create', component: () => import('@/views/products/ProductFormView.vue') },
   { path: 'products/:id/edit', name: 'product-edit', component: () => import('@/views/products/ProductFormView.vue') },
   { path: 'products/import', name: 'product-import', component: () => import('@/views/products/ProductImportView.vue') },
+  { path: 'products/labels', name: 'product-labels', component: () => import('@/views/products/ProductLabelPrintView.vue') },
   { path: 'categories', name: 'categories', component: () => import('@/views/products/CategoryListView.vue') },
   { path: 'option-groups', name: 'option-groups', component: () => import('@/views/products/OptionGroupListView.vue') },
   // Promotions
@@ -53,6 +54,7 @@ const merchantChildren: RouteRecordRaw[] = [
   { path: 'member-broadcast', name: 'member-broadcast', component: () => import('@/views/members/MemberBroadcastView.vue') },
   // Inventory
   { path: 'inventory', name: 'inventory', component: () => import('@/views/inventory/InventoryLevelView.vue') },
+  { path: 'stocktakes', name: 'stocktakes', component: () => import('@/views/inventory/StocktakeView.vue') },
   { path: 'transfers', name: 'transfers', component: () => import('@/views/inventory/TransferListView.vue') },
   { path: 'purchasing/suppliers', name: 'supplier-list', component: () => import('@/views/purchasing/SupplierListView.vue') },
   { path: 'purchasing/orders', name: 'purchase-orders', component: () => import('@/views/purchasing/PurchaseOrderListView.vue') },
@@ -63,9 +65,11 @@ const merchantChildren: RouteRecordRaw[] = [
   { path: 'tables/print', name: 'tables-print', component: () => import('@/views/stores/TablePrintView.vue') },
   { path: 'guest-orders', name: 'guest-orders', component: () => import('@/views/stores/GuestOrderListView.vue') },
   { path: 'users', name: 'users', component: () => import('@/views/stores/UserListView.vue') },
+  { path: 'security', name: 'security-settings', component: () => import('@/views/settings/SecuritySettingsView.vue') },
   // Orders
   { path: 'orders', name: 'orders', component: () => import('@/views/orders/OrderListView.vue') },
   { path: 'orders/:id', name: 'order-detail', component: () => import('@/views/orders/OrderDetailView.vue') },
+  { path: 'approvals', name: 'approvals', component: () => import('@/views/orders/ApprovalListView.vue') },
   { path: 'reports', name: 'reports', component: () => import('@/views/reports/ReportsView.vue') },
   { path: 'books', name: 'books', component: () => import('@/views/books/BookListView.vue') },
   { path: 'books/receive', name: 'book-receive', component: () => import('@/views/books/BookReceiveView.vue') },

@@ -26,8 +26,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   String _apiKey = '';
   final _user = TextEditingController(text: 'cashier');
   final _pass = TextEditingController();
+  final _empId = TextEditingController();
+  final _pin = TextEditingController();
   bool _busy = false;
   bool _terminalReady = false;
+  bool _pinMode = false;
   String? _error;
 
   @override
@@ -93,13 +96,39 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     decoration: const InputDecoration(labelText: '終端機代號'),
                   ),
                   const Divider(height: 28),
-                  TextField(controller: _user, decoration: const InputDecoration(labelText: '帳號')),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _pass,
-                    obscureText: true,
-                    decoration: const InputDecoration(labelText: '密碼'),
+                  SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(value: false, label: Text('帳號密碼'), icon: Icon(Icons.password)),
+                      ButtonSegment(value: true, label: Text('員工 PIN'), icon: Icon(Icons.pin)),
+                    ],
+                    selected: {_pinMode},
+                    onSelectionChanged: (s) => setState(() {
+                      _pinMode = s.first;
+                      _error = null;
+                    }),
                   ),
+                  const SizedBox(height: 16),
+                  if (!_pinMode) ...[
+                    TextField(controller: _user, decoration: const InputDecoration(labelText: '帳號')),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _pass,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: '密碼'),
+                    ),
+                  ] else ...[
+                    TextField(
+                      controller: _empId,
+                      decoration: const InputDecoration(labelText: '員工 ID'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _pin,
+                      obscureText: true,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'PIN（4-12 位數字）'),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   if (_error != null)
                     Card(
@@ -119,7 +148,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   BigButton(
                     icon: Icons.login,
                     label: _busy ? '登入中…' : '登入',
-                    onPressed: (_busy || !_terminalReady) ? null : _login,
+                    onPressed: (_busy || !_terminalReady) ? null : (_pinMode ? _pinLogin : _login),
                   ),
                   const SizedBox(height: 12),
                   TextButton.icon(
@@ -166,6 +195,41 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         terminalApiKey: _apiKey,
         username: _user.text.trim(),
         password: _pass.text,
+      );
+      await ref.read(authStateProvider.notifier).setSession(Session(
+            userId: dto.userId,
+            username: dto.username,
+            displayName: dto.displayName,
+            role: dto.role,
+            tenantId: dto.tenantId,
+            tenantCode: dto.tenantCode,
+            storeId: dto.storeId,
+            terminalId: dto.terminalId,
+            accessToken: dto.accessToken,
+            refreshToken: dto.refreshToken,
+            expiresAt: dto.expiresAt,
+          ));
+    } catch (e) {
+      setState(() => _error = formatUserFacingError(e, scene: UserErrorScene.login));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _pinLogin() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final api = ref.read(posApiProvider);
+      final dto = await api.pinLogin(
+        tenantCode: _tenant.text.trim(),
+        storeCode: _store.text.trim(),
+        terminalCode: _terminal.text.trim(),
+        terminalApiKey: _apiKey,
+        employeeId: _empId.text.trim(),
+        pin: _pin.text.trim(),
       );
       await ref.read(authStateProvider.notifier).setSession(Session(
             userId: dto.userId,

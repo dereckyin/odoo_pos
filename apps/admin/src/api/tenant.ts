@@ -119,6 +119,7 @@ export function listAuditLogs(params: AuditLogQuery = {}) {
 
 export interface TenantGeneralSettings {
   timezone: string
+  require_refund_approval: boolean
 }
 
 export function getGeneralSettings() {

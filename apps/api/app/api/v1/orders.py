@@ -20,6 +20,7 @@ from ...models import (
     Order,
     OrderLine,
     Payment,
+    PosShift,
     Product,
     Tenant,
     TenantMemberLink,
@@ -87,6 +88,19 @@ async def upload_order(
     cashier_id = payload.cashier_id or scope.user_id
     if cashier_id != scope.user_id and not scope.is_store_admin:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "cannot upload order for another cashier")
+
+    # Attribute the order to the cashier's currently-open shift (for 交班結帳)
+    # when the client didn't tag it explicitly.
+    shift_id = payload.shift_id
+    if shift_id is None:
+        shift_stmt = select(PosShift.id).where(
+            PosShift.tenant_id == scope.tenant_id,
+            PosShift.user_id == cashier_id,
+            PosShift.status == "open",
+        )
+        if scope.terminal_id:
+            shift_stmt = shift_stmt.where(PosShift.terminal_id == scope.terminal_id)
+        shift_id = (await db.execute(shift_stmt.order_by(PosShift.opened_at.desc()))).scalars().first()
 
     if payload.member_id:
         member = await db.get(Member, payload.member_id)
@@ -161,6 +175,7 @@ async def upload_order(
         invoice_carrier=payload.invoice_carrier,
         note=payload.note,
         source_guest_order_id=payload.source_guest_order_id,
+        shift_id=shift_id,
         points_redeemed=payload.points_redeemed,
         coupon_code=payload.coupon_code,
         client_created_at=payload.client_created_at,

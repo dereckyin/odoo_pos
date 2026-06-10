@@ -133,6 +133,17 @@ class _CashierPageState extends ConsumerState<CashierPage> {
               icon: const Icon(Icons.warehouse_outlined),
               onPressed: () => context.push('/inventory'),
             ),
+            if (session != null && isStoreAdminRole(session.role))
+              IconButton(
+                tooltip: '盤點',
+                icon: const Icon(Icons.fact_check_outlined),
+                onPressed: () => context.push('/stocktake'),
+              ),
+            IconButton(
+              tooltip: '交班結帳',
+              icon: const Icon(Icons.point_of_sale_outlined),
+              onPressed: () => context.push('/shift'),
+            ),
             IconButton(
               tooltip: '行銷',
               icon: const Icon(Icons.campaign_outlined),

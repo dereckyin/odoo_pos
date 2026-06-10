@@ -127,6 +127,12 @@
           <a-form-item label="營業時區（報表與訂單編號日期）">
             <a-select v-model:value="generalTimezone" :options="timezoneOptions" />
           </a-form-item>
+          <a-form-item label="退貨需經審核">
+            <a-switch v-model:checked="requireRefundApproval" />
+            <div style="margin-top: 6px; font-size: 12px; color: rgba(0,0,0,0.45); line-height: 1.5">
+              開啟後，收銀員（門市人員）送出的退貨將進入「退貨/作廢審核」待審清單，需店長以上核可才會生效；店長以上於 POS 退貨仍即時生效。
+            </div>
+          </a-form-item>
           <a-button type="primary" :loading="generalSaving" @click="saveGeneral">儲存</a-button>
         </a-form>
       </a-tab-pane>
@@ -244,6 +250,7 @@ import type { SubscriptionPlanRead } from '@/types'
 const activeTab = ref<'payments' | 'invoices' | 'subscription' | 'general' | 'audit'>('payments')
 
 const generalTimezone = ref('Asia/Taipei')
+const requireRefundApproval = ref(false)
 const generalSaving = ref(false)
 const timezoneOptions = [
   { label: '台北 (Asia/Taipei)', value: 'Asia/Taipei' },
@@ -255,6 +262,7 @@ async function loadGeneral() {
   try {
     const { data } = await tenantApi.getGeneralSettings()
     generalTimezone.value = data.timezone
+    requireRefundApproval.value = !!data.require_refund_approval
   } catch {
     /* best-effort */
   }
@@ -263,7 +271,10 @@ async function loadGeneral() {
 async function saveGeneral() {
   generalSaving.value = true
   try {
-    await tenantApi.updateGeneralSettings({ timezone: generalTimezone.value })
+    await tenantApi.updateGeneralSettings({
+      timezone: generalTimezone.value,
+      require_refund_approval: requireRefundApproval.value,
+    })
     message.success('已儲存')
   } catch (e: any) {
     message.error(e.response?.data?.detail || '儲存失敗')

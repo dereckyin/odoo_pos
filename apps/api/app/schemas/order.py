@@ -53,6 +53,7 @@ class OrderCreate(BaseModel):
     invoice_carrier: str | None = None
     note: str | None = None
     source_guest_order_id: str | None = None
+    shift_id: str | None = None
     points_redeemed: int = 0
     coupon_code: str | None = None
     client_created_at: datetime
@@ -154,4 +155,41 @@ class RefundRead(ORMModel):
     total_amount_cents: int
     reason: str | None
     gateway_ref: str | None
+    status: str = "approved"
+    approver_id: str | None = None
+    decided_at: datetime | None = None
+    reject_reason: str | None = None
+    created_at: datetime
+
+
+class RefundListItem(RefundRead):
+    order_no: str | None = None
+    store_name: str | None = None
+    user_name: str | None = None
+
+
+class RefundDecisionRequest(BaseModel):
+    reason: str | None = Field(default=None, max_length=512)
+
+
+class VoidRequestCreate(BaseModel):
+    id: str | None = None
+    order_id: str
+    reason: str | None = Field(default=None, max_length=512)
+
+
+class VoidDecisionRequest(BaseModel):
+    reason: str | None = Field(default=None, max_length=512)
+
+
+class OrderApprovalItem(ORMModel):
+    id: str
+    order_no: str | None = None
+    store_id: str
+    store_name: str | None = None
+    total_cents: int
+    status: str
+    void_status: str | None = None
+    void_reason: str | None = None
+    voided_by: str | None = None
     created_at: datetime

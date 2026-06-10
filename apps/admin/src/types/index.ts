@@ -658,6 +658,9 @@ export interface UserRead {
   store_id: string | null
   is_active: boolean
   must_change_password: boolean
+  employee_id?: string | null
+  has_pin?: boolean
+  totp_enabled?: boolean
   last_login_at: string | null
   created_at: string
   updated_at: string
@@ -672,6 +675,8 @@ export interface UserCreate {
   store_id?: string | null
   is_active?: boolean
   must_change_password?: boolean
+  employee_id?: string | null
+  pin?: string | null
 }
 
 export interface UserUpdate {
@@ -682,6 +687,8 @@ export interface UserUpdate {
   password?: string
   email?: string | null
   must_change_password?: boolean
+  employee_id?: string | null
+  pin?: string | null
 }
 
 export interface Paginated<T> {

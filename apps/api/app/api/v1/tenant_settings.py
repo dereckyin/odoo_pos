@@ -49,7 +49,10 @@ async def get_general_settings(db: DbSession, scope: TenantAdminDep):
     if not tenant:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     settings = tenant.settings or {}
-    return TenantGeneralSettingsRead(timezone=settings.get("timezone") or "Asia/Taipei")
+    return TenantGeneralSettingsRead(
+        timezone=settings.get("timezone") or "Asia/Taipei",
+        require_refund_approval=bool(settings.get("require_refund_approval", False)),
+    )
 
 
 @router.patch("/general-settings", response_model=TenantGeneralSettingsRead)
@@ -62,11 +65,16 @@ async def update_general_settings(
     settings = dict(tenant.settings or {})
     if payload.timezone is not None:
         settings["timezone"] = payload.timezone
+    if payload.require_refund_approval is not None:
+        settings["require_refund_approval"] = payload.require_refund_approval
     tenant.settings = settings
     await audit(db, scope, action="tenant_settings_update", resource_type="tenant", flush=False)
     await db.commit()
     await db.refresh(tenant)
-    return TenantGeneralSettingsRead(timezone=settings.get("timezone") or "Asia/Taipei")
+    return TenantGeneralSettingsRead(
+        timezone=settings.get("timezone") or "Asia/Taipei",
+        require_refund_approval=bool(settings.get("require_refund_approval", False)),
+    )
 
 
 @router.get("/modules", response_model=TenantModulesRead)
