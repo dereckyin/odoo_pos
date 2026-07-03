@@ -28,6 +28,7 @@ from ...schemas.guest_order import (
     MergeRequest,
 )
 from ...services.tenant_modules import require_guest_order_admin
+from .table_sessions import close_sessions_for_guest_table
 
 # Uber Eats style delivery sub-states.
 DELIVERY_FLOW = ("pending", "preparing", "out_for_delivery", "delivered")
@@ -271,6 +272,7 @@ async def merge_into_order(
     g.status = "merged"
     g.merged_at = datetime.now(timezone.utc)
     g.merged_order_id = order.id
+    await close_sessions_for_guest_table(db, g.table_id)
     await audit(db, scope, action="guest_order_merge", resource_type="guest_order",
                 resource_id=gid, flush=False)
     await db.commit()

@@ -81,6 +81,7 @@ class ProductRead(ORMModel):
     track_inventory: bool = True
     product_kind: str = "regular"
     marketplace_category_id: str | None = None
+    print_label: bool = False
     barcodes: list[str]
     updated_at: datetime
     deleted_at: datetime | None
@@ -109,6 +110,7 @@ class ProductRead(ORMModel):
             track_inventory=getattr(p, "track_inventory", True),
             product_kind=getattr(p, "product_kind", "regular"),
             marketplace_category_id=getattr(p, "marketplace_category_id", None),
+            print_label=getattr(p, "print_label", False),
             barcodes=[b.barcode for b in p.barcodes],
             updated_at=p.updated_at,
             deleted_at=p.deleted_at,
@@ -134,6 +136,7 @@ class ProductCreate(BaseModel):
     points_redeem_eligible: bool | None = None
     track_inventory: bool = True
     marketplace_category_id: str | None = None
+    print_label: bool = False
     barcodes: list[str] = []
 
 
@@ -156,4 +159,5 @@ class ProductUpdate(BaseModel):
     points_redeem_eligible: bool | None = None
     track_inventory: bool | None = None
     marketplace_category_id: str | None = None
+    print_label: bool | None = None
     barcodes: list[str] | None = None

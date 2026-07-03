@@ -11,6 +11,8 @@ import '../../../core/user_facing_error.dart';
 import '../../../data/database/app_database.dart';
 import '../../auth/widgets/manager_pin_dialog.dart';
 import '../order_list_display.dart';
+import '../../../data/printer/printer_providers.dart';
+import 'package:pos_domain/pos_domain.dart';
 
 final historyProvider = StreamProvider.autoDispose((ref) {
   final db = ref.read(databaseProvider);
@@ -126,6 +128,16 @@ class HistoryPage extends ConsumerWidget {
       builder: (_) => SafeArea(
         child: Wrap(children: [
           ListTile(
+            leading: const Icon(Icons.print_outlined),
+            title: const Text('補印收據'),
+            onTap: () => Navigator.pop(context, 'receipt'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.receipt_long_outlined),
+            title: const Text('補印發票證明聯'),
+            onTap: () => Navigator.pop(context, 'invoice'),
+          ),
+          ListTile(
             leading: const Icon(Icons.undo),
             title: const Text('退款'),
             onTap: () => Navigator.pop(context, 'refund'),
@@ -140,6 +152,10 @@ class HistoryPage extends ConsumerWidget {
     );
     if (action == 'refund') {
       if (context.mounted) context.push('/refund/${o.id}');
+    } else if (action == 'receipt') {
+      await _reprintReceipt(context, ref, o);
+    } else if (action == 'invoice') {
+      await _reprintInvoice(context, ref, o);
     } else if (action == 'void') {
       await _voidOrder(context, ref, o);
     }
@@ -196,6 +212,94 @@ class HistoryPage extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(formatUserFacingError(e, scene: UserErrorScene.general))),
       );
+    }
+  }
+
+  Future<void> _reprintReceipt(BuildContext context, WidgetRef ref, OrderRow o) async {
+    try {
+      final db = ref.read(databaseProvider);
+      final lines = await (db.select(db.orderLines)..where((t) => t.orderId.equals(o.id))).get();
+      final payments = await (db.select(db.payments)..where((t) => t.orderId.equals(o.id))).get();
+      final order = Order(
+        id: o.id,
+        storeId: o.storeId,
+        terminalId: o.terminalId,
+        cashierId: o.cashierId,
+        memberId: o.memberId,
+        status: OrderStatus.paid,
+        lines: lines
+            .map(
+              (l) => OrderLine(
+                id: l.id,
+                productId: l.productId,
+                productName: l.productName,
+                sku: l.sku,
+                qty: l.qty,
+                unitPrice: Money(l.unitPriceCents),
+                lineDiscount: Money(l.lineDiscountCents),
+                lineTotal: Money(l.lineTotalCents),
+                taxRate: l.taxRate,
+                note: l.note,
+              ),
+            )
+            .toList(),
+        payments: payments
+            .map(
+              (p) => Payment(
+                id: p.id,
+                method: PaymentMethod.values.firstWhere((m) => m.code == p.method),
+                amount: Money(p.amountCents),
+                status: PaymentStatus.captured,
+                createdAt: p.createdAt,
+              ),
+            )
+            .toList(),
+        subtotal: Money(o.subtotalCents),
+        discount: Money(o.discountCents),
+        tax: Money(o.taxCents),
+        total: Money(o.totalCents),
+        createdAt: o.createdAt,
+      );
+      await ref.read(printerServiceProvider).printReceipt(
+            order,
+            tableLabel: o.tableLabel,
+            orderNo: o.orderNo,
+          );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已補印收據')));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('補印失敗：$e')));
+      }
+    }
+  }
+
+  Future<void> _reprintInvoice(BuildContext context, WidgetRef ref, OrderRow o) async {
+    try {
+      final db = ref.read(databaseProvider);
+      final inv = await (db.select(db.invoices)..where((t) => t.orderId.equals(o.id))).getSingleOrNull();
+      if (inv == null || inv.invoiceNumber == null) {
+        throw StateError('此訂單尚無已開立發票');
+      }
+      await ref.read(printerServiceProvider).printInvoiceProof(
+            storeName: '點餐趣',
+            invoiceNumber: inv.invoiceNumber!,
+            invoiceDate: inv.invoiceDate ?? inv.createdAt,
+            randomCode: inv.randomCode ?? '0000',
+            total: Money(inv.totalCents),
+            buyerTaxId: inv.taxId,
+            barcode: inv.barcode,
+            qrLeft: inv.qrLeft,
+            qrRight: inv.qrRight,
+          );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已補印發票證明聯')));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('補印失敗：$e')));
+      }
     }
   }
 }

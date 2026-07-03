@@ -14,9 +14,16 @@ import '../../../data/sync/sync_queue_dao.dart';
 import 'cart_controller.dart';
 
 class CheckoutResult {
-  CheckoutResult({required this.order, required this.invoiceId});
+  CheckoutResult({
+    required this.order,
+    this.invoiceId,
+    this.invoiceJson,
+    this.invoiceIssuedOnline = false,
+  });
   final Order order;
   final String? invoiceId;
+  final Map<String, dynamic>? invoiceJson;
+  final bool invoiceIssuedOnline;
 }
 
 class CheckoutController {
@@ -67,6 +74,9 @@ class CheckoutController {
       invoiceCarrier: carrier?.code,
       note: note ?? cart.note,
     );
+
+    String? invoiceId;
+    Map<String, dynamic>? invoiceIssuePayload;
 
     await db.transaction(() async {
       // Persist order locally first
@@ -155,12 +165,21 @@ class CheckoutController {
         ),
       );
 
-      // Enqueue invoice issue (always; let server reject if duplicate)
-      String? invoiceId;
+      // Invoice row (issue queued below if online attempt fails)
       if (taxType > 0) {
         invoiceId = newUuid();
+        invoiceIssuePayload = {
+          'order_id': order.id,
+          'tax_type': taxType,
+          'carrier_type': carrier?.type.name,
+          'carrier_code': carrier?.code,
+          'tax_id': taxId,
+          'company_name': companyName,
+          'donation_code': donationCode,
+          'gateway': invoiceGateway,
+        };
         await db.into(db.invoices).insert(InvoicesCompanion.insert(
-              id: invoiceId,
+              id: invoiceId!,
               orderId: order.id,
               status: const d.Value('pending'),
               totalCents: order.total.cents,
@@ -174,23 +193,79 @@ class CheckoutController {
               gateway: d.Value(invoiceGateway),
               createdAt: now,
             ));
-        await dao.enqueue(SyncOpKind.issueInvoice, {
-          'order_id': order.id,
-          'tax_type': taxType,
-          'carrier_type': carrier?.type.name,
-          'carrier_code': carrier?.code,
-          'tax_id': taxId,
-          'company_name': companyName,
-          'donation_code': donationCode,
-          'gateway': invoiceGateway,
-        });
       }
     });
+
+    Map<String, dynamic>? issuedInvoiceJson;
+    var issuedOnline = false;
+    if (taxType > 0 && invoiceId != null && invoiceIssuePayload != null) {
+      issuedInvoiceJson = await _tryIssueInvoiceOnline(
+        orderPayload: _orderToPayload(
+          order,
+          now,
+          sourceGuestOrderId: sourceGuestOrderId,
+          pointsRedeemed: pointsRedeemed,
+          couponCode: couponCode,
+          extraDiscountCents:
+              (pointsDiscountCents > 0 ? pointsDiscountCents : pointsRedeemed) +
+                  couponDiscountCents,
+        ),
+        invoiceId: invoiceId!,
+        invoicePayload: invoiceIssuePayload!,
+      );
+      issuedOnline = issuedInvoiceJson != null;
+      if (!issuedOnline) {
+        await SyncQueueDao(db).enqueue(SyncOpKind.issueInvoice, invoiceIssuePayload!);
+      }
+    }
 
     _ref.read(cartControllerProvider.notifier).clear();
     unawaited(_ref.read(syncWorkerProvider).flush());
     unawaited(_ref.read(deltaPullerProvider).pullAll());
-    return CheckoutResult(order: order, invoiceId: null);
+    return CheckoutResult(
+      order: order,
+      invoiceId: invoiceId,
+      invoiceJson: issuedInvoiceJson,
+      invoiceIssuedOnline: issuedOnline,
+    );
+  }
+
+  Future<Map<String, dynamic>?> _tryIssueInvoiceOnline({
+    required Map<String, dynamic> orderPayload,
+    required String invoiceId,
+    required Map<String, dynamic> invoicePayload,
+  }) async {
+    try {
+      final api = _ref.read(posApiProvider);
+      await api.uploadOrder(orderPayload);
+      final res = await api.issueInvoice(invoicePayload);
+      if (res['status'] != 'issued') return null;
+      final db = _ref.read(databaseProvider);
+      await (db.update(db.invoices)..where((t) => t.id.equals(invoiceId))).write(
+        InvoicesCompanion(
+          status: const d.Value('issued'),
+          invoiceNumber: d.Value(res['invoice_number'] as String?),
+          invoiceDate: d.Value(
+            res['invoice_date'] != null
+                ? DateTime.parse(res['invoice_date'] as String)
+                : null,
+          ),
+          randomCode: d.Value(res['random_code'] as String?),
+          barcode: d.Value(res['barcode'] as String?),
+          qrLeft: d.Value(res['qr_left'] as String?),
+          qrRight: d.Value(res['qr_right'] as String?),
+        ),
+      );
+      final orderId = res['order_id'] as String?;
+      final number = res['invoice_number'] as String?;
+      if (orderId != null && number != null) {
+        await (db.update(db.orders)..where((t) => t.id.equals(orderId)))
+            .write(OrdersCompanion(invoiceNumber: d.Value(number)));
+      }
+      return res;
+    } catch (_) {
+      return null;
+    }
   }
 
   Map<String, dynamic> _orderToPayload(

@@ -32,3 +32,7 @@ class Invoice(Base, UUIDPrimaryKey, Timestamped):
     gateway_ref: Mapped[str | None] = mapped_column(String(128), nullable=True)
     gateway_response: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    random_code: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    barcode: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    qr_left: Mapped[str | None] = mapped_column(Text, nullable=True)
+    qr_right: Mapped[str | None] = mapped_column(Text, nullable=True)

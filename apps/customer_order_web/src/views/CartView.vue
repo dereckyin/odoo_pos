@@ -76,7 +76,7 @@
         <span>合計</span>
         <strong>${{ Math.round(cart.subtotalCents) }}</strong>
       </div>
-      <button class="submit-btn" :disabled="submitting" @click="submit">
+      <button class="submit-btn" data-testid="customer-submit-order" :disabled="submitting" @click="submit">
         {{ submitting ? '送出中…' : '送出點餐' }}
       </button>
     </footer>

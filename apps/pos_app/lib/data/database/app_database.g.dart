@@ -1558,6 +1558,16 @@ class $ProductsTable extends Products
       requiredDuringInsert: false,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("points_redeem_eligible" IN (0, 1))'));
+  static const VerificationMeta _printLabelMeta =
+      const VerificationMeta('printLabel');
+  @override
+  late final GeneratedColumn<bool> printLabel = GeneratedColumn<bool>(
+      'print_label', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("print_label" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _updatedAtMeta =
       const VerificationMeta('updatedAt');
   @override
@@ -1591,6 +1601,7 @@ class $ProductsTable extends Products
         memberDiscountEligible,
         pointsEarnEligible,
         pointsRedeemEligible,
+        printLabel,
         updatedAt,
         deletedAt
       ];
@@ -1707,6 +1718,12 @@ class $ProductsTable extends Products
           pointsRedeemEligible.isAcceptableOrUnknown(
               data['points_redeem_eligible']!, _pointsRedeemEligibleMeta));
     }
+    if (data.containsKey('print_label')) {
+      context.handle(
+          _printLabelMeta,
+          printLabel.isAcceptableOrUnknown(
+              data['print_label']!, _printLabelMeta));
+    }
     if (data.containsKey('updated_at')) {
       context.handle(_updatedAtMeta,
           updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
@@ -1766,6 +1783,8 @@ class $ProductsTable extends Products
           DriftSqlType.bool, data['${effectivePrefix}points_earn_eligible']),
       pointsRedeemEligible: attachedDatabase.typeMapping.read(
           DriftSqlType.bool, data['${effectivePrefix}points_redeem_eligible']),
+      printLabel: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}print_label'])!,
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
       deletedAt: attachedDatabase.typeMapping
@@ -1799,6 +1818,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   final bool? memberDiscountEligible;
   final bool? pointsEarnEligible;
   final bool? pointsRedeemEligible;
+  final bool printLabel;
   final DateTime updatedAt;
   final DateTime? deletedAt;
   const ProductRow(
@@ -1821,6 +1841,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       this.memberDiscountEligible,
       this.pointsEarnEligible,
       this.pointsRedeemEligible,
+      required this.printLabel,
       required this.updatedAt,
       this.deletedAt});
   @override
@@ -1859,6 +1880,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     if (!nullToAbsent || pointsRedeemEligible != null) {
       map['points_redeem_eligible'] = Variable<bool>(pointsRedeemEligible);
     }
+    map['print_label'] = Variable<bool>(printLabel);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
@@ -1901,6 +1923,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       pointsRedeemEligible: pointsRedeemEligible == null && nullToAbsent
           ? const Value.absent()
           : Value(pointsRedeemEligible),
+      printLabel: Value(printLabel),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
@@ -1935,6 +1958,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           serializer.fromJson<bool?>(json['pointsEarnEligible']),
       pointsRedeemEligible:
           serializer.fromJson<bool?>(json['pointsRedeemEligible']),
+      printLabel: serializer.fromJson<bool>(json['printLabel']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
@@ -1963,6 +1987,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           serializer.toJson<bool?>(memberDiscountEligible),
       'pointsEarnEligible': serializer.toJson<bool?>(pointsEarnEligible),
       'pointsRedeemEligible': serializer.toJson<bool?>(pointsRedeemEligible),
+      'printLabel': serializer.toJson<bool>(printLabel),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
@@ -1988,6 +2013,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           Value<bool?> memberDiscountEligible = const Value.absent(),
           Value<bool?> pointsEarnEligible = const Value.absent(),
           Value<bool?> pointsRedeemEligible = const Value.absent(),
+          bool? printLabel,
           DateTime? updatedAt,
           Value<DateTime?> deletedAt = const Value.absent()}) =>
       ProductRow(
@@ -2017,6 +2043,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
         pointsRedeemEligible: pointsRedeemEligible.present
             ? pointsRedeemEligible.value
             : this.pointsRedeemEligible,
+        printLabel: printLabel ?? this.printLabel,
         updatedAt: updatedAt ?? this.updatedAt,
         deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
       );
@@ -2058,6 +2085,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       pointsRedeemEligible: data.pointsRedeemEligible.present
           ? data.pointsRedeemEligible.value
           : this.pointsRedeemEligible,
+      printLabel:
+          data.printLabel.present ? data.printLabel.value : this.printLabel,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
@@ -2085,6 +2114,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ..write('memberDiscountEligible: $memberDiscountEligible, ')
           ..write('pointsEarnEligible: $pointsEarnEligible, ')
           ..write('pointsRedeemEligible: $pointsRedeemEligible, ')
+          ..write('printLabel: $printLabel, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt')
           ..write(')'))
@@ -2112,6 +2142,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
         memberDiscountEligible,
         pointsEarnEligible,
         pointsRedeemEligible,
+        printLabel,
         updatedAt,
         deletedAt
       ]);
@@ -2138,6 +2169,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           other.memberDiscountEligible == this.memberDiscountEligible &&
           other.pointsEarnEligible == this.pointsEarnEligible &&
           other.pointsRedeemEligible == this.pointsRedeemEligible &&
+          other.printLabel == this.printLabel &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt);
 }
@@ -2162,6 +2194,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
   final Value<bool?> memberDiscountEligible;
   final Value<bool?> pointsEarnEligible;
   final Value<bool?> pointsRedeemEligible;
+  final Value<bool> printLabel;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<int> rowid;
@@ -2185,6 +2218,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.memberDiscountEligible = const Value.absent(),
     this.pointsEarnEligible = const Value.absent(),
     this.pointsRedeemEligible = const Value.absent(),
+    this.printLabel = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2209,6 +2243,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.memberDiscountEligible = const Value.absent(),
     this.pointsEarnEligible = const Value.absent(),
     this.pointsRedeemEligible = const Value.absent(),
+    this.printLabel = const Value.absent(),
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2236,6 +2271,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Expression<bool>? memberDiscountEligible,
     Expression<bool>? pointsEarnEligible,
     Expression<bool>? pointsRedeemEligible,
+    Expression<bool>? printLabel,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<int>? rowid,
@@ -2264,6 +2300,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
         'points_earn_eligible': pointsEarnEligible,
       if (pointsRedeemEligible != null)
         'points_redeem_eligible': pointsRedeemEligible,
+      if (printLabel != null) 'print_label': printLabel,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (rowid != null) 'rowid': rowid,
@@ -2290,6 +2327,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       Value<bool?>? memberDiscountEligible,
       Value<bool?>? pointsEarnEligible,
       Value<bool?>? pointsRedeemEligible,
+      Value<bool>? printLabel,
       Value<DateTime>? updatedAt,
       Value<DateTime?>? deletedAt,
       Value<int>? rowid}) {
@@ -2315,6 +2353,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
           memberDiscountEligible ?? this.memberDiscountEligible,
       pointsEarnEligible: pointsEarnEligible ?? this.pointsEarnEligible,
       pointsRedeemEligible: pointsRedeemEligible ?? this.pointsRedeemEligible,
+      printLabel: printLabel ?? this.printLabel,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       rowid: rowid ?? this.rowid,
@@ -2384,6 +2423,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       map['points_redeem_eligible'] =
           Variable<bool>(pointsRedeemEligible.value);
     }
+    if (printLabel.present) {
+      map['print_label'] = Variable<bool>(printLabel.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -2418,6 +2460,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
           ..write('memberDiscountEligible: $memberDiscountEligible, ')
           ..write('pointsEarnEligible: $pointsEarnEligible, ')
           ..write('pointsRedeemEligible: $pointsRedeemEligible, ')
+          ..write('printLabel: $printLabel, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('rowid: $rowid')
@@ -12668,6 +12711,29 @@ class $InvoicesTable extends Invoices
   late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
       'last_error', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _randomCodeMeta =
+      const VerificationMeta('randomCode');
+  @override
+  late final GeneratedColumn<String> randomCode = GeneratedColumn<String>(
+      'random_code', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _barcodeMeta =
+      const VerificationMeta('barcode');
+  @override
+  late final GeneratedColumn<String> barcode = GeneratedColumn<String>(
+      'barcode', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _qrLeftMeta = const VerificationMeta('qrLeft');
+  @override
+  late final GeneratedColumn<String> qrLeft = GeneratedColumn<String>(
+      'qr_left', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _qrRightMeta =
+      const VerificationMeta('qrRight');
+  @override
+  late final GeneratedColumn<String> qrRight = GeneratedColumn<String>(
+      'qr_right', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -12692,6 +12758,10 @@ class $InvoicesTable extends Invoices
         gateway,
         gatewayRef,
         lastError,
+        randomCode,
+        barcode,
+        qrLeft,
+        qrRight,
         createdAt
       ];
   @override
@@ -12791,6 +12861,24 @@ class $InvoicesTable extends Invoices
       context.handle(_lastErrorMeta,
           lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta));
     }
+    if (data.containsKey('random_code')) {
+      context.handle(
+          _randomCodeMeta,
+          randomCode.isAcceptableOrUnknown(
+              data['random_code']!, _randomCodeMeta));
+    }
+    if (data.containsKey('barcode')) {
+      context.handle(_barcodeMeta,
+          barcode.isAcceptableOrUnknown(data['barcode']!, _barcodeMeta));
+    }
+    if (data.containsKey('qr_left')) {
+      context.handle(_qrLeftMeta,
+          qrLeft.isAcceptableOrUnknown(data['qr_left']!, _qrLeftMeta));
+    }
+    if (data.containsKey('qr_right')) {
+      context.handle(_qrRightMeta,
+          qrRight.isAcceptableOrUnknown(data['qr_right']!, _qrRightMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -12838,6 +12926,14 @@ class $InvoicesTable extends Invoices
           .read(DriftSqlType.string, data['${effectivePrefix}gateway_ref']),
       lastError: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}last_error']),
+      randomCode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}random_code']),
+      barcode: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}barcode']),
+      qrLeft: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}qr_left']),
+      qrRight: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}qr_right']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
     );
@@ -12866,6 +12962,10 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
   final String? gateway;
   final String? gatewayRef;
   final String? lastError;
+  final String? randomCode;
+  final String? barcode;
+  final String? qrLeft;
+  final String? qrRight;
   final DateTime createdAt;
   const InvoiceRow(
       {required this.id,
@@ -12884,6 +12984,10 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
       this.gateway,
       this.gatewayRef,
       this.lastError,
+      this.randomCode,
+      this.barcode,
+      this.qrLeft,
+      this.qrRight,
       required this.createdAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -12923,6 +13027,18 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
     }
     if (!nullToAbsent || lastError != null) {
       map['last_error'] = Variable<String>(lastError);
+    }
+    if (!nullToAbsent || randomCode != null) {
+      map['random_code'] = Variable<String>(randomCode);
+    }
+    if (!nullToAbsent || barcode != null) {
+      map['barcode'] = Variable<String>(barcode);
+    }
+    if (!nullToAbsent || qrLeft != null) {
+      map['qr_left'] = Variable<String>(qrLeft);
+    }
+    if (!nullToAbsent || qrRight != null) {
+      map['qr_right'] = Variable<String>(qrRight);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -12965,6 +13081,17 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
       lastError: lastError == null && nullToAbsent
           ? const Value.absent()
           : Value(lastError),
+      randomCode: randomCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(randomCode),
+      barcode: barcode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(barcode),
+      qrLeft:
+          qrLeft == null && nullToAbsent ? const Value.absent() : Value(qrLeft),
+      qrRight: qrRight == null && nullToAbsent
+          ? const Value.absent()
+          : Value(qrRight),
       createdAt: Value(createdAt),
     );
   }
@@ -12989,6 +13116,10 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
       gateway: serializer.fromJson<String?>(json['gateway']),
       gatewayRef: serializer.fromJson<String?>(json['gatewayRef']),
       lastError: serializer.fromJson<String?>(json['lastError']),
+      randomCode: serializer.fromJson<String?>(json['randomCode']),
+      barcode: serializer.fromJson<String?>(json['barcode']),
+      qrLeft: serializer.fromJson<String?>(json['qrLeft']),
+      qrRight: serializer.fromJson<String?>(json['qrRight']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -13012,6 +13143,10 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
       'gateway': serializer.toJson<String?>(gateway),
       'gatewayRef': serializer.toJson<String?>(gatewayRef),
       'lastError': serializer.toJson<String?>(lastError),
+      'randomCode': serializer.toJson<String?>(randomCode),
+      'barcode': serializer.toJson<String?>(barcode),
+      'qrLeft': serializer.toJson<String?>(qrLeft),
+      'qrRight': serializer.toJson<String?>(qrRight),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -13033,6 +13168,10 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
           Value<String?> gateway = const Value.absent(),
           Value<String?> gatewayRef = const Value.absent(),
           Value<String?> lastError = const Value.absent(),
+          Value<String?> randomCode = const Value.absent(),
+          Value<String?> barcode = const Value.absent(),
+          Value<String?> qrLeft = const Value.absent(),
+          Value<String?> qrRight = const Value.absent(),
           DateTime? createdAt}) =>
       InvoiceRow(
         id: id ?? this.id,
@@ -13053,6 +13192,10 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
         gateway: gateway.present ? gateway.value : this.gateway,
         gatewayRef: gatewayRef.present ? gatewayRef.value : this.gatewayRef,
         lastError: lastError.present ? lastError.value : this.lastError,
+        randomCode: randomCode.present ? randomCode.value : this.randomCode,
+        barcode: barcode.present ? barcode.value : this.barcode,
+        qrLeft: qrLeft.present ? qrLeft.value : this.qrLeft,
+        qrRight: qrRight.present ? qrRight.value : this.qrRight,
         createdAt: createdAt ?? this.createdAt,
       );
   InvoiceRow copyWithCompanion(InvoicesCompanion data) {
@@ -13083,6 +13226,11 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
       gatewayRef:
           data.gatewayRef.present ? data.gatewayRef.value : this.gatewayRef,
       lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      randomCode:
+          data.randomCode.present ? data.randomCode.value : this.randomCode,
+      barcode: data.barcode.present ? data.barcode.value : this.barcode,
+      qrLeft: data.qrLeft.present ? data.qrLeft.value : this.qrLeft,
+      qrRight: data.qrRight.present ? data.qrRight.value : this.qrRight,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -13106,30 +13254,39 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
           ..write('gateway: $gateway, ')
           ..write('gatewayRef: $gatewayRef, ')
           ..write('lastError: $lastError, ')
+          ..write('randomCode: $randomCode, ')
+          ..write('barcode: $barcode, ')
+          ..write('qrLeft: $qrLeft, ')
+          ..write('qrRight: $qrRight, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      orderId,
-      status,
-      invoiceNumber,
-      invoiceDate,
-      totalCents,
-      taxCents,
-      taxType,
-      carrierType,
-      carrierCode,
-      taxId,
-      companyName,
-      donationCode,
-      gateway,
-      gatewayRef,
-      lastError,
-      createdAt);
+  int get hashCode => Object.hashAll([
+        id,
+        orderId,
+        status,
+        invoiceNumber,
+        invoiceDate,
+        totalCents,
+        taxCents,
+        taxType,
+        carrierType,
+        carrierCode,
+        taxId,
+        companyName,
+        donationCode,
+        gateway,
+        gatewayRef,
+        lastError,
+        randomCode,
+        barcode,
+        qrLeft,
+        qrRight,
+        createdAt
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -13150,6 +13307,10 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
           other.gateway == this.gateway &&
           other.gatewayRef == this.gatewayRef &&
           other.lastError == this.lastError &&
+          other.randomCode == this.randomCode &&
+          other.barcode == this.barcode &&
+          other.qrLeft == this.qrLeft &&
+          other.qrRight == this.qrRight &&
           other.createdAt == this.createdAt);
 }
 
@@ -13170,6 +13331,10 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
   final Value<String?> gateway;
   final Value<String?> gatewayRef;
   final Value<String?> lastError;
+  final Value<String?> randomCode;
+  final Value<String?> barcode;
+  final Value<String?> qrLeft;
+  final Value<String?> qrRight;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const InvoicesCompanion({
@@ -13189,6 +13354,10 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
     this.gateway = const Value.absent(),
     this.gatewayRef = const Value.absent(),
     this.lastError = const Value.absent(),
+    this.randomCode = const Value.absent(),
+    this.barcode = const Value.absent(),
+    this.qrLeft = const Value.absent(),
+    this.qrRight = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -13209,6 +13378,10 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
     this.gateway = const Value.absent(),
     this.gatewayRef = const Value.absent(),
     this.lastError = const Value.absent(),
+    this.randomCode = const Value.absent(),
+    this.barcode = const Value.absent(),
+    this.qrLeft = const Value.absent(),
+    this.qrRight = const Value.absent(),
     required DateTime createdAt,
     this.rowid = const Value.absent(),
   })  : id = Value(id),
@@ -13233,6 +13406,10 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
     Expression<String>? gateway,
     Expression<String>? gatewayRef,
     Expression<String>? lastError,
+    Expression<String>? randomCode,
+    Expression<String>? barcode,
+    Expression<String>? qrLeft,
+    Expression<String>? qrRight,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -13253,6 +13430,10 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
       if (gateway != null) 'gateway': gateway,
       if (gatewayRef != null) 'gateway_ref': gatewayRef,
       if (lastError != null) 'last_error': lastError,
+      if (randomCode != null) 'random_code': randomCode,
+      if (barcode != null) 'barcode': barcode,
+      if (qrLeft != null) 'qr_left': qrLeft,
+      if (qrRight != null) 'qr_right': qrRight,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -13275,6 +13456,10 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
       Value<String?>? gateway,
       Value<String?>? gatewayRef,
       Value<String?>? lastError,
+      Value<String?>? randomCode,
+      Value<String?>? barcode,
+      Value<String?>? qrLeft,
+      Value<String?>? qrRight,
       Value<DateTime>? createdAt,
       Value<int>? rowid}) {
     return InvoicesCompanion(
@@ -13294,6 +13479,10 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
       gateway: gateway ?? this.gateway,
       gatewayRef: gatewayRef ?? this.gatewayRef,
       lastError: lastError ?? this.lastError,
+      randomCode: randomCode ?? this.randomCode,
+      barcode: barcode ?? this.barcode,
+      qrLeft: qrLeft ?? this.qrLeft,
+      qrRight: qrRight ?? this.qrRight,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -13350,6 +13539,18 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
     if (lastError.present) {
       map['last_error'] = Variable<String>(lastError.value);
     }
+    if (randomCode.present) {
+      map['random_code'] = Variable<String>(randomCode.value);
+    }
+    if (barcode.present) {
+      map['barcode'] = Variable<String>(barcode.value);
+    }
+    if (qrLeft.present) {
+      map['qr_left'] = Variable<String>(qrLeft.value);
+    }
+    if (qrRight.present) {
+      map['qr_right'] = Variable<String>(qrRight.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -13378,6 +13579,10 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
           ..write('gateway: $gateway, ')
           ..write('gatewayRef: $gatewayRef, ')
           ..write('lastError: $lastError, ')
+          ..write('randomCode: $randomCode, ')
+          ..write('barcode: $barcode, ')
+          ..write('qrLeft: $qrLeft, ')
+          ..write('qrRight: $qrRight, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -15244,6 +15449,7 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   Value<bool?> memberDiscountEligible,
   Value<bool?> pointsEarnEligible,
   Value<bool?> pointsRedeemEligible,
+  Value<bool> printLabel,
   required DateTime updatedAt,
   Value<DateTime?> deletedAt,
   Value<int> rowid,
@@ -15268,6 +15474,7 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<bool?> memberDiscountEligible,
   Value<bool?> pointsEarnEligible,
   Value<bool?> pointsRedeemEligible,
+  Value<bool> printLabel,
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
   Value<int> rowid,
@@ -15418,6 +15625,9 @@ class $$ProductsTableFilterComposer
   ColumnFilters<bool> get pointsRedeemEligible => $composableBuilder(
       column: $table.pointsRedeemEligible,
       builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get printLabel => $composableBuilder(
+      column: $table.printLabel, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
@@ -15585,6 +15795,9 @@ class $$ProductsTableOrderingComposer
       column: $table.pointsRedeemEligible,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get printLabel => $composableBuilder(
+      column: $table.printLabel, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
@@ -15657,6 +15870,9 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<bool> get pointsRedeemEligible => $composableBuilder(
       column: $table.pointsRedeemEligible, builder: (column) => column);
+
+  GeneratedColumn<bool> get printLabel => $composableBuilder(
+      column: $table.printLabel, builder: (column) => column);
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -15800,6 +16016,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<bool?> memberDiscountEligible = const Value.absent(),
             Value<bool?> pointsEarnEligible = const Value.absent(),
             Value<bool?> pointsRedeemEligible = const Value.absent(),
+            Value<bool> printLabel = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<DateTime?> deletedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -15824,6 +16041,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             memberDiscountEligible: memberDiscountEligible,
             pointsEarnEligible: pointsEarnEligible,
             pointsRedeemEligible: pointsRedeemEligible,
+            printLabel: printLabel,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
             rowid: rowid,
@@ -15848,6 +16066,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<bool?> memberDiscountEligible = const Value.absent(),
             Value<bool?> pointsEarnEligible = const Value.absent(),
             Value<bool?> pointsRedeemEligible = const Value.absent(),
+            Value<bool> printLabel = const Value.absent(),
             required DateTime updatedAt,
             Value<DateTime?> deletedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -15872,6 +16091,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             memberDiscountEligible: memberDiscountEligible,
             pointsEarnEligible: pointsEarnEligible,
             pointsRedeemEligible: pointsRedeemEligible,
+            printLabel: printLabel,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
             rowid: rowid,
@@ -21899,6 +22119,10 @@ typedef $$InvoicesTableCreateCompanionBuilder = InvoicesCompanion Function({
   Value<String?> gateway,
   Value<String?> gatewayRef,
   Value<String?> lastError,
+  Value<String?> randomCode,
+  Value<String?> barcode,
+  Value<String?> qrLeft,
+  Value<String?> qrRight,
   required DateTime createdAt,
   Value<int> rowid,
 });
@@ -21919,6 +22143,10 @@ typedef $$InvoicesTableUpdateCompanionBuilder = InvoicesCompanion Function({
   Value<String?> gateway,
   Value<String?> gatewayRef,
   Value<String?> lastError,
+  Value<String?> randomCode,
+  Value<String?> barcode,
+  Value<String?> qrLeft,
+  Value<String?> qrRight,
   Value<DateTime> createdAt,
   Value<int> rowid,
 });
@@ -21979,6 +22207,18 @@ class $$InvoicesTableFilterComposer
 
   ColumnFilters<String> get lastError => $composableBuilder(
       column: $table.lastError, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get randomCode => $composableBuilder(
+      column: $table.randomCode, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get barcode => $composableBuilder(
+      column: $table.barcode, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get qrLeft => $composableBuilder(
+      column: $table.qrLeft, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get qrRight => $composableBuilder(
+      column: $table.qrRight, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -22043,6 +22283,18 @@ class $$InvoicesTableOrderingComposer
   ColumnOrderings<String> get lastError => $composableBuilder(
       column: $table.lastError, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get randomCode => $composableBuilder(
+      column: $table.randomCode, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get barcode => $composableBuilder(
+      column: $table.barcode, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get qrLeft => $composableBuilder(
+      column: $table.qrLeft, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get qrRight => $composableBuilder(
+      column: $table.qrRight, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 }
@@ -22104,6 +22356,18 @@ class $$InvoicesTableAnnotationComposer
   GeneratedColumn<String> get lastError =>
       $composableBuilder(column: $table.lastError, builder: (column) => column);
 
+  GeneratedColumn<String> get randomCode => $composableBuilder(
+      column: $table.randomCode, builder: (column) => column);
+
+  GeneratedColumn<String> get barcode =>
+      $composableBuilder(column: $table.barcode, builder: (column) => column);
+
+  GeneratedColumn<String> get qrLeft =>
+      $composableBuilder(column: $table.qrLeft, builder: (column) => column);
+
+  GeneratedColumn<String> get qrRight =>
+      $composableBuilder(column: $table.qrRight, builder: (column) => column);
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 }
@@ -22147,6 +22411,10 @@ class $$InvoicesTableTableManager extends RootTableManager<
             Value<String?> gateway = const Value.absent(),
             Value<String?> gatewayRef = const Value.absent(),
             Value<String?> lastError = const Value.absent(),
+            Value<String?> randomCode = const Value.absent(),
+            Value<String?> barcode = const Value.absent(),
+            Value<String?> qrLeft = const Value.absent(),
+            Value<String?> qrRight = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -22167,6 +22435,10 @@ class $$InvoicesTableTableManager extends RootTableManager<
             gateway: gateway,
             gatewayRef: gatewayRef,
             lastError: lastError,
+            randomCode: randomCode,
+            barcode: barcode,
+            qrLeft: qrLeft,
+            qrRight: qrRight,
             createdAt: createdAt,
             rowid: rowid,
           ),
@@ -22187,6 +22459,10 @@ class $$InvoicesTableTableManager extends RootTableManager<
             Value<String?> gateway = const Value.absent(),
             Value<String?> gatewayRef = const Value.absent(),
             Value<String?> lastError = const Value.absent(),
+            Value<String?> randomCode = const Value.absent(),
+            Value<String?> barcode = const Value.absent(),
+            Value<String?> qrLeft = const Value.absent(),
+            Value<String?> qrRight = const Value.absent(),
             required DateTime createdAt,
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -22207,6 +22483,10 @@ class $$InvoicesTableTableManager extends RootTableManager<
             gateway: gateway,
             gatewayRef: gatewayRef,
             lastError: lastError,
+            randomCode: randomCode,
+            barcode: barcode,
+            qrLeft: qrLeft,
+            qrRight: qrRight,
             createdAt: createdAt,
             rowid: rowid,
           ),

@@ -8,6 +8,7 @@
 - **申請審核制**：公開申請 → Email OTP → 平台超管審核 → 自動開通租戶、預設店面與 Owner 帳號。
 - **RBAC**：`platform_super`、`tenant_owner` / `tenant_admin`、`store_manager`、`cashier`、`kitchen` 等角色。
 - **收銀與營運**：掃碼收銀、商品／庫存／會員／促銷、QR 桌邊點餐、訂單與報表。
+- **列印（v1.08）**：收據／廚房 ESC-POS、飲料 TSPL 標籤、顧客確認單、開桌一次性 QR、電子發票證明聯。
 - **Offline-First（POS）**：寫入先入本地佇列，背景同步雲端（依 `pos_app` 實作）。
 - **金流／發票**：平台級 fallback 設定；生產環境建議於「租戶設定」中設定每租戶 Encrypted 金鑰。
 - **安全強化**：終端註冊需管理員權限、POS 登入驗證 `terminal_api_key`、JWT 生產環境強制檢查、`/auth/*` 與公開端點限流。
@@ -68,6 +69,21 @@ flutter run
 
 日常操作（登入、開店、平台審核、POS）見 **[操作手冊.md](./操作手冊.md)**。
 
+## 正式環境部署（pos.myvnc.com）
+
+在 Windows 開發機上一鍵建置並上傳至 `ubuntu@pos.myvnc.com`：
+
+```powershell
+.\scripts\deploy-prod.ps1
+```
+
+腳本會同步說明頁、建置 POS **APK／Windows**（含 `CUSTOMER_BASE_URL`）、admin／顧客端靜態檔，打包 API 與 migration 後 SSH 重建 Docker。詳見 **[deploy/SHELF_TAAZE_TW.md](./deploy/SHELF_TAAZE_TW.md)**。
+
+下載連結（部署後）：
+
+- APK：`https://pos.myvnc.com/readme/pos-release.apk`
+- Windows：`https://pos.myvnc.com/readme/pos-release-windows.zip`
+
 ## 開發／測試用預設帳號（seed 後）
 
 | 用途 | 帳號 | 密碼 | 租戶代號 | 說明 |
@@ -90,6 +106,7 @@ flutter run
 - [同步協議](docs/sync_protocol.md)
 - [安裝手冊.md](./安裝手冊.md)
 - [操作手冊.md](./操作手冊.md)
+- [E2E 測試（Playwright）](./e2e/README.md)
 
 ## 授權
 

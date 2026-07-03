@@ -8,7 +8,7 @@ import 'package:pos_domain/pos_domain.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
 import '../../../core/providers.dart';
-import '../../../data/printer/printer_providers.dart';
+import '../../../data/printer/print_orchestrator.dart';
 import '../../../data/api/dto.dart';
 import '../../products/providers/product_providers.dart';
 import '../providers/cart_controller.dart';
@@ -410,10 +410,14 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       );
 
       try {
-        await ref.read(printerServiceProvider).printReceipt(
-          result.order,
-          tableLabel: tableLabel,
-        );
+        await ref.read(printOrchestratorProvider).onCheckout(
+              order: result.order,
+              cart: cart,
+              invoiceJson: result.invoiceJson,
+              tableLabel: tableLabel,
+              carrier: carrier,
+              donationCode: null,
+            );
       } catch (_) {/* non-fatal */}
 
       if (!mounted) return;

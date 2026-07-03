@@ -5,12 +5,15 @@ import 'package:pos_ui_kit/pos_ui_kit.dart';
 
 import '../../../core/providers.dart';
 import '../../../core/roles.dart';
+import '../../../data/printer/print_orchestrator.dart';
 import '../../../data/printer/printer_providers.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/widgets/manager_pin_dialog.dart';
 import '../../kds/providers/guest_orders_controller.dart';
 import '../../books/providers/consignment_providers.dart';
 import '../providers/cart_controller.dart';
+import '../../../data/printer/print_helpers.dart';
+import '../../../data/printer/printer_providers.dart';
 import '../utils/kitchen_ticket_builder.dart';
 import 'option_picker_sheet.dart';
 
@@ -64,11 +67,64 @@ class CartPanel extends ConsumerWidget {
           _Totals(cart: cart),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: BigButton(
-              icon: Icons.point_of_sale,
-              label: '結帳 ${cart.total.format()}',
-              onPressed: cart.isEmpty ? null : onCheckout,
-              minHeight: 72,
+            child: Column(
+              children: [
+                if (!cart.isEmpty)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            try {
+                              final guest = ref.read(importedGuestOrderProvider);
+                              await ref.read(printOrchestratorProvider).printCartConfirmation(
+                                    cart,
+                                    tableLabel: guest?.displayTitle,
+                                  );
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('列印失敗：$e')),
+                                );
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.receipt_long_outlined),
+                          label: const Text('印確認單'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            try {
+                              final guest = ref.read(importedGuestOrderProvider);
+                              await ref.read(printOrchestratorProvider).reprintCartLabels(
+                                    cart,
+                                    tableLabel: guest?.displayTitle,
+                                  );
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('$e')),
+                                );
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.label_outline),
+                          label: const Text('補印標籤'),
+                        ),
+                      ),
+                    ],
+                  ),
+                if (!cart.isEmpty) const SizedBox(height: 8),
+                BigButton(
+                  icon: Icons.point_of_sale,
+                  label: '結帳 ${cart.total.format()}',
+                  onPressed: cart.isEmpty ? null : onCheckout,
+                  minHeight: 72,
+                ),
+              ],
             ),
           ),
         ],
@@ -180,30 +236,75 @@ class _MarketplaceOrderBarState extends ConsumerState<_MarketplaceOrderBar> {
             ],
             Align(
               alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () async {
-                  try {
-                    await ref.read(kitchenPrinterServiceProvider).printTicket(
-                          kitchenTicketFromGuestOrder(guest),
-                        );
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.reprintKitchenTicket)),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('列印失敗：$e'),
-                          backgroundColor: scheme.error,
-                        ),
-                      );
-                    }
-                  }
-                },
-                icon: const Icon(Icons.print_outlined, size: 18),
-                label: Text(l10n.reprintKitchenTicket),
+              child: Wrap(
+                spacing: 4,
+                children: [
+                  TextButton.icon(
+                    onPressed: () async {
+                      try {
+                        await ref.read(printOrchestratorProvider).printGuestConfirmation(guest);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('已列印確認單')),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('列印失敗：$e'), backgroundColor: scheme.error),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                    label: const Text('確認單'),
+                  ),
+                  TextButton.icon(
+                    onPressed: () async {
+                      try {
+                        await ref.read(printOrchestratorProvider).reprintGuestLabels(guest);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('已補印標籤')),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('$e'), backgroundColor: scheme.error),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.label_outline, size: 18),
+                    label: const Text('標籤'),
+                  ),
+                  TextButton.icon(
+                    onPressed: () async {
+                      try {
+                        await ref.read(kitchenPrinterServiceProvider).printTicket(
+                              kitchenTicketFromGuestOrder(guest),
+                            );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.reprintKitchenTicket)),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('列印失敗：$e'),
+                              backgroundColor: scheme.error,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.print_outlined, size: 18),
+                    label: Text(l10n.reprintKitchenTicket),
+                  ),
+                ],
               ),
             ),
           ],

@@ -73,6 +73,7 @@ class Products extends Table {
   BoolColumn get memberDiscountEligible => boolean().nullable()();
   BoolColumn get pointsEarnEligible => boolean().nullable()();
   BoolColumn get pointsRedeemEligible => boolean().nullable()();
+  BoolColumn get printLabel => boolean().withDefault(const Constant(false))();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
 
@@ -440,6 +441,10 @@ class Invoices extends Table {
   TextColumn get gateway => text().nullable()();
   TextColumn get gatewayRef => text().nullable()();
   TextColumn get lastError => text().nullable()();
+  TextColumn get randomCode => text().nullable()();
+  TextColumn get barcode => text().nullable()();
+  TextColumn get qrLeft => text().nullable()();
+  TextColumn get qrRight => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
 
   @override

@@ -47,7 +47,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -96,6 +96,13 @@ class AppDatabase extends _$AppDatabase {
             await _addColumnIfMissing(m, products, products.pointsEarnEligible);
             await _addColumnIfMissing(
                 m, products, products.pointsRedeemEligible);
+          }
+          if (from < 9) {
+            await _addColumnIfMissing(m, products, products.printLabel);
+            await _addColumnIfMissing(m, invoices, invoices.randomCode);
+            await _addColumnIfMissing(m, invoices, invoices.barcode);
+            await _addColumnIfMissing(m, invoices, invoices.qrLeft);
+            await _addColumnIfMissing(m, invoices, invoices.qrRight);
           }
         },
         beforeOpen: (details) async {

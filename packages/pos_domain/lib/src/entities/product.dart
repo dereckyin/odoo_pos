@@ -23,6 +23,7 @@ class Product {
     this.memberDiscountEligible,
     this.pointsEarnEligible,
     this.pointsRedeemEligible,
+    this.printLabel = false,
     this.bookAuthor,
     this.optionConfigs = const [],
   });
@@ -52,6 +53,7 @@ class Product {
   final bool? memberDiscountEligible;
   final bool? pointsEarnEligible;
   final bool? pointsRedeemEligible;
+  final bool printLabel;
   final String? bookAuthor;
   final List<ProductOptionConfig> optionConfigs;
 
@@ -78,6 +80,7 @@ class Product {
     bool? memberDiscountEligible,
     bool? pointsEarnEligible,
     bool? pointsRedeemEligible,
+    bool? printLabel,
     String? bookAuthor,
     List<ProductOptionConfig>? optionConfigs,
   }) =>
@@ -101,6 +104,7 @@ class Product {
         memberDiscountEligible: memberDiscountEligible ?? this.memberDiscountEligible,
         pointsEarnEligible: pointsEarnEligible ?? this.pointsEarnEligible,
         pointsRedeemEligible: pointsRedeemEligible ?? this.pointsRedeemEligible,
+        printLabel: printLabel ?? this.printLabel,
         bookAuthor: bookAuthor ?? this.bookAuthor,
         optionConfigs: optionConfigs ?? this.optionConfigs,
       );

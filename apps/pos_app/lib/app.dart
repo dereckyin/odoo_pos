@@ -4,6 +4,7 @@ import 'package:pos_ui_kit/pos_ui_kit.dart';
 
 import 'l10n/app_localizations.dart';
 import 'routing/router.dart';
+import 'data/printer/remote_print_job_worker.dart';
 import 'data/sync/sync_providers.dart';
 import 'theme/theme_controller.dart';
 
@@ -13,6 +14,7 @@ class PosApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(syncSessionLifecycleProvider);
+    ref.watch(printWorkstationLifecycleProvider);
     final router = ref.watch(routerProvider);
     final mode = ref.watch(themeModeProvider);
     return MaterialApp.router(

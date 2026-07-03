@@ -12,12 +12,12 @@
           <a-input v-model:value="form.sku" />
         </a-form-item>
 
-        <a-form-item label="售價 (元)" :rules="[{ required: true, message: '請輸入售價' }]">
-          <a-input-number v-model:value="priceDisplay" :min="0" :precision="0" style="width: 200px" />
+        <a-form-item label="售價 (元)" name="price_cents" :rules="[{ required: true, message: '請輸入售價' }]">
+          <a-input-number v-model:value="form.price_cents" :min="0" :precision="0" style="width: 200px" />
         </a-form-item>
 
-        <a-form-item label="成本 (元)">
-          <a-input-number v-model:value="costDisplay" :min="0" :precision="0" style="width: 200px" />
+        <a-form-item label="成本 (元)" name="cost_cents">
+          <a-input-number v-model:value="form.cost_cents" :min="0" :precision="0" style="width: 200px" />
         </a-form-item>
 
         <a-form-item label="稅率">
@@ -74,6 +74,11 @@
           <div style="color: #888; font-size: 12px">
             關閉後 POS 銷售不扣庫存（適用現泡飲品等無庫存概念品項）。寄賣書籍一律追蹤庫存。
           </div>
+        </a-form-item>
+
+        <a-form-item label="列印杯上標籤">
+          <a-switch v-model:checked="form.print_label" />
+          <div style="color: #888; font-size: 12px">勾選後 POS 接單／結帳會為此品項逐杯列印飲料標籤。</div>
         </a-form-item>
 
         <a-form-item label="可享會員折扣">
@@ -202,12 +207,12 @@ const form = reactive({
   points_earn_eligible: null as boolean | null,
   points_redeem_eligible: null as boolean | null,
   track_inventory: true,
+  print_label: false,
   image_url: '' as string | null,
   description: '' as string | null,
+  price_cents: 0,
+  cost_cents: null as number | null,
 })
-
-const priceDisplay = ref(0)
-const costDisplay = ref<number | null>(null)
 
 async function handleUpload(file: File) {
   uploading.value = true
@@ -231,13 +236,13 @@ function removeImage() {
 async function handleSubmit() {
   submitting.value = true
   try {
-    const rawPrice = priceDisplay.value
+    const rawPrice = form.price_cents
     const priceCents = typeof rawPrice === 'number' ? Math.round(rawPrice) : Math.round(Number(rawPrice))
     if (!Number.isFinite(priceCents) || priceCents < 0) {
       message.error('請輸入有效售價（元）')
       return
     }
-    const costRaw = costDisplay.value
+    const costRaw = form.cost_cents
     const costCents =
       costRaw === null || costRaw === undefined
         ? null
@@ -265,6 +270,7 @@ async function handleSubmit() {
       points_earn_eligible: form.points_earn_eligible,
       points_redeem_eligible: form.points_redeem_eligible,
       track_inventory: isConsignmentBook.value ? true : form.track_inventory,
+      print_label: form.print_label,
       marketplace_category_id: marketplaceCategoryId.value ?? null,
       barcodes: barcodes.value.map((b) => b.trim()).filter(Boolean),
     }
@@ -301,50 +307,68 @@ async function handleSubmit() {
   }
 }
 
+async function loadProduct(productId: string) {
+  loading.value = true
+  try {
+    const [productRes, linksRes] = await Promise.allSettled([
+      getProduct(productId),
+      getProductOptionGroups(productId),
+    ])
+    if (productRes.status !== 'fulfilled') {
+      throw productRes.reason
+    }
+    const { data } = productRes.value
+    form.name = data.name
+    form.sku = data.sku
+    form.tax_rate = data.tax_rate
+    form.category_id = data.category_id ?? undefined
+    form.is_weighted = data.is_weighted
+    form.unit = data.unit
+    form.is_active = data.is_active
+    form.hide_from_public_ordering = data.hide_from_public_ordering ?? false
+    form.hide_from_pos_browse = data.hide_from_pos_browse ?? false
+    form.member_discount_eligible = data.member_discount_eligible ?? null
+    form.points_earn_eligible = data.points_earn_eligible ?? null
+    form.points_redeem_eligible = data.points_redeem_eligible ?? null
+    form.track_inventory = data.track_inventory ?? true
+    form.print_label = data.print_label ?? false
+    productKind.value = data.product_kind ?? 'regular'
+    form.image_url = data.image_url
+    form.description = data.description
+    marketplaceCategoryId.value = data.marketplace_category_id ?? undefined
+    form.price_cents = data.price_cents
+    form.cost_cents = data.cost_cents
+    barcodes.value = [...data.barcodes]
+    if (linksRes.status === 'fulfilled') {
+      selectedOptionGroupIds.value = linksRes.value.data
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((l) => l.option_group_id)
+    }
+  } catch (e: unknown) {
+    message.error(formatApiError(e))
+  } finally {
+    loading.value = false
+  }
+}
+
 onMounted(async () => {
-  const [{ data: tree }, { data: ogs }, { data: feedCats }] = await Promise.all([
+  const [treeRes, ogsRes, feedRes] = await Promise.allSettled([
     listCategoriesTree(),
     listOptionGroups(),
     listFeedCategories(),
   ])
-  categoryTreeOptions.value = decorateTree(tree)
-  optionGroups.value = ogs
-  feedCategories.value = feedCats
+  if (treeRes.status === 'fulfilled') {
+    categoryTreeOptions.value = decorateTree(treeRes.value.data)
+  }
+  if (ogsRes.status === 'fulfilled') {
+    optionGroups.value = ogsRes.value.data
+  }
+  if (feedRes.status === 'fulfilled') {
+    feedCategories.value = feedRes.value.data
+  }
 
   if (isEdit.value) {
-    loading.value = true
-    try {
-      const productId = route.params.id as string
-      const [{ data }, { data: links }] = await Promise.all([
-        getProduct(productId),
-        getProductOptionGroups(productId),
-      ])
-      form.name = data.name
-      form.sku = data.sku
-      form.tax_rate = data.tax_rate
-      form.category_id = data.category_id ?? undefined
-      form.is_weighted = data.is_weighted
-      form.unit = data.unit
-      form.is_active = data.is_active
-      form.hide_from_public_ordering = data.hide_from_public_ordering ?? false
-      form.hide_from_pos_browse = data.hide_from_pos_browse ?? false
-      form.member_discount_eligible = data.member_discount_eligible ?? null
-      form.points_earn_eligible = data.points_earn_eligible ?? null
-      form.points_redeem_eligible = data.points_redeem_eligible ?? null
-      form.track_inventory = data.track_inventory ?? true
-      productKind.value = data.product_kind ?? 'regular'
-      form.image_url = data.image_url
-      form.description = data.description
-      marketplaceCategoryId.value = data.marketplace_category_id ?? undefined
-      priceDisplay.value = data.price_cents
-      costDisplay.value = data.cost_cents
-      barcodes.value = [...data.barcodes]
-      selectedOptionGroupIds.value = links
-        .sort((a, b) => a.sort_order - b.sort_order)
-        .map((l) => l.option_group_id)
-    } finally {
-      loading.value = false
-    }
+    await loadProduct(route.params.id as string)
   }
 })
 </script>

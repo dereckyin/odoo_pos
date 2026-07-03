@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
 import '../../../data/api/dto.dart';
-import '../../../data/printer/escpos_service.dart';
-import '../../../data/printer/printer_providers.dart';
+import '../../../data/printer/print_orchestrator.dart';
+import '../../../data/printer/print_helpers.dart';
 
 /// Snapshot of guest orders shown on the KDS board, grouped by lifecycle
 /// state. The board polls every few seconds (a WebSocket push is a future
@@ -80,23 +80,18 @@ class GuestOrdersController extends StateNotifier<GuestOrdersSnapshot> {
   /// successful print (or printer disabled) do we advance the state. This
   /// avoids a foot-gun where the kitchen taps "accept" but never sees a
   /// paper ticket.
+  Future<GuestOrderDto> printConfirmation(GuestOrderDto order) async {
+    await _ref.read(printOrchestratorProvider).printGuestConfirmation(order);
+    return order;
+  }
+
+  Future<GuestOrderDto> reprintLabels(GuestOrderDto order) async {
+    await _ref.read(printOrchestratorProvider).reprintGuestLabels(order);
+    return order;
+  }
+
   Future<GuestOrderDto> accept(GuestOrderDto order) async {
-    final printer = _ref.read(kitchenPrinterServiceProvider);
-    final ticket = KitchenTicket(
-      guestOrderId: order.id,
-      tableLabel: order.displayTitle,
-      placedAt: order.createdAt,
-      partySize: order.partySize,
-      note: order.customerNote,
-      lines: order.lines
-          .map((l) => KitchenTicketLine(
-                name: l.productName,
-                qty: l.qty,
-                note: l.note,
-              ))
-          .toList(),
-    );
-    await printer.printTicket(ticket); // throws if I/O fails
+    await _ref.read(printOrchestratorProvider).onGuestOrderAccepted(order);
 
     final api = _ref.read(posApiProvider);
     final updated = await api.acceptGuestOrder(order.id);

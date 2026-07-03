@@ -50,6 +50,7 @@ from .promotion import Promotion
 from .invoice import Invoice
 from .idempotency import IdempotencyKey
 from .dining_table import DiningTable
+from .table_session import TableSession
 from .guest_order import GuestOrder, GuestOrderLine
 from .marketplace import MarketplaceListing, MarketplaceReview
 from .marketplace_banner import MarketplaceBanner
@@ -63,6 +64,7 @@ from .member_extras import (
     WalletTransaction,
 )
 from .purchasing import PurchaseOrder, PurchaseOrderLine, Supplier
+from .print_job import PrintJob
 
 __all__ = [
     "Tenant",
@@ -119,6 +121,7 @@ __all__ = [
     "Invoice",
     "IdempotencyKey",
     "DiningTable",
+    "TableSession",
     "GuestOrder",
     "GuestOrderLine",
     "MarketplaceListing",
@@ -136,4 +139,5 @@ __all__ = [
     "Supplier",
     "PurchaseOrder",
     "PurchaseOrderLine",
+    "PrintJob",
 ]

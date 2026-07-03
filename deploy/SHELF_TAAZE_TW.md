@@ -13,18 +13,20 @@
 腳本會依序：
 
 1. 將 `pos_doc/系統三大模組.html` 同步到 `apps/admin/public/readme/`（**admin `npm run build` 的 prebuild 也會自動執行**）
-2. （可選）`flutter build apk` 並打包進 readme
+2. `flutter build apk` / `flutter build windows`（帶 `--dart-define=CUSTOMER_BASE_URL=…`）並打包進 readme
 3. `npm run build` admin + customer web
-4. 打包上傳至 `ubuntu@pos.myvnc.com`，重建 Docker
+4. 打包上傳至 `ubuntu@pos.myvnc.com`，更新伺服器 `deploy/.env.api` 的 `CUSTOMER_BASE_URL` 後重建 Docker
 
 常用參數：
 
 | 參數 | 說明 |
 |------|------|
 | `-SkipApk` | 略過 Flutter APK 建置（readme 仍保留上次 APK） |
+| `-SkipWindows` | 略過 Windows 收銀端 zip 建置 |
 | `-SkipCustomer` | 略過顧客端 `/customer/` 建置 |
 | `-SkipBuild` | 只上傳現有 `dist/` 並重啟容器 |
 | `-Key "C:\path\to\key.pem"` | 自訂 SSH 私鑰路徑 |
+| `-CustomerBaseUrl "https://…/customer"` | POS／後台 QR 用的顧客點餐網址前綴（預設 `https://pos.myvnc.com/customer`） |
 
 **說明頁來源**：只需編輯 `pos_doc/系統三大模組.html`（與同目錄截圖 `.png`），下次 deploy 或 `npm run build`（admin）即會帶上，無需手動 scp readme。
 
@@ -53,6 +55,7 @@ cp deploy/.env.api.example deploy/.env.api
 |------|------|
 | `ENV` | `production` |
 | `CORS_ORIGINS` | 必須包含瀏覽器實際開啟的來源，例如 `https://pos.myvnc.com`（若暫時用 http 測試則一併列入）。逗號分隔、**不要**結尾 `/`。 |
+| `CUSTOMER_BASE_URL` | POS 開桌列印 QR、API 組顧客點餐連結用，例如 `https://pos.myvnc.com/customer`（**勿**尾隨 `/`）。`deploy-prod.ps1` 會在遠端自動寫入或更新此欄。 |
 | `JWT_SECRET` | 強隨機字串（≥32 字元），勿用範例預設值。 |
 | `SECRETS_ENCRYPTION_KEY` | Fernet 金鑰；可用 `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` 產生。 |
 

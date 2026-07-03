@@ -23,6 +23,11 @@ class Env {
     defaultValue: true,
   );
 
+  static const customerBaseUrl = String.fromEnvironment(
+    'CUSTOMER_BASE_URL',
+    defaultValue: 'https://pos.myvnc.com/customer',
+  );
+
   static const bookSaleDemoApiUrl = String.fromEnvironment(
     'BOOK_SALE_DEMO_API_URL',
     defaultValue: 'https://api.taaze.tw/api/v1/book/latest',

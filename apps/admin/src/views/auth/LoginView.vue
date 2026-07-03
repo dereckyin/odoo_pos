@@ -1,7 +1,7 @@
 <template>
   <div class="login-wrapper">
     <a-card class="login-card" title="點餐趣｜後台管理系統">
-      <a-form :model="form" @finish="handleLogin" layout="vertical">
+      <a-form :model="form" data-testid="admin-login-form" @finish="handleLogin" layout="vertical">
         <a-form-item label="租戶代號" name="tenant_code">
           <a-input
             v-model:value="form.tenant_code"

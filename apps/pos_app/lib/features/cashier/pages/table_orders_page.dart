@@ -7,6 +7,7 @@ import '../../../data/api/dto.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../kds/providers/guest_orders_controller.dart';
 import '../providers/cart_controller.dart';
+import '../widgets/open_table_sheet.dart';
 import '../widgets/order_detail_conflict_dialog.dart';
 
 /// Cashier-facing list of QR-scanned table orders (one-person workflow).
@@ -44,6 +45,11 @@ class _TableOrdersPageState extends ConsumerState<TableOrdersPage> {
       appBar: AppBar(
         title: const Text('桌邊 / 網路訂單'),
         actions: [
+          IconButton(
+            tooltip: '開桌列印 QR',
+            icon: const Icon(Icons.qr_code_2),
+            onPressed: () => showOpenTableQrSheet(context, ref),
+          ),
           IconButton(
             tooltip: '重新整理',
             icon: const Icon(Icons.refresh),

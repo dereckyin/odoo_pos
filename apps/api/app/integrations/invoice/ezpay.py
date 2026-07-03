@@ -116,6 +116,10 @@ class EzpayInvoiceDriver(InvoiceDriver):
             status="issued",
             invoice_number=invoice_number,
             invoice_date=invoice_date,
+            random_code=result.get("RandomNum") or result.get("RandomNumber"),
+            barcode=result.get("BarCode"),
+            qr_left=result.get("QRCodeL"),
+            qr_right=result.get("QRCodeR"),
             raw=res,
         )
 

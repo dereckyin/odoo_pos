@@ -146,6 +146,7 @@ class ProductDto {
     this.memberDiscountEligible,
     this.pointsEarnEligible,
     this.pointsRedeemEligible,
+    this.printLabel = false,
   });
 
   factory ProductDto.fromJson(Map<String, dynamic> j) => ProductDto(
@@ -171,6 +172,7 @@ class ProductDto {
         memberDiscountEligible: j['member_discount_eligible'] as bool?,
         pointsEarnEligible: j['points_earn_eligible'] as bool?,
         pointsRedeemEligible: j['points_redeem_eligible'] as bool?,
+        printLabel: j['print_label'] as bool? ?? false,
       );
 
   final String id, sku, name, unit;
@@ -189,6 +191,7 @@ class ProductDto {
   final bool? memberDiscountEligible;
   final bool? pointsEarnEligible;
   final bool? pointsRedeemEligible;
+  final bool printLabel;
 }
 
 class BookDetailDto {
@@ -850,4 +853,58 @@ class GuestOrderDto {
     }
     return '桌 ${tableLabel ?? '?'}';
   }
+}
+
+class DiningTableDto {
+  DiningTableDto({
+    required this.id,
+    required this.label,
+    this.seats,
+  });
+
+  factory DiningTableDto.fromJson(Map<String, dynamic> j) => DiningTableDto(
+        id: j['id'] as String,
+        label: j['label'] as String,
+        seats: (j['seats'] as num?)?.toInt(),
+      );
+
+  final String id;
+  final String label;
+  final int? seats;
+}
+
+class TableSessionOpenDto {
+  TableSessionOpenDto({
+    required this.tableLabel,
+    required this.customerOrderUrl,
+    required this.session,
+  });
+
+  factory TableSessionOpenDto.fromJson(Map<String, dynamic> j) => TableSessionOpenDto(
+        tableLabel: j['table_label'] as String,
+        customerOrderUrl: j['customer_order_url'] as String,
+        session: TableSessionDto.fromJson((j['session'] as Map).cast<String, dynamic>()),
+      );
+
+  final String tableLabel;
+  final String customerOrderUrl;
+  final TableSessionDto session;
+}
+
+class TableSessionDto {
+  TableSessionDto({
+    required this.id,
+    required this.sessionToken,
+    this.expiresAt,
+  });
+
+  factory TableSessionDto.fromJson(Map<String, dynamic> j) => TableSessionDto(
+        id: j['id'] as String,
+        sessionToken: j['session_token'] as String,
+        expiresAt: j['expires_at'] != null ? DateTime.parse(j['expires_at'] as String) : null,
+      );
+
+  final String id;
+  final String sessionToken;
+  final DateTime? expiresAt;
 }

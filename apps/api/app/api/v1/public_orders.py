@@ -7,6 +7,8 @@ token instantly invalidates any previously printed QR for that table.
 The menu is **strictly tenant-scoped** to ``table.tenant_id`` so a QR code
 in store A never leaks store B's catalogue.
 """
+from datetime import datetime, timezone
+
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -22,6 +24,7 @@ from ...models import (
     Member,
     Product,
     Store,
+    TableSession,
 )
 from ...schemas.guest_order import GuestOrderRead, GuestOrderSubmit
 from ...schemas.public import (
@@ -94,6 +97,35 @@ async def _product_orderable_via_public_menu(db, p: Product) -> bool:
 
 
 async def _resolve_table(db, token: str) -> tuple[DiningTable, Store]:
+    now = datetime.now(timezone.utc)
+
+    session = (
+        await db.execute(
+            select(TableSession)
+            .where(
+                TableSession.session_token == token,
+                TableSession.status == "open",
+            )
+        )
+    ).scalar_one_or_none()
+    if session:
+        if session.expires_at and session.expires_at < now:
+            raise HTTPException(
+                status.HTTP_410_GONE,
+                "此 QR 已失效，請洽服務人員重新索取點餐碼",
+            )
+        table = await db.get(DiningTable, session.table_id)
+        if not table or table.deleted_at or not table.is_active:
+            raise HTTPException(
+                status.HTTP_410_GONE,
+                "此 QR 已失效，請洽服務人員重新索取點餐碼",
+            )
+        store = await db.get(Store, table.store_id)
+        if not store or store.deleted_at:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "store not found")
+        await assert_tenant_module(db, table.tenant_id, MODULE_ONLINE_ORDERING)
+        return table, store
+
     table = (
         await db.execute(
             select(DiningTable).where(
@@ -104,10 +136,18 @@ async def _resolve_table(db, token: str) -> tuple[DiningTable, Store]:
         )
     ).scalar_one_or_none()
     if not table:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "invalid or inactive table token")
+        raise HTTPException(
+            status.HTTP_410_GONE,
+            "此 QR 已失效，請洽服務人員重新索取點餐碼",
+        )
     store = await db.get(Store, table.store_id)
     if not store or store.deleted_at:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "store not found")
+    if not getattr(store, "allow_static_table_qr", True):
+        raise HTTPException(
+            status.HTTP_410_GONE,
+            "此 QR 已失效，請洽服務人員重新索取點餐碼",
+        )
     await assert_tenant_module(db, table.tenant_id, MODULE_ONLINE_ORDERING)
     return table, store
 

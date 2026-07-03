@@ -175,6 +175,7 @@ class DeltaPuller {
             memberDiscountEligible: Value(p.memberDiscountEligible),
             pointsEarnEligible: Value(p.pointsEarnEligible),
             pointsRedeemEligible: Value(p.pointsRedeemEligible),
+            printLabel: Value(p.printLabel),
           ),
           mode: InsertMode.insertOrReplace,
         );

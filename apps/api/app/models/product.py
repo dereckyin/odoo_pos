@@ -52,6 +52,7 @@ class Product(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     marketplace_category_id: Mapped[str | None] = mapped_column(
         ForeignKey("marketplace_categories.id"), nullable=True, index=True
     )
+    print_label: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     barcodes: Mapped[list["ProductBarcode"]] = relationship(
         back_populates="product", cascade="all, delete-orphan"

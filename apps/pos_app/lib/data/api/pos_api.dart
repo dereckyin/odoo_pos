@@ -357,6 +357,41 @@ class PosApi {
     return GuestOrderDto.fromJson(_asMap(r.data));
   }
 
+  // ---- Dining tables / sessions ----
+  Future<List<DiningTableDto>> listDiningTables({required String storeId}) async {
+    final r = await _dio.get('/dining-tables', queryParameters: {'store_id': storeId});
+    return (r.data as List)
+        .map((e) => DiningTableDto.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  Future<TableSessionOpenDto> openTableSession(String tableId) async {
+    final r = await _dio.post('/dining-tables/$tableId/sessions');
+    return TableSessionOpenDto.fromJson(_asMap(r.data));
+  }
+
+  // ---- Print jobs (web POS queue) ----
+  Future<List<Map<String, dynamic>>> pollPrintJobs({String? storeId}) async {
+    final r = await _dio.get('/print-jobs/pending', queryParameters: {
+      if (storeId != null) 'store_id': storeId,
+    });
+    final items = (_asMap(r.data))['items'] as List;
+    return items.map((e) => (e as Map).cast<String, dynamic>()).toList();
+  }
+
+  Future<void> completePrintJob(String id) async {
+    await _dio.post('/print-jobs/$id/complete');
+  }
+
+  Future<void> failPrintJob(String id, {required String error}) async {
+    await _dio.post('/print-jobs/$id/fail', data: {'error': error});
+  }
+
+  Future<Map<String, dynamic>> createPrintJob(Map<String, dynamic> payload) async {
+    final r = await _dio.post('/print-jobs', data: payload);
+    return _asMap(r.data);
+  }
+
   // ---- Consignment books ----
   Future<ConsignmentPosConfigDto> fetchConsignmentPosConfig() async {
     final r = await _dio.get('/books/pos-config');

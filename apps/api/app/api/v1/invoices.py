@@ -12,6 +12,7 @@ from ...integrations.invoice import (
     tenant_invoice_driver_for,
 )
 from ...integrations.invoice.base import InvoiceLine
+from ...integrations.invoice.proof import extract_invoice_proof
 from ...models import Invoice, Order
 from ...schemas.invoice import InvoiceRead, IssueInvoiceRequest, VoidInvoiceRequest
 
@@ -84,6 +85,11 @@ async def issue_invoice(
         invoice.invoice_number = res.invoice_number
         invoice.invoice_date = res.invoice_date or datetime.now(timezone.utc)
         invoice.gateway_response = res.raw
+        proof = extract_invoice_proof(res)
+        invoice.random_code = proof.random_code or res.random_code
+        invoice.barcode = proof.barcode or res.barcode
+        invoice.qr_left = proof.qr_left or res.qr_left
+        invoice.qr_right = proof.qr_right or res.qr_right
         order.invoice_number = res.invoice_number
     else:
         invoice.status = "failed"

@@ -92,6 +92,10 @@ class EcpayInvoiceDriver(InvoiceDriver):
             status="issued",
             invoice_number=data.get("InvoiceNo"),
             invoice_date=datetime.now(timezone.utc),
+            random_code=data.get("RandomNumber"),
+            barcode=data.get("BarCode"),
+            qr_left=data.get("QRCodeL"),
+            qr_right=data.get("QRCodeR"),
             raw=res,
         )
 

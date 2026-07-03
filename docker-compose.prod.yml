@@ -68,7 +68,7 @@ services:
     container_name: pos_customer_web_prod
     restart: unless-stopped
     ports:
-      - "127.0.0.1:9089:80"
+      - "9089:80"
     volumes:
       - ./apps/customer_order_web/dist:/usr/share/nginx/html:ro
       - ./deploy/nginx.customer.conf:/etc/nginx/conf.d/default.conf:ro
@@ -83,6 +83,17 @@ services:
     volumes:
       - ./apps/marketplace_web/dist:/usr/share/nginx/html:ro
       - ./deploy/nginx.marketplace.conf:/etc/nginx/conf.d/default.conf:ro
+
+  # 網頁收銀（base=/pos/）— Caddy handle_path /pos 反代至 9091
+  cashier_web:
+    image: nginx:alpine
+    container_name: pos_cashier_web_prod
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9091:80"
+    volumes:
+      - ./apps/pos_web/dist:/usr/share/nginx/html:ro
+      - ./deploy/nginx.pos.conf:/etc/nginx/conf.d/default.conf:ro
 
 volumes:
   pos_pgdata:

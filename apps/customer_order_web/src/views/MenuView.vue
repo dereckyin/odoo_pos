@@ -7,7 +7,7 @@
   <div v-else-if="menu" class="menu-page">
     <header class="topbar">
       <div class="store-name">{{ menu.meta.store_name }}</div>
-      <div class="table-tag">桌 {{ menu.meta.table_label }}</div>
+      <div class="table-tag" data-testid="customer-table-tag">桌 {{ menu.meta.table_label }}</div>
     </header>
 
     <nav class="cat-bar">
@@ -201,7 +201,12 @@ async function loadMenu() {
     menu.value = data
     if (rootCategoryIds.value[0]) activeCat.value = rootCategoryIds.value[0]
   } catch (e: any) {
-    error.value = e.response?.data?.detail || '載入菜單失敗'
+    const msg = e.response?.data?.detail
+    if (e.response?.status === 410) {
+      error.value = typeof msg === 'string' ? msg : '此 QR 已失效，請洽服務人員重新索取點餐碼'
+    } else {
+      error.value = msg || '載入菜單失敗'
+    }
   } finally {
     loading.value = false
   }

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..core.db import Base
@@ -21,6 +21,7 @@ class Store(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     geocoded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     geocode_label: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    allow_static_table_qr: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     terminals: Mapped[list["Terminal"]] = relationship(back_populates="store", cascade="all, delete-orphan")
 

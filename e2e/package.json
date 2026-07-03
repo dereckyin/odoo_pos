@@ -1,0 +1,20 @@
+{
+  "name": "odoo-pos-e2e",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:pos": "playwright test --project=pos",
+    "test:qr": "playwright test tests/flows/qr-lifecycle.spec.ts",
+    "test:admin": "playwright test --project=admin",
+    "report": "playwright show-report",
+    "codegen:pos": "playwright codegen https://pos.myvnc.com/pos/login"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "@types/node": "^22.19.18",
+    "dotenv": "^16.4.7",
+    "typescript": "~5.7.3"
+  }
+}

@@ -43,6 +43,10 @@ class InvoiceResult:
     status: str  # issued | voided | failed
     invoice_number: str | None = None
     invoice_date: datetime | None = None
+    random_code: str | None = None
+    barcode: str | None = None
+    qr_left: str | None = None
+    qr_right: str | None = None
     raw: dict[str, Any] | None = None
 
 

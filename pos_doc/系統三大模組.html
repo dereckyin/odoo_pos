@@ -187,6 +187,29 @@
       line-height: 1.45;
     }
 
+    .download-warning {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.5rem 0.85rem;
+      border-radius: 8px;
+      background: #fff7e6;
+      color: #873800;
+      border: 1px solid #ffc53d;
+      font-weight: 600;
+      opacity: 1;
+      max-width: 32em;
+      line-height: 1.5;
+      text-align: left;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    }
+
+    .download-warning code {
+      color: #ad2102;
+      background: rgba(0, 0, 0, 0.06);
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+    }
+
     .pill .dot {
       width: 10px;
       height: 10px;
@@ -1130,12 +1153,12 @@
           <a class="btn-download" href="/readme/pos-release.apk" download="點餐趣-pos.apk">
             <span aria-hidden="true">📲</span> 下載 Android 版
           </a>
-          <a class="btn-download btn-download--windows" href="/readme/pos-release-windows.zip" download="點餐趣-pos-windows.zip">
+          <a class="btn-download btn-download--windows" href="/readme/pos-release-windows.zip" download="pos-windows.zip">
             <span aria-hidden="true">🖥️</span> 下載 Windows 版
           </a>
         </div>
         <span class="download-meta">Android APK · 約 __APK_MB__ MB · Windows 壓縮包 · 約 __WINDOWS_ZIP_MB__ MB</span>
-        <p class="download-note">安裝後請由店長完成「終端註冊」，再以收銀帳號登入。Windows 版解壓後執行 <code>pos_app.exe</code>。</p>
+        <p class="download-note">安裝後請由店長完成「終端註冊」，再以收銀帳號登入。Windows 版解壓後執行 <code>pos_app.exe</code>。<br><span class="download-warning">⚠️ Windows 版請解壓到「全英文路徑」的資料夾（例如 <code>C:\POS</code>），資料夾或路徑含中文會導致一開啟就閃退。</span></p>
       </div>
     </div>
   </header>
@@ -1210,6 +1233,31 @@
     <section id="changelog" class="card">
       <h2>版本歷程與功能更新</h2>
       <p class="subtitle">由新到舊整理各版重點。目前版本 <strong>__APP_VERSION__</strong>。</p>
+
+      <article class="changelog-item">
+        <h3><span class="ver">v1.08</span> 列印與桌邊點餐強化</h3>
+        <ul>
+          <li><strong>三台印表機</strong> — 收據、廚房、飲料標籤（TSPL）可各自設定 IP／埠，列印佇列自動重試</li>
+          <li><strong>飲料杯標籤</strong> — 商品可標記「列印標籤」，結帳後逐杯列印品名、選項與序號</li>
+          <li><strong>顧客餐點確認單</strong> — 桌邊／現場點餐送出後列印確認單供顧客核對</li>
+          <li><strong>一次性桌邊 QR</strong> — 開桌列印當次點餐 QR；結帳或併單後失效（可於店面設定是否允許固定桌 QR）</li>
+          <li><strong>電子發票證明聯</strong> — 結帳線上開立後列印隨機碼、一維／二維條碼；訂單歷史可補印</li>
+          <li><strong>廚房單</strong> — 品項選項一併列出；現場點餐亦送廚房列印</li>
+        </ul>
+      </article>
+
+      <article class="changelog-item">
+        <h3><span class="ver">v1.07</span> 三層權限架構與門市管控</h3>
+        <ul>
+          <li><strong>三層角色權限</strong> — 經營者／店長·庫存／門市·結帳三級，登入方式與系統操作權限分層管控</li>
+          <li><strong>員工 ID＋PIN 快速登入</strong> — 受信任終端上以員工 ID 與 PIN 快速登入／換手結帳</li>
+          <li><strong>雙重驗證（2FA）</strong> — 管理者帳號可啟用 TOTP 動態驗證碼，後台提供綁定 QR 與停用</li>
+          <li><strong>退貨／作廢審核</strong> — 可設定退貨需審核；收銀送出後由店長於後台或現場以經理 PIN 核准／駁回</li>
+          <li><strong>交班結帳</strong> — 開班／交班、現金盤點與差異計算，並可列印 Z 報表（ESC/POS）</li>
+          <li><strong>盤點與條碼列印</strong> — 後台與收銀端盤點輸入實點數量；後台可批次產生與列印商品條碼標籤</li>
+          <li><strong>敏感操作授權</strong> — 收銀員執行退貨、折扣、作廢時需經理 PIN 授權</li>
+        </ul>
+      </article>
 
       <article class="changelog-item">
         <h3><span class="ver">v1.06</span> 報表金額顯示修正</h3>
@@ -1306,13 +1354,18 @@
 
       <h3 style="font-size:1.05rem;margin:1.5rem 0 0.5rem;color:#2d5fad">Windows</h3>
       <div class="download-inline">
-        <a class="btn-download btn-download--windows" href="/readme/pos-release-windows.zip" download="點餐趣-pos-windows.zip">
+        <a class="btn-download btn-download--windows" href="/readme/pos-release-windows.zip" download="pos-windows.zip">
           下載 Windows 壓縮包（約 __WINDOWS_ZIP_MB__ MB）
         </a>
         <span style="color:var(--muted);font-size:0.9rem">
-          檔名：<code>點餐趣-pos-windows.zip</code> · 解壓至資料夾後執行 <code>pos_app.exe</code>
+          檔名：<code>pos-windows.zip</code> · 解壓至資料夾後執行 <code>pos_app.exe</code>
         </span>
       </div>
+      <p style="margin:0.5rem 0 0;padding:0.6rem 0.8rem;background:#fdecea;border:1px solid #f5c6cb;border-radius:8px;color:#c0392b;font-size:0.9rem">
+        ⚠️ <strong>重要：</strong>請將壓縮包解壓到<strong>全英文的路徑</strong>（例如 <code>C:\POS\pos-windows</code>）。
+        資料夾名稱或完整路徑只要含有中文／全形字元，程式會在開啟瞬間閃退（Flutter Windows 限制）。
+        Windows 登入帳號名稱若為中文，請改放到如 <code>C:\POS</code> 這類路徑。
+      </p>
 
       <ul class="feature-list" style="margin-top:1rem">
         <li>首次開啟：店長以管理員帳號完成 <strong>終端註冊</strong></li>

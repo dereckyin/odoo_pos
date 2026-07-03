@@ -170,6 +170,13 @@ class SyncWorker {
     await (db.update(db.invoices)..where((t) => t.id.equals(id))).write(InvoicesCompanion(
       status: const Value('issued'),
       invoiceNumber: Value(number),
+      invoiceDate: Value(
+        res['invoice_date'] != null ? DateTime.parse(res['invoice_date'] as String) : null,
+      ),
+      randomCode: Value(res['random_code'] as String?),
+      barcode: Value(res['barcode'] as String?),
+      qrLeft: Value(res['qr_left'] as String?),
+      qrRight: Value(res['qr_right'] as String?),
     ));
     if (number != null) {
       final orderId = res['order_id'] as String?;

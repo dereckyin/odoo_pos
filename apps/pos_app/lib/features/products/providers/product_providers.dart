@@ -188,6 +188,7 @@ class ProductRepositoryImpl {
               memberDiscountEligible: r.memberDiscountEligible,
               pointsEarnEligible: r.pointsEarnEligible,
               pointsRedeemEligible: r.pointsRedeemEligible,
+              printLabel: r.printLabel,
               bookAuthor: authorByProduct[r.id],
               optionConfigs: optionConfigs[r.id] ?? const [],
             ))

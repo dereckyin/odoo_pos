@@ -35,6 +35,10 @@ class Invoice {
     this.donationCode,
     this.gatewayRef,
     this.lastError,
+    this.randomCode,
+    this.barcode,
+    this.qrLeft,
+    this.qrRight,
   });
 
   final String id;
@@ -52,4 +56,8 @@ class Invoice {
   final String? donationCode;
   final String? gatewayRef;
   final String? lastError;
+  final String? randomCode;
+  final String? barcode;
+  final String? qrLeft;
+  final String? qrRight;
 }

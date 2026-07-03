@@ -278,6 +278,7 @@ export interface ProductRead {
   points_earn_eligible: boolean | null
   points_redeem_eligible: boolean | null
   track_inventory: boolean
+  print_label?: boolean
   product_kind?: string
   marketplace_category_id: string | null
   barcodes: string[]
@@ -303,6 +304,7 @@ export interface ProductCreate {
   points_earn_eligible?: boolean | null
   points_redeem_eligible?: boolean | null
   track_inventory?: boolean
+  print_label?: boolean
   marketplace_category_id?: string | null
   barcodes?: string[]
 }

@@ -16,6 +16,11 @@
 #         encode gzip
 #     }
 #
+#     handle_path /pos* {
+#         reverse_proxy http://127.0.0.1:9091
+#         encode gzip
+#     }
+#
 #     handle {
 #         reverse_proxy http://127.0.0.1:9088
 #         encode gzip

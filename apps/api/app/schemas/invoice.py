@@ -40,4 +40,8 @@ class InvoiceRead(ORMModel):
     gateway: str | None
     gateway_ref: str | None
     last_error: str | None
+    random_code: str | None = None
+    barcode: str | None = None
+    qr_left: str | None = None
+    qr_right: str | None = None
     created_at: datetime
