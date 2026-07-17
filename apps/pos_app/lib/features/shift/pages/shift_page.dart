@@ -10,7 +10,6 @@ import '../../../core/providers.dart';
 import '../../../core/user_facing_error.dart';
 import '../../../data/printer/escpos_zh.dart';
 import '../../../data/printer/printer_providers.dart';
-import '../../../data/printer/raw_printer_driver.dart';
 
 /// Shift open + close (開班 / 交班結帳). On close we compare the cashier's
 /// counted cash against the expected drawer and print a Z report.
@@ -258,7 +257,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
       bytes.addAll(gen.feed(2));
       bytes.addAll(gen.cut());
 
-      await RawPrinterDriver().printBytes(prefs, Uint8List.fromList(bytes));
+      await ref.read(rawPrinterDriverProvider).printBytes(prefs, Uint8List.fromList(bytes));
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

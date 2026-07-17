@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -66,10 +67,18 @@ final labelPrinterPrefsProvider =
   );
 });
 
+final rawPrinterDriverProvider = Provider<RawPrinterDriver>((ref) {
+  final driver = RawPrinterDriver();
+  ref.onDispose(() {
+    unawaited(driver.disconnectBluetooth());
+  });
+  return driver;
+});
+
 final printerServiceProvider = Provider<PrinterService>((ref) {
   return PrinterService(
     ref: ref,
-    driver: RawPrinterDriver(),
+    driver: ref.watch(rawPrinterDriverProvider),
     queue: ref.watch(printJobQueueProvider),
     logger: AppLogger.named('printer'),
   );
@@ -78,7 +87,7 @@ final printerServiceProvider = Provider<PrinterService>((ref) {
 final kitchenPrinterServiceProvider = Provider<KitchenPrinterService>((ref) {
   return KitchenPrinterService(
     ref: ref,
-    driver: RawPrinterDriver(),
+    driver: ref.watch(rawPrinterDriverProvider),
     queue: ref.watch(printJobQueueProvider),
     logger: AppLogger.named('kitchen-printer'),
   );
@@ -87,7 +96,7 @@ final kitchenPrinterServiceProvider = Provider<KitchenPrinterService>((ref) {
 final labelPrinterServiceProvider = Provider<LabelPrinterService>((ref) {
   return LabelPrinterService(
     ref: ref,
-    driver: RawPrinterDriver(),
+    driver: ref.watch(rawPrinterDriverProvider),
     queue: ref.watch(printJobQueueProvider),
     logger: AppLogger.named('label-printer'),
   );

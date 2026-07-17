@@ -12,9 +12,6 @@ import 'printer_prefs.dart';
 bool get bluetoothPrintingSupported => Platform.isAndroid || Platform.isIOS;
 
 /// Requests runtime permissions required for Bluetooth printer scan/connect.
-///
-/// The printer plugin also requests these, but on Android 12+ a missing
-/// location declaration previously caused a permanent English toast failure.
 Future<void> ensureBluetoothPrintPermissions({required bool isBle}) async {
   if (!Platform.isAndroid) return;
 
@@ -38,6 +35,19 @@ Future<void> ensureBluetoothPrintPermissions({required bool isBle}) async {
   throw StateError('需要允許藍牙與定位權限才能掃描印表機（請全部允許）');
 }
 
+String? normalizeBluetoothAddress(String? raw) {
+  final s = raw?.trim() ?? '';
+  if (s.isEmpty) return null;
+  // Accept AA:BB:… or AA-BB-… ; plugin regex allows both.
+  final hex = s.replaceAll(RegExp(r'[^0-9A-Fa-f]'), '');
+  if (hex.length != 12) return s.toUpperCase();
+  final parts = <String>[];
+  for (var i = 0; i < 12; i += 2) {
+    parts.add(hex.substring(i, i + 2).toUpperCase());
+  }
+  return parts.join(':');
+}
+
 /// Sends raw ESC/POS or TSPL bytes over network TCP or Bluetooth.
 class RawPrinterDriver {
   RawPrinterDriver({TcpPrinterDriver? tcp}) : _tcp = tcp ?? TcpPrinterDriver();
@@ -45,13 +55,17 @@ class RawPrinterDriver {
   final TcpPrinterDriver _tcp;
   final PrinterManager _manager = PrinterManager.instance;
 
+  String? _connectedAddress;
+  bool _connectedIsBle = false;
+  StreamSubscription<BTStatus>? _statusSub;
+  BTStatus _btStatus = BTStatus.none;
+
   Future<void> printBytes(
     PrinterPreferences prefs,
     Uint8List bytes, {
     String? hostOverride,
     int? portOverride,
   }) async {
-    // Explicit host override always means network (e.g. remote print workstation).
     final useNetwork = hostOverride != null ||
         prefs.connectionType == PrinterConnectionType.network;
 
@@ -67,41 +81,128 @@ class RawPrinterDriver {
     await _printBluetooth(prefs, bytes);
   }
 
-  Future<void> _printBluetooth(PrinterPreferences prefs, Uint8List bytes) async {
-    if (!bluetoothPrintingSupported) {
-      throw StateError('此平台不支援藍牙印表機（請改用網路印表機）');
+  void _ensureStatusListener() {
+    _statusSub ??= _manager.stateBluetooth.listen((status) {
+      _btStatus = status;
+      if (status == BTStatus.none) {
+        _connectedAddress = null;
+      }
+    });
+  }
+
+  Future<void> _waitUntilConnected({Duration timeout = const Duration(seconds: 12)}) async {
+    if (_btStatus == BTStatus.connected || _manager.currentStatusBT == BTStatus.connected) {
+      return;
     }
-    final address = prefs.bluetoothAddress?.trim() ?? '';
-    if (address.isEmpty) {
+    final completer = Completer<void>();
+    late StreamSubscription<BTStatus> sub;
+    Timer? timer;
+    sub = _manager.stateBluetooth.listen((status) {
+      _btStatus = status;
+      if (status == BTStatus.connected && !completer.isCompleted) {
+        completer.complete();
+      }
+      if (status == BTStatus.none && !completer.isCompleted) {
+        // keep waiting until timeout — transient none during connect is possible
+      }
+    });
+    timer = Timer(timeout, () {
+      if (!completer.isCompleted) {
+        completer.completeError(
+          TimeoutException('等待藍牙連線逾時（請確認印表機已開機，並在系統設定已配對）'),
+        );
+      }
+    });
+    try {
+      await completer.future;
+    } finally {
+      await sub.cancel();
+      timer.cancel();
+    }
+  }
+
+  Future<void> _ensureBluetoothConnected(PrinterPreferences prefs) async {
+    final address = normalizeBluetoothAddress(prefs.bluetoothAddress);
+    if (address == null || address.isEmpty) {
       throw StateError('尚未選擇藍牙印表機');
     }
 
     await ensureBluetoothPrintPermissions(isBle: prefs.bluetoothIsBle);
+    _ensureStatusListener();
 
-    final connected = await _manager.connect(
+    final already =
+        _connectedAddress == address &&
+        _connectedIsBle == prefs.bluetoothIsBle &&
+        (_btStatus == BTStatus.connected || _manager.currentStatusBT == BTStatus.connected);
+
+    if (already) return;
+
+    if (_connectedAddress != null && _connectedAddress != address) {
+      try {
+        await _manager.disconnect(type: PrinterType.bluetooth, delayMs: 300);
+      } catch (_) {}
+      _connectedAddress = null;
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+    }
+
+    final ok = await _manager.connect(
       type: PrinterType.bluetooth,
       model: BluetoothPrinterInput(
         name: prefs.bluetoothName ?? address,
         address: address,
         isBle: prefs.bluetoothIsBle,
-        autoConnect: false,
+        // Keep trying if the socket drops between jobs.
+        autoConnect: true,
       ),
     );
-    if (!connected) {
-      throw StateError('無法連線藍牙印表機（$address）');
+    if (!ok && _manager.currentStatusBT != BTStatus.connected) {
+      throw StateError('無法連線藍牙印表機（$address）。請先在系統藍牙設定完成配對後再試');
     }
 
-    try {
-      final ok = await _manager.send(type: PrinterType.bluetooth, bytes: bytes);
-      if (!ok) {
-        throw StateError('藍牙印表機傳送失敗');
-      }
+    await _waitUntilConnected();
+    // Android classic SPP often needs a short settle time before write.
+    if (Platform.isAndroid) {
+      await Future<void>.delayed(const Duration(milliseconds: 1000));
+    } else {
       await Future<void>.delayed(const Duration(milliseconds: 300));
-    } finally {
-      try {
-        await _manager.disconnect(type: PrinterType.bluetooth, delayMs: 200);
-      } catch (_) {}
     }
+
+    _connectedAddress = address;
+    _connectedIsBle = prefs.bluetoothIsBle;
+  }
+
+  Future<void> _printBluetooth(PrinterPreferences prefs, Uint8List bytes) async {
+    if (!bluetoothPrintingSupported) {
+      throw StateError('此平台不支援藍牙印表機（請改用網路印表機）');
+    }
+
+    await _ensureBluetoothConnected(prefs);
+
+    final ok = await _manager.send(type: PrinterType.bluetooth, bytes: bytes);
+    if (!ok) {
+      // One reconnect + retry — common after printer sleeps.
+      _connectedAddress = null;
+      await _ensureBluetoothConnected(prefs);
+      final retry = await _manager.send(type: PrinterType.bluetooth, bytes: bytes);
+      if (!retry) {
+        throw StateError('藍牙印表機傳送失敗（連線狀態異常，請重新配對後再測）');
+      }
+    }
+
+    // Let the printer drain the buffer. Do NOT disconnect immediately —
+    // closing the socket triggers "Bluetooth connection lost" toast and
+    // often cuts the end of the receipt.
+    final drainMs = (800 + (bytes.length / 40).round()).clamp(800, 4000);
+    await Future<void>.delayed(Duration(milliseconds: drainMs));
+  }
+
+  /// Explicit disconnect (e.g. when leaving printer settings).
+  Future<void> disconnectBluetooth() async {
+    try {
+      await _manager.disconnect(type: PrinterType.bluetooth, delayMs: 300);
+    } catch (_) {}
+    _connectedAddress = null;
+    _btStatus = BTStatus.none;
   }
 }
 
@@ -109,7 +210,6 @@ class RawPrinterDriver {
 class BluetoothPrinterScanner {
   StreamSubscription<PrinterDevice>? _sub;
 
-  /// Collects devices for [timeout], then cancels discovery.
   Future<List<PrinterDevice>> scan({
     bool isBle = false,
     Duration timeout = const Duration(seconds: 8),
@@ -128,7 +228,7 @@ class BluetoothPrinterScanner {
         .discovery(type: PrinterType.bluetooth, isBle: isBle)
         .listen(
       (device) {
-        final key = device.address ?? device.name;
+        final key = normalizeBluetoothAddress(device.address) ?? device.name;
         if (key.isEmpty) return;
         byAddress[key] = device;
       },

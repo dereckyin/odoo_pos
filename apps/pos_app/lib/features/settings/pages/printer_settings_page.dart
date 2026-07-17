@@ -264,12 +264,17 @@ class _EscPosFormState extends ConsumerState<_EscPosForm> {
               subtitle: Text(
                 defaultTargetPlatform == TargetPlatform.iOS
                     ? 'iOS 僅支援 BLE'
-                    : '多數熱感機為經典藍牙，請關閉此項',
+                    : '多數熱感機為經典藍牙，請保持關閉；若連線一直斷開再嘗試開啟',
               ),
               value: _btIsBle,
               onChanged: defaultTargetPlatform == TargetPlatform.iOS
                   ? null
                   : (v) => setState(() => _btIsBle = v),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '提示：請先在系統「設定 → 藍牙」與印表機完成配對，再開 App 掃描。',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
@@ -293,7 +298,7 @@ class _EscPosFormState extends ConsumerState<_EscPosForm> {
                 subtitle: Text(d.address ?? ''),
                 selected: d.address == _btAddress,
                 onTap: () => setState(() {
-                  _btAddress = d.address;
+                  _btAddress = normalizeBluetoothAddress(d.address) ?? d.address;
                   _btName = d.name.isEmpty ? d.address : d.name;
                 }),
               ),
@@ -494,7 +499,7 @@ class _LabelFormState extends ConsumerState<_LabelForm> {
               subtitle: Text(d.address ?? ''),
               selected: d.address == _btAddress,
               onTap: () => setState(() {
-                _btAddress = d.address;
+                _btAddress = normalizeBluetoothAddress(d.address) ?? d.address;
                 _btName = d.name.isEmpty ? d.address : d.name;
               }),
             ),
