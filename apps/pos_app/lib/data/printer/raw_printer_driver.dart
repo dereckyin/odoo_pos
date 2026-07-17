@@ -3,12 +3,40 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_pos_printer_platform_image_3/flutter_pos_printer_platform_image_3.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'escpos_service.dart';
 import 'printer_prefs.dart';
 
 /// Whether this platform can use Bluetooth printers via the POS printer plugin.
 bool get bluetoothPrintingSupported => Platform.isAndroid || Platform.isIOS;
+
+/// Requests runtime permissions required for Bluetooth printer scan/connect.
+///
+/// The printer plugin also requests these, but on Android 12+ a missing
+/// location declaration previously caused a permanent English toast failure.
+Future<void> ensureBluetoothPrintPermissions({required bool isBle}) async {
+  if (!Platform.isAndroid) return;
+
+  final needed = <Permission>[
+    Permission.locationWhenInUse,
+    Permission.bluetoothScan,
+    Permission.bluetoothConnect,
+  ];
+  if (isBle) {
+    needed.add(Permission.bluetoothAdvertise);
+  }
+
+  final statuses = await needed.request();
+  final denied = statuses.entries.where((e) => !e.value.isGranted).map((e) => e.key).toList();
+  if (denied.isEmpty) return;
+
+  final forever = denied.any((p) => statuses[p]?.isPermanentlyDenied ?? false);
+  if (forever) {
+    throw StateError('藍牙／定位權限被永久拒絕，請到系統設定開啟後再掃描');
+  }
+  throw StateError('需要允許藍牙與定位權限才能掃描印表機（請全部允許）');
+}
 
 /// Sends raw ESC/POS or TSPL bytes over network TCP or Bluetooth.
 class RawPrinterDriver {
@@ -47,6 +75,8 @@ class RawPrinterDriver {
     if (address.isEmpty) {
       throw StateError('尚未選擇藍牙印表機');
     }
+
+    await ensureBluetoothPrintPermissions(isBle: prefs.bluetoothIsBle);
 
     final connected = await _manager.connect(
       type: PrinterType.bluetooth,
@@ -87,6 +117,8 @@ class BluetoothPrinterScanner {
     if (!bluetoothPrintingSupported) {
       throw StateError('此平台不支援藍牙掃描');
     }
+
+    await ensureBluetoothPrintPermissions(isBle: isBle);
 
     final byAddress = <String, PrinterDevice>{};
     final completer = Completer<List<PrinterDevice>>();

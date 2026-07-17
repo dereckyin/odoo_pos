@@ -44,6 +44,7 @@ dependencies:
   # ESC/POS
   esc_pos_utils_plus: ^2.0.4
   flutter_pos_printer_platform_image_3: ^1.0.5
+  permission_handler: ^11.3.1
 
   # Barcode
   mobile_scanner: ^5.2.3
