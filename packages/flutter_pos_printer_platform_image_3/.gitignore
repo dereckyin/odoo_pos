@@ -2,3 +2,6 @@
 /example/
 /test/
 *.png
+android/.gradle/
+android/local.properties
+**/build/
