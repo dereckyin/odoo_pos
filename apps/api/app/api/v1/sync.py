@@ -51,6 +51,8 @@ async def _delta(db, model: Type, scope, since: datetime, limit: int):
     stmt = stmt.order_by(model.updated_at).limit(limit)
     if hasattr(model, "barcodes"):
         stmt = stmt.options(selectinload(model.barcodes))
+    if model is Product:
+        stmt = stmt.options(selectinload(Product.book_detail))
     return (await db.execute(stmt)).scalars().unique().all()
 
 

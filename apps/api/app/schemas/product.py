@@ -89,7 +89,17 @@ class ProductRead(ORMModel):
 
     @classmethod
     def from_orm_with_barcodes(cls, p) -> "ProductRead":
-        bd = getattr(p, "book_detail", None)
+        # Avoid async MissingGreenlet when book_detail was not eagerly loaded.
+        author = None
+        try:
+            from sqlalchemy import inspect as sa_inspect
+
+            unloaded = sa_inspect(p).unloaded
+            if "book_detail" not in unloaded:
+                bd = p.book_detail
+                author = getattr(bd, "author", None) if bd is not None else None
+        except Exception:
+            author = None
         return cls(
             id=p.id,
             tenant_id=p.tenant_id,
@@ -113,7 +123,7 @@ class ProductRead(ORMModel):
             product_kind=getattr(p, "product_kind", "regular"),
             marketplace_category_id=getattr(p, "marketplace_category_id", None),
             print_label=getattr(p, "print_label", False),
-            author=getattr(bd, "author", None) if bd is not None else None,
+            author=author,
             barcodes=[b.barcode for b in p.barcodes],
             updated_at=p.updated_at,
             deleted_at=p.deleted_at,
