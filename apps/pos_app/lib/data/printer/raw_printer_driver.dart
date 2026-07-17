@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:flutter_pos_printer_platform_image_3/flutter_pos_printer_platform_image_3.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'classic_bluetooth_printer.dart';
 import 'escpos_service.dart';
 import 'printer_prefs.dart';
 
@@ -208,6 +209,24 @@ class RawPrinterDriver {
   Future<void> _printBluetooth(PrinterPreferences prefs, Uint8List bytes) async {
     if (!bluetoothPrintingSupported) {
       throw StateError('此平台不支援藍牙印表機（請改用網路印表機）');
+    }
+
+    // Android classic BT: one-shot native SPP (connect→write→close).
+    // Avoids the third-party plugin's status/send races and Uint8List codec bug.
+    if (Platform.isAndroid && !prefs.bluetoothIsBle) {
+      final address = normalizeBluetoothAddress(prefs.bluetoothAddress);
+      if (address == null || address.isEmpty) {
+        throw StateError('尚未選擇藍牙印表機');
+      }
+      await ensureBluetoothPrintPermissions(isBle: false);
+      try {
+        await _manager.bluetoothPrinterConnector.stopScan();
+      } catch (_) {}
+      try {
+        await _manager.disconnect(type: PrinterType.bluetooth, delayMs: 150);
+      } catch (_) {}
+      await ClassicBluetoothPrinter.printRaw(address: address, bytes: bytes);
+      return;
     }
 
     Future<bool> attempt({required bool forceReconnect}) async {

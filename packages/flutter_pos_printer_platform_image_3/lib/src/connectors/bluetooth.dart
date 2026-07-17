@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_pos_printer_platform_image_3/discovery.dart';
@@ -234,10 +235,9 @@ class BluetoothPrinterConnector implements PrinterConnector<BluetoothPrinterInpu
   Future<bool> send(List<int> bytes) async {
     try {
       if (Platform.isAndroid) {
-        // final connected = await _connect();
-        // if (!connected) return false;
-        Map<String, dynamic> params = {"bytes": bytes};
-        return await flutterPrinterChannel.invokeMethod('sendDataByte', params);
+        // Prefer typed data so Android receives ByteArray (plugin now accepts both).
+        final payload = bytes is Uint8List ? bytes : Uint8List.fromList(bytes);
+        return await flutterPrinterChannel.invokeMethod('sendDataByte', {"bytes": payload});
       } else if (Platform.isIOS) {
         Map<String, Object> args = Map();
         args['bytes'] = bytes;

@@ -292,11 +292,13 @@ class FlutterPosPrinterPlatformPlugin : FlutterPlugin, MethodCallHandler, Plugin
             call.method.equals("sendDataByte") -> {
                 if (verifyIsBluetoothIsOn()) {
                     bluetoothService.setHandler(bluetoothHandler)
-                    val listInt: ArrayList<Int>? = call.argument("bytes")
-                    val ints = listInt!!.toIntArray()
-                    val bytes = ints.foldIndexed(ByteArray(ints.size)) { i, a, v -> a.apply { set(i, v.toByte()) } }
-                    val res = bluetoothService.sendDataByte(bytes)
-                    result.success(res)
+                    val bytes = coerceByteArray(call.argument("bytes"))
+                    if (bytes == null) {
+                        result.success(false)
+                    } else {
+                        val res = bluetoothService.sendDataByte(bytes)
+                        result.success(res)
+                    }
                 } else {
                     result.success(false)
                 }
@@ -484,6 +486,30 @@ class FlutterPosPrinterPlatformPlugin : FlutterPlugin, MethodCallHandler, Plugin
             }
         }
         return false
+    }
+
+    private fun coerceByteArray(raw: Any?): ByteArray? {
+        return when (raw) {
+            null -> null
+            is ByteArray -> raw
+            is ArrayList<*> -> {
+                ByteArray(raw.size) { i ->
+                    when (val v = raw[i]) {
+                        is Number -> v.toByte()
+                        else -> 0
+                    }
+                }
+            }
+            is List<*> -> {
+                ByteArray(raw.size) { i ->
+                    when (val v = raw[i]) {
+                        is Number -> v.toByte()
+                        else -> 0
+                    }
+                }
+            }
+            else -> null
+        }
     }
 
     companion object {
