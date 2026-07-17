@@ -11,7 +11,7 @@
       <li v-for="line in cart.lines" :key="line.lineKey">
         <div class="row">
           <strong>{{ line.product.name }}</strong>
-          <span>${{ (lineTotal(line) / 100).toFixed(0) }}</span>
+          <span>{{ formatMoney(lineTotal(line)) }}</span>
         </div>
         <p v-if="line.selectedOptions.length" class="opts">
           {{ formatOpts(line.selectedOptions) }}
@@ -42,9 +42,9 @@
     </section>
 
     <footer>
-      <div class="sum-row"><span>小計</span><span>${{ (totals.subtotal / 100).toFixed(0) }}</span></div>
-      <div v-if="totals.discount" class="sum-row"><span>折扣</span><span>-${{ (totals.discount / 100).toFixed(0) }}</span></div>
-      <div class="sum-row total"><span>應收</span><span>${{ (totals.total / 100).toFixed(0) }}</span></div>
+      <div class="sum-row"><span>小計</span><span>{{ formatMoney(totals.subtotal) }}</span></div>
+      <div v-if="totals.discount" class="sum-row"><span>折扣</span><span>-{{ formatMoney(totals.discount) }}</span></div>
+      <div class="sum-row total"><span>應收</span><span>{{ formatMoney(totals.total) }}</span></div>
       <button class="checkout" data-testid="cart-checkout-btn" :disabled="!cart.lines.length" @click="emit('checkout')">結帳</button>
       <button class="clear" :disabled="!cart.lines.length" @click="cart.clear()">清空</button>
     </footer>
@@ -55,6 +55,7 @@
 import { computed } from 'vue'
 import { useCartStore } from '@/stores/cart'
 import { calcTotals, unitPriceCents } from '@/lib/printPayloads'
+import { formatMoney } from '@/utils/formatMoney'
 import type { CartLine } from '@/stores/cart'
 import type { SelectedOption } from '@/types'
 

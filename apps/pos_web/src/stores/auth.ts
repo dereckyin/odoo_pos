@@ -59,6 +59,14 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('terminal_api_key', cfg.terminal_api_key)
   }
 
+  function clearTerminalConfig() {
+    tenantCode.value = ''
+    storeCode.value = ''
+    terminalCode.value = ''
+    terminalApiKey.value = ''
+    TERMINAL_KEYS.forEach((k) => localStorage.removeItem(k))
+  }
+
   async function login(user: string, password: string) {
     const { data } = await authApi.login({
       tenant_code: tenantCode.value,
@@ -117,6 +125,7 @@ export const useAuthStore = defineStore('auth', () => {
     hasTerminalConfig,
     setSession,
     saveTerminalConfig,
+    clearTerminalConfig,
     login,
     refreshSession,
     logout,

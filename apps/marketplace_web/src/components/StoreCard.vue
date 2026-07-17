@@ -54,17 +54,19 @@ const priceText = computed(() => '$'.repeat(Math.min(3, Math.max(1, props.store.
 .store-card {
   display: block;
   background: var(--surface);
-  border-radius: 14px;
+  border-radius: 8px;
   overflow: hidden;
   text-decoration: none;
   color: inherit;
-  box-shadow: 0 1px 3px rgba(51, 51, 51, 0.08);
-  transition: box-shadow 0.15s, transform 0.15s;
+  border: 1px solid var(--border);
+  box-shadow: none;
+  transition: border-color 0.15s;
 }
 .banner {
   position: relative;
-  height: 120px;
+  height: 96px;
   background: var(--accent-soft);
+  border-bottom: 1px solid var(--border);
 }
 .banner img {
   width: 100%;
@@ -85,12 +87,12 @@ const priceText = computed(() => '$'.repeat(Math.min(3, Math.max(1, props.store.
   position: absolute;
   top: 8px;
   right: 8px;
-  border: 0;
+  border: 1px solid var(--border);
   width: 32px;
   height: 32px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
-  color: #e0245e;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--accent);
   font-size: 17px;
   line-height: 1;
 }
@@ -100,13 +102,13 @@ const priceText = computed(() => '$'.repeat(Math.min(3, Math.max(1, props.store.
 .closed {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(34, 32, 28, 0.45);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
 }
 .logo {
   position: absolute;
@@ -114,17 +116,18 @@ const priceText = computed(() => '$'.repeat(Math.min(3, Math.max(1, props.store.
   bottom: -16px;
   width: 44px;
   height: 44px;
-  border-radius: 10px;
+  border-radius: 6px;
   object-fit: cover;
-  border: 2px solid var(--surface);
+  border: 1px solid var(--border);
   background: var(--surface);
 }
 .body {
-  padding: 10px 12px 12px;
+  padding: 20px 12px 12px;
 }
 .name {
   font-weight: 700;
   font-size: 15px;
+  letter-spacing: 0.03em;
   margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -142,15 +145,15 @@ const priceText = computed(() => '$'.repeat(Math.min(3, Math.max(1, props.store.
   margin-top: 3px;
 }
 .rating {
-  color: #e6a700;
-  font-weight: 600;
+  color: var(--amber);
+  font-weight: 700;
 }
 .rc {
   color: var(--muted);
 }
 .price {
   color: var(--text);
-  font-weight: 600;
+  font-weight: 700;
 }
 .dot {
   color: var(--border);
@@ -162,16 +165,18 @@ const priceText = computed(() => '$'.repeat(Math.min(3, Math.max(1, props.store.
   flex-wrap: wrap;
 }
 .tag {
-  font-size: 11px;
-  background: var(--accent-soft);
-  color: var(--accent-dark);
-  padding: 2px 8px;
-  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 1px 6px;
+  border-radius: 3px;
 }
 @media (min-width: 900px) {
   .store-card:hover {
-    box-shadow: 0 6px 20px rgba(51, 51, 51, 0.14);
-    transform: translateY(-2px);
+    border-color: var(--accent);
   }
   .banner {
     height: 150px;

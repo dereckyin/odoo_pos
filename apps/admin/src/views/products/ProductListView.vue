@@ -4,6 +4,7 @@
       <template #extra>
         <a-button type="primary" @click="$router.push({ name: 'product-create' })">新增商品</a-button>
         <a-button @click="$router.push({ name: 'product-import' })">CSV 匯入</a-button>
+        <a-button :loading="exporting" @click="handleExport">匯出 CSV</a-button>
       </template>
     </a-page-header>
 
@@ -79,7 +80,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { message } from 'ant-design-vue'
-import { listProducts, deleteProduct, updateProduct, listCategoriesTree } from '@/api/products'
+import { listProducts, deleteProduct, updateProduct, listCategoriesTree, exportProductsCsv } from '@/api/products'
 import { listInventoryLevels } from '@/api/inventory'
 import { listStores } from '@/api/stores'
 import type { ProductRead, CategoryTreeNode, InventoryLevelRead } from '@/types'
@@ -91,6 +92,7 @@ const filterStore = ref<string | undefined>()
 const categoryTreeOptions = ref<CategoryTreeNode[]>([])
 const flatCategories = ref<{ id: string; path_label?: string; name: string }[]>([])
 const loading = ref(false)
+const exporting = ref(false)
 const search = ref('')
 const filterCategory = ref<string | undefined>()
 const filterActive = ref<boolean | undefined>()
@@ -170,6 +172,27 @@ async function handleDelete(id: string) {
   await deleteProduct(id)
   message.success('已刪除')
   fetchData()
+}
+
+async function handleExport() {
+  exporting.value = true
+  try {
+    const res = await exportProductsCsv({
+      q: search.value || undefined,
+      category_id: filterCategory.value,
+      is_active: filterActive.value,
+    })
+    const url = URL.createObjectURL(res.data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'products-export.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (e: any) {
+    message.error(e?.response?.data?.detail || '匯出失敗')
+  } finally {
+    exporting.value = false
+  }
 }
 
 async function toggleActive(record: ProductRead) {

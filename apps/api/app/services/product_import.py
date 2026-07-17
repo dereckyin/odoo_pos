@@ -151,6 +151,36 @@ def render_import_template_csv() -> str:
     return "\ufeff" + buf.getvalue()
 
 
+EXPORT_CSV_COLUMNS = IMPORT_CSV_COLUMNS + ["is_active"]
+
+
+def export_products_csv(products: list[Product], categories: list[Category]) -> str:
+    by_id, _ = build_category_maps(categories)
+    path_by_id: dict[str, str] = {}
+    for cid in by_id:
+        _, _, path_label = compute_path(cid, by_id)
+        path_by_id[cid] = path_label
+
+    buf = StringIO()
+    writer = csv.DictWriter(buf, fieldnames=EXPORT_CSV_COLUMNS, lineterminator="\n")
+    writer.writeheader()
+    for p in products:
+        barcodes = [b.barcode for b in (p.barcodes or [])]
+        writer.writerow(
+            {
+                "sku": p.sku,
+                "name": p.name,
+                "price_cents": str(p.price_cents),
+                "category_path": path_by_id.get(p.category_id or "", ""),
+                "barcode": barcodes[0] if barcodes else "",
+                "is_weighted": "1" if p.is_weighted else "0",
+                "unit": p.unit or "個",
+                "is_active": "1" if p.is_active else "0",
+            }
+        )
+    return "\ufeff" + buf.getvalue()
+
+
 async def _ensure_barcodes(
     db: AsyncSession, product: Product, barcodes: list[str], tenant_id: str
 ) -> None:

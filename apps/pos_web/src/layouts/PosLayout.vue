@@ -6,6 +6,10 @@
         <router-link to="/">收銀</router-link>
         <router-link to="/kds">KDS</router-link>
         <router-link to="/tables">開桌</router-link>
+        <router-link to="/printer">
+          印表機
+          <span v-if="!printer.allReady" class="dot-warn" :title="printerHint"></span>
+        </router-link>
       </nav>
       <div class="user">
         <span>{{ auth.displayName || auth.username }}</span>
@@ -19,13 +23,29 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { usePrinterStore } from '@/stores/printer'
 
 const auth = useAuthStore()
 const router = useRouter()
+const printer = usePrinterStore()
+
+const printerHint = computed(() =>
+  printer.supported ? '有印表機尚未配對，請到「印表機」頁面配對' : '此環境不支援 WebUSB 列印',
+)
+
+onMounted(() => {
+  printer.start()
+})
+
+onUnmounted(() => {
+  printer.stop()
+})
 
 function logout() {
+  printer.stop()
   auth.logout()
   router.push('/login')
 }
@@ -62,6 +82,15 @@ nav a {
 nav a.router-link-active {
   color: #fff;
   background: rgba(255, 255, 255, 0.12);
+}
+.dot-warn {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #faad14;
+  margin-left: 4px;
+  vertical-align: middle;
 }
 .user {
   display: flex;

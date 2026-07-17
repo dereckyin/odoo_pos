@@ -14,6 +14,10 @@ block = """pos.myvnc.com {
 \t\treverse_proxy http://127.0.0.1:9090
 \t\tencode gzip
 \t}
+\thandle_path /shopping* {
+\t\treverse_proxy http://127.0.0.1:9092
+\t\tencode gzip
+\t}
 \thandle {
 \t\treverse_proxy http://127.0.0.1:9088
 \t\tencode gzip

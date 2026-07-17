@@ -14,11 +14,12 @@
     </a-space>
     <a-descriptions v-if="report" bordered size="small" :column="2" style="margin-bottom: 16px">
       <a-descriptions-item label="分帳比例">書籍公司 {{ report.book_share_pct }}%</a-descriptions-item>
-      <a-descriptions-item label="銷售總額">{{ formatMoney(report.gross_revenue_cents) }}</a-descriptions-item>
-      <a-descriptions-item label="退款沖銷">{{ formatMoney(report.refund_cents) }}</a-descriptions-item>
-      <a-descriptions-item label="淨成交額">{{ formatMoney(report.total_revenue_cents) }}</a-descriptions-item>
-      <a-descriptions-item label="應付書籍公司（淨）">{{ formatMoney(report.total_book_share_cents) }}</a-descriptions-item>
-      <a-descriptions-item label="餐廳留存（淨）">{{ formatMoney(report.total_restaurant_share_cents) }}</a-descriptions-item>
+      <a-descriptions-item label="定價總額">{{ formatMoney(report.total_list_price_cents) }}</a-descriptions-item>
+      <a-descriptions-item label="實收總額（淨成交）">{{ formatMoney(report.total_revenue_cents) }}</a-descriptions-item>
+      <a-descriptions-item label="銷售總額（實收）">{{ formatMoney(report.gross_revenue_cents) }}</a-descriptions-item>
+      <a-descriptions-item label="退款沖銷（實收）">{{ formatMoney(report.refund_cents) }}</a-descriptions-item>
+      <a-descriptions-item label="應付書籍公司（淨，依實收）">{{ formatMoney(report.total_book_share_cents) }}</a-descriptions-item>
+      <a-descriptions-item label="餐廳留存（淨，依實收）">{{ formatMoney(report.total_restaurant_share_cents) }}</a-descriptions-item>
     </a-descriptions>
     <a-table
       v-if="report"
@@ -52,9 +53,9 @@ const storeOptions = ref<{ label: string; value: string }[]>([])
 const columns = [
   { title: '門店', dataIndex: 'store_name' },
   { title: '淨冊數', dataIndex: 'qty', width: 72 },
-  { title: '銷售額', dataIndex: 'gross_revenue_cents', key: 'money' },
+  { title: '定價', dataIndex: 'list_price_cents', key: 'money' },
+  { title: '實收', dataIndex: 'revenue_cents', key: 'money' },
   { title: '退款', dataIndex: 'refund_cents', key: 'money' },
-  { title: '淨成交', dataIndex: 'revenue_cents', key: 'money' },
   { title: '應付書籍公司', dataIndex: 'book_share_cents', key: 'money' },
   { title: '餐廳留存', dataIndex: 'restaurant_share_cents', key: 'money' },
 ]

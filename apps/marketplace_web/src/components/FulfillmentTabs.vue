@@ -19,30 +19,32 @@ const model = defineModel<'delivery' | 'pickup'>({ required: true })
 .ff-tabs {
   display: flex;
   gap: 8px;
-  background: var(--accent-soft);
-  border-radius: 14px;
-  padding: 4px;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
 }
 .ff-tabs button {
   flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  border: 0;
-  background: transparent;
-  border-radius: 11px;
-  padding: 10px 8px;
-  font-size: 15px;
-  font-weight: 600;
+  gap: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 7px;
+  padding: 8px 6px;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--muted);
 }
 .ff-tabs button.active {
   background: var(--surface);
   color: var(--accent);
-  box-shadow: 0 1px 4px rgba(51, 51, 51, 0.12);
+  border-color: var(--accent);
+  border-width: 1.5px;
+  box-shadow: none;
 }
 .ff-tabs .ic {
-  font-size: 17px;
+  font-size: 16px;
 }
 </style>

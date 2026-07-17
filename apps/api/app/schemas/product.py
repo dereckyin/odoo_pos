@@ -82,12 +82,14 @@ class ProductRead(ORMModel):
     product_kind: str = "regular"
     marketplace_category_id: str | None = None
     print_label: bool = False
+    author: str | None = None
     barcodes: list[str]
     updated_at: datetime
     deleted_at: datetime | None
 
     @classmethod
     def from_orm_with_barcodes(cls, p) -> "ProductRead":
+        bd = getattr(p, "book_detail", None)
         return cls(
             id=p.id,
             tenant_id=p.tenant_id,
@@ -111,6 +113,7 @@ class ProductRead(ORMModel):
             product_kind=getattr(p, "product_kind", "regular"),
             marketplace_category_id=getattr(p, "marketplace_category_id", None),
             print_label=getattr(p, "print_label", False),
+            author=getattr(bd, "author", None) if bd is not None else None,
             barcodes=[b.barcode for b in p.barcodes],
             updated_at=p.updated_at,
             deleted_at=p.deleted_at,

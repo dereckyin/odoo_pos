@@ -26,7 +26,7 @@
           @click="onProductClick(p.id)"
         >
           <span class="name">{{ p.name }}</span>
-          <span class="price">${{ (p.price_cents / 100).toFixed(0) }}</span>
+          <span class="price">{{ formatMoney(p.price_cents) }}</span>
         </button>
       </div>
     </section>
@@ -42,7 +42,7 @@
     <div v-if="showCheckout" class="overlay" @click.self="showCheckout = false">
       <div class="checkout-sheet">
         <h2>結帳</h2>
-        <p class="amount">應收 <strong>${{ (totals.total / 100).toFixed(0) }}</strong></p>
+        <p class="amount">應收 <strong>{{ formatMoney(totals.total) }}</strong></p>
         <label>付款方式
           <select v-model="payMethod">
             <option value="cash">現金</option>
@@ -77,6 +77,7 @@ import { useShiftStore } from '@/stores/shift'
 import * as ordersApi from '@/api/orders'
 import { buildOrderPayload, calcTotals, enqueueCheckoutPrints } from '@/lib/printPayloads'
 import { newUuid } from '@/lib/utils'
+import { formatMoney } from '@/utils/formatMoney'
 import type { ProductWithOptions, SelectedOption } from '@/types'
 import type { InvoiceRead } from '@/types'
 
@@ -134,7 +135,8 @@ async function doCheckout() {
   const orderId = newUuid()
   const paymentId = newUuid()
   const total = totals.value.total
-  const tendered = payMethod.value === 'cash' ? Math.round((tenderedYuan.value || totals.value.total / 100) * 100) : total
+  // tenderedYuan is already in 元 (same unit as total / *_cents for TWD)
+  const tendered = payMethod.value === 'cash' ? Math.round(tenderedYuan.value || total) : total
   const change = Math.max(0, tendered - total)
 
   const orderPayload = buildOrderPayload({

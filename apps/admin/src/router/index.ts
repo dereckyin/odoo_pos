@@ -99,6 +99,10 @@ const platformChildren: RouteRecordRaw[] = [
 ]
 
 const routes: RouteRecordRaw[] = [
+  // Common mistaken URL: /admin is not a real path (app is served at /).
+  // Without this, login?redirect=/admin lands on a blank unmatched route.
+  { path: '/admin', redirect: '/' },
+  { path: '/admin/:pathMatch(.*)*', redirect: '/' },
   { path: '/login', name: 'login', component: () => import('@/views/auth/LoginView.vue'), meta: { public: true } },
   { path: '/signup', name: 'signup', component: () => import('@/views/auth/SignupView.vue'), meta: { public: true } },
   {
@@ -181,7 +185,12 @@ router.beforeEach(async (to) => {
 })
 
 export function postLoginRoute(auth: ReturnType<typeof useAuthStore>, redirect?: string | null) {
-  if (redirect && redirect !== '/') return redirect
+  if (redirect && redirect !== '/' && !redirect.startsWith('/admin')) {
+    const resolved = router.resolve(redirect)
+    if (resolved.matched.length > 0 && resolved.name !== 'login' && resolved.name !== 'signup') {
+      return redirect
+    }
+  }
   if (auth.isPlatformSuper && !auth.actingTenantId) return '/platform'
   return '/'
 }

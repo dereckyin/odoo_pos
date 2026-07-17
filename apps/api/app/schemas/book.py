@@ -104,6 +104,9 @@ class ConsignmentSettlementRow(BaseModel):
     store_id: str
     store_name: str
     qty: float
+    gross_list_price_cents: int = 0
+    list_price_refund_cents: int = 0
+    list_price_cents: int = 0
     gross_revenue_cents: int = 0
     refund_cents: int = 0
     revenue_cents: int
@@ -119,6 +122,9 @@ class ConsignmentSettlementReport(BaseModel):
     book_share_pct: int
     rows: list[ConsignmentSettlementRow]
     total_qty: float
+    gross_list_price_cents: int = 0
+    list_price_refund_cents: int = 0
+    total_list_price_cents: int = 0
     gross_revenue_cents: int = 0
     refund_cents: int = 0
     total_revenue_cents: int

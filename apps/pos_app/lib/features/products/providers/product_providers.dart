@@ -80,21 +80,28 @@ class ProductRepositoryImpl {
     final byBarcode = await (_db.select(_db.productBarcodes)..where((b) => b.barcode.equals(trimmed))).get();
     final productIds = byBarcode.map((e) => e.productId).toSet();
 
-    final stmt = _db.select(_db.products)
-      ..where((p) =>
-          p.deletedAt.isNull() &
-          p.isActive.equals(true) &
-          (p.name.like(like) | p.sku.like(like) | p.id.isIn(productIds)));
+    final stmt = _db.select(_db.products).join(
+      [
+        leftOuterJoin(_db.bookDetails, _db.bookDetails.productId.equalsExp(_db.products.id)),
+      ],
+    )
+      ..where(_db.products.deletedAt.isNull() &
+          _db.products.isActive.equals(true) &
+          (_db.products.name.like(like) |
+              _db.products.sku.like(like) |
+              _db.bookDetails.author.like(like) |
+              _db.products.id.isIn(productIds)));
     if (categoryId != null) {
       final cats = await _loadEnrichedCategories();
       final tree = CategoryTree(cats);
       final ids = tree.descendantIds(categoryId).toList();
-      stmt.where((p) => p.categoryId.isIn(ids));
+      stmt.where(_db.products.categoryId.isIn(ids));
     }
     stmt
-      ..orderBy([(p) => OrderingTerm(expression: p.name)])
+      ..orderBy([OrderingTerm(expression: _db.products.name)])
       ..limit(limit);
-    final rows = await stmt.get();
+    final joined = await stmt.get();
+    final rows = joined.map((r) => r.readTable(_db.products)).toList();
     if (categoryId != null) {
       final cats = await _loadEnrichedCategories();
       final tree = CategoryTree(cats);

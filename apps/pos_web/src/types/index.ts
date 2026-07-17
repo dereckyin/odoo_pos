@@ -34,6 +34,7 @@ export interface Product {
   hide_from_pos_browse: boolean
   print_label: boolean
   barcodes: string[]
+  author?: string | null
 }
 
 export interface OptionChoice {

@@ -100,9 +100,10 @@ function onOptionsConfirmed(options: SelectedOption[]) {
 <style scoped>
 .product-card {
   background: var(--surface);
-  border-radius: 14px;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--border);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
 }
@@ -110,6 +111,7 @@ function onOptionsConfirmed(options: SelectedOption[]) {
   position: relative;
   aspect-ratio: 4 / 3;
   background: var(--accent-soft);
+  border-bottom: 1px solid var(--border);
   cursor: pointer;
 }
 .media img {
@@ -132,16 +134,16 @@ function onOptionsConfirmed(options: SelectedOption[]) {
   right: 8px;
   bottom: 8px;
   min-width: 36px;
-  height: 36px;
+  height: 32px;
   padding: 0 10px;
-  border: 0;
-  border-radius: 18px;
+  border: 1.5px solid var(--accent);
+  border-radius: 6px;
   background: var(--accent);
   color: #fff;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+  box-shadow: none;
 }
 .add-btn:disabled {
   opacity: 0.7;

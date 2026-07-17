@@ -3,10 +3,12 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  charset_converter
   connectivity_plus
   desktop_multi_window
   flutter_pos_printer_platform_image_3
   flutter_secure_storage_windows
+  permission_handler_windows
   sqlite3_flutter_libs
 )
 

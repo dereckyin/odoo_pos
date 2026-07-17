@@ -3,7 +3,7 @@
     <div class="sheet">
       <header>
         <h2>{{ product.name }}</h2>
-        <p class="price">${{ (unitPrice / 100).toFixed(0) }}</p>
+        <p class="price">{{ formatMoney(unitPrice) }}</p>
         <button class="close" @click="emit('close')">×</button>
       </header>
       <div class="groups">
@@ -41,6 +41,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue'
+import { formatMoney } from '@/utils/formatMoney'
 import type { OptionChoice, OptionGroup, ProductWithOptions, SelectedOption } from '@/types'
 
 const props = defineProps<{ open: boolean; product: ProductWithOptions | null }>()
@@ -77,7 +78,7 @@ const unitPrice = computed(() => {
 })
 
 function choiceLabel(c: OptionChoice) {
-  return c.price_delta_cents > 0 ? `${c.name} (+$${(c.price_delta_cents / 100).toFixed(0)})` : c.name
+  return c.price_delta_cents > 0 ? `${c.name} (+${formatMoney(c.price_delta_cents)})` : c.name
 }
 
 function selectSingle(groupId: string, choiceId: string) {

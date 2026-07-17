@@ -45,6 +45,7 @@
             <template #icon><ReloadOutlined /></template>
             重新整理
           </a-button>
+          <a-button :loading="exporting" @click="handleExport">匯出 CSV</a-button>
         </a-space>
       </template>
     </a-page-header>
@@ -102,15 +103,17 @@ import { ref, computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import dayjs, { type Dayjs } from 'dayjs'
-import { listOrders } from '@/api/orders'
+import { listOrders, exportOrdersCsv } from '@/api/orders'
 import { listStores } from '@/api/stores'
 import { formatMoney } from '@/utils/formatMoney'
 import type { OrderListItem, StoreRead } from '@/types'
+import { message } from 'ant-design-vue'
 
 const router = useRouter()
 const orders = ref<OrderListItem[]>([])
 const stores = ref<StoreRead[]>([])
 const loading = ref(false)
+const exporting = ref(false)
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
@@ -216,6 +219,30 @@ async function fetchData() {
     total.value = data.total
   } finally {
     loading.value = false
+  }
+}
+
+async function handleExport() {
+  exporting.value = true
+  try {
+    const res = await exportOrdersCsv({
+      since: dateRange.value?.[0]?.startOf('day').toISOString(),
+      until: dateRange.value?.[1]?.endOf('day').toISOString(),
+      store_id: storeFilter.value,
+      status: statusFilter.value,
+      payment_method: paymentFilter.value,
+      q: keyword.value.trim() || undefined,
+    })
+    const url = URL.createObjectURL(res.data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'orders-export.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (e: any) {
+    message.error(e?.response?.data?.detail || '匯出失敗')
+  } finally {
+    exporting.value = false
   }
 }
 

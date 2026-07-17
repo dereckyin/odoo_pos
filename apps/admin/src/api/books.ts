@@ -61,6 +61,9 @@ export interface ConsignmentSettlementRow {
   store_id: string
   store_name: string
   qty: number
+  gross_list_price_cents: number
+  list_price_refund_cents: number
+  list_price_cents: number
   gross_revenue_cents: number
   refund_cents: number
   revenue_cents: number
@@ -76,6 +79,9 @@ export interface ConsignmentSettlementReport {
   book_share_pct: number
   rows: ConsignmentSettlementRow[]
   total_qty: number
+  gross_list_price_cents: number
+  list_price_refund_cents: number
+  total_list_price_cents: number
   gross_revenue_cents: number
   refund_cents: number
   total_revenue_cents: number

@@ -44,7 +44,7 @@ const storeOptions = ref<{ label: string; value: string }[]>([])
 
 function addPreset() {
   if (!form.value) return
-  form.value.discount_presets.push({ label: '9折', pct_off: 10 })
+  form.value.discount_presets.push({ label: '7折', pct_off: 30 })
 }
 
 function removePreset(idx: number) {

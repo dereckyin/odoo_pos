@@ -1,26 +1,29 @@
 <template>
-  <div class="page">
-    <header class="disco-head">
-      <div class="container">
+  <div class="page" :class="{ 'has-cart': cart.itemCount > 0 }">
+    <!-- 小螢幕只固定精簡列，其餘跟內容一起捲動 -->
+    <header class="disco-sticky">
+      <div class="container sticky-inner">
         <div class="head-top">
-          <h1>點餐趣美食市集</h1>
+          <h1>點餐趣市集</h1>
           <button class="member-btn" type="button" @click="onMemberClick">
             <span class="ic">👤</span>
-            <span>{{ memberStore.isLoggedIn ? `${memberStore.points} 點` : '登入 / 註冊' }}</span>
+            <span class="member-label">{{ memberStore.isLoggedIn ? `${memberStore.points} 點` : '登入' }}</span>
           </button>
         </div>
-
-        <div class="tabs-wrap">
-          <FulfillmentTabs v-model="fulfillment" />
-        </div>
-
         <div class="search-bar">
           <span class="search-ic">🔍</span>
           <input v-model="query" placeholder="搜尋商家或餐點…" />
           <button v-if="query" class="clear" type="button" @click="query = ''">✕</button>
         </div>
+      </div>
+    </header>
 
-        <div v-if="!isSearchMode" class="cuisine-row">
+    <main class="container body">
+      <div v-if="!isSearchMode" class="tools">
+        <div class="tabs-wrap">
+          <FulfillmentTabs v-model="fulfillment" />
+        </div>
+        <div class="cuisine-row">
           <button :class="['cuisine', cuisine === '' ? 'active' : '']" type="button" @click="setCuisine('')">
             <span class="cuisine-ic">🍽️</span>
             <span>全部</span>
@@ -36,18 +39,15 @@
             <span>{{ c }}</span>
           </button>
         </div>
-
-        <div v-if="!isSearchMode" class="filter-row hide-desktop">
+        <div class="filter-row hide-desktop">
           <button class="filter-btn" type="button" @click="filterOpen = true">
-            <span>篩選 / 排序</span>
+            <span>篩選</span>
             <span v-if="activeFilterCount" class="count">{{ activeFilterCount }}</span>
           </button>
           <span class="sort-tag">{{ sortLabel }}</span>
         </div>
       </div>
-    </header>
 
-    <main class="container body">
       <div class="layout">
         <aside v-if="!isSearchMode" class="filter-sidebar">
           <h3>排序與篩選</h3>
@@ -70,7 +70,7 @@
               <BannerCarousel :banners="banners" @select="onBannerClick" />
 
               <section v-if="popularStores.length" class="rail">
-                <h2>🔥 熱門商家</h2>
+                <h2>熱門商家</h2>
                 <div class="rail-track">
                   <div v-for="s in popularStores" :key="s.slug" class="rail-item store">
                     <StoreCard :store="s" @toggle-fav="toggleFav(s)" />
@@ -79,7 +79,7 @@
               </section>
 
               <section v-if="popularItems.length" class="rail">
-                <h2>⭐ 熱門品項</h2>
+                <h2>熱門品項</h2>
                 <div class="rail-track">
                   <div v-for="p in popularItems" :key="`${p.store_slug}-${p.product_id}`" class="rail-item product">
                     <ProductCard :card="p" />
@@ -87,7 +87,7 @@
                 </div>
               </section>
 
-              <h2 class="grid-title">探索全部商家</h2>
+              <h2 class="grid-title">全部商家</h2>
             </template>
 
             <div v-if="stores.length" class="store-grid">
@@ -100,7 +100,7 @@
     </main>
 
     <button v-if="cart.itemCount > 0" class="cart-fab" type="button" @click="$router.push({ name: 'cart' })">
-      <span>購物車 {{ cart.itemCount }} 品項</span>
+      <span>購物車 {{ cart.itemCount }}</span>
       <span>${{ Math.round(cart.subtotalCents) }}</span>
     </button>
 
@@ -337,54 +337,62 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.disco-head {
+.page {
+  background: var(--paper);
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+.page.has-cart {
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
+}
+
+.disco-sticky {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: linear-gradient(180deg, #fff5f9 0%, var(--surface) 100%);
+  background: var(--paper);
   border-bottom: 1px solid var(--border);
-  padding: 16px 0 10px;
+}
+.sticky-inner {
+  padding: 8px 0 10px;
 }
 .head-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 0 16px;
+  gap: 10px;
+  padding: 0 12px;
 }
 .head-top h1 {
   margin: 0;
-  font-size: 1.3rem;
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
 }
 .member-btn {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  border: 0;
-  background: #fff;
-  color: var(--accent);
-  border-radius: 18px;
-  padding: 7px 14px;
-  font-size: 13px;
+  gap: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
   font-weight: 700;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 .member-btn .ic {
-  font-size: 15px;
-}
-.tabs-wrap {
-  padding: 12px 16px 0;
+  font-size: 14px;
 }
 .search-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 24px;
-  padding: 0 14px;
-  margin: 12px 16px 0;
+  border-radius: 6px;
+  padding: 0 10px;
+  margin: 8px 12px 0;
   overflow: hidden;
 }
 .search-bar:focus-within {
@@ -399,11 +407,10 @@ onMounted(() => {
   box-shadow: none;
   -webkit-appearance: none;
   appearance: none;
-  -webkit-tap-highlight-color: transparent;
   border-radius: 0;
-  padding: 12px 0;
-  font-size: 16px;
-  line-height: 1.4;
+  padding: 8px 0;
+  font-size: 15px;
+  line-height: 1.3;
   background: transparent;
 }
 .search-ic,
@@ -412,18 +419,26 @@ onMounted(() => {
 }
 .search-ic {
   color: var(--muted);
+  font-size: 13px;
 }
 .clear {
   border: 0;
   background: none;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
+}
+
+.tools {
+  margin-bottom: 10px;
+}
+.tabs-wrap {
+  padding: 0;
 }
 .cuisine-row {
   display: flex;
-  gap: 14px;
+  gap: 8px;
   overflow-x: auto;
-  padding: 12px 16px 2px;
+  padding: 10px 0 2px;
   -webkit-overflow-scrolling: touch;
 }
 .cuisine {
@@ -433,21 +448,21 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
+  gap: 3px;
+  font-size: 11px;
   color: var(--muted);
-  width: 56px;
+  width: 48px;
 }
 .cuisine-ic {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
   background: var(--surface);
   border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 18px;
 }
 .cuisine.active {
   color: var(--accent);
@@ -455,44 +470,46 @@ onMounted(() => {
 }
 .cuisine.active .cuisine-ic {
   border-color: var(--accent);
-  background: var(--accent-soft);
+  border-width: 1.5px;
+  background: var(--surface);
 }
 .filter-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 4px 16px 0;
+  gap: 8px;
+  padding: 6px 0 0;
 }
 .filter-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border: 1px solid var(--accent);
+  gap: 5px;
+  border: 1.5px solid var(--accent);
   background: var(--surface);
   color: var(--accent);
-  border-radius: 18px;
-  padding: 7px 14px;
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
 }
 .filter-btn .count {
   background: var(--accent);
   color: #fff;
-  border-radius: 9px;
-  min-width: 18px;
-  height: 18px;
+  border-radius: 3px;
+  min-width: 16px;
+  height: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  padding: 0 5px;
+  font-size: 10px;
+  padding: 0 4px;
 }
 .sort-tag {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
 }
 .body {
-  padding: 14px 16px 40px;
+  padding: 10px 12px 24px;
+  background: var(--paper);
 }
 .layout {
   display: block;
@@ -504,45 +521,54 @@ onMounted(() => {
   min-width: 0;
 }
 .rail {
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 .rail h2,
 .grid-title {
-  font-size: 1.05rem;
-  margin: 14px 0 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin: 12px 0 8px;
 }
 .rail-track {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
 }
 .rail-track::-webkit-scrollbar {
   display: none;
 }
 .rail-item.store {
-  flex: 0 0 260px;
+  flex: 0 0 220px;
 }
 .rail-item.product {
-  flex: 0 0 160px;
+  flex: 0 0 140px;
 }
 .store-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 14px;
+  gap: 10px;
 }
 .product-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
+
 @media (min-width: 900px) {
-  .disco-head {
+  .disco-sticky {
     position: static;
   }
+  .sticky-inner {
+    padding: 16px 0 12px;
+  }
   .head-top h1 {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
+  }
+  .member-label {
+    display: inline;
   }
   .hide-desktop {
     display: none;
@@ -559,18 +585,28 @@ onMounted(() => {
     top: 16px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 8px;
     padding: 16px;
   }
   .filter-sidebar h3 {
     margin: 0 0 14px;
     font-size: 1rem;
+    letter-spacing: 0.06em;
   }
   .store-grid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
   .product-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .cuisine-ic {
+    width: 48px;
+    height: 48px;
+    font-size: 22px;
+  }
+  .cuisine {
+    width: 56px;
+    font-size: 12px;
   }
 }
 </style>

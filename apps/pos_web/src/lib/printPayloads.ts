@@ -21,7 +21,8 @@ export function calcTotals(
   )
   let discount = 0
   if (discountType === 'percentage') discount = Math.round(subtotal * (discountValue / 100))
-  else if (discountType === 'amount') discount = Math.round(discountValue * 100)
+  // discountValue for `amount` is already in 元 (same unit as *_cents for TWD)
+  else if (discountType === 'amount') discount = Math.round(discountValue)
   discount = Math.min(discount, subtotal)
   const taxable = subtotal - discount
   const taxRate = lines[0]?.product.tax_rate ?? 0.05

@@ -29,7 +29,8 @@ async function openShift() {
   loading.value = true
   error.value = ''
   try {
-    await shift.open(Math.round(openingCash.value * 100))
+    // openingCash is already in 元 (same unit as *_cents for TWD)
+    await shift.open(Math.round(openingCash.value || 0))
     await router.push('/')
   } catch (e: unknown) {
     error.value = '開班失敗'

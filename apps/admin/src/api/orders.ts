@@ -18,6 +18,10 @@ export function listOrders(params?: OrderListParams) {
   return client.get<OrderListResponse>('/orders', { params })
 }
 
+export function exportOrdersCsv(params?: Omit<OrderListParams, 'offset' | 'limit'>) {
+  return client.get('/orders/export-csv', { params, responseType: 'blob' })
+}
+
 export function getOrder(id: string) {
   return client.get<OrderListItem>(`/orders/${id}`)
 }

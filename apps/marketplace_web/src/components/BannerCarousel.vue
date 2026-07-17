@@ -98,25 +98,26 @@ watch(() => props.banners.length, start)
 .track {
   position: relative;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
 }
 .track::-webkit-scrollbar {
   display: none;
 }
 .banner {
   position: relative;
-  flex: 0 0 86%;
+  flex: 0 0 88%;
   scroll-snap-align: start;
-  border: 0;
+  border: 1px solid var(--border);
   padding: 0;
-  border-radius: 16px;
+  border-radius: 8px;
   overflow: hidden;
   background: var(--accent-soft);
-  aspect-ratio: 16 / 7;
+  aspect-ratio: 2.2 / 1;
+  box-shadow: none;
 }
 .banner img {
   width: 100%;
@@ -128,39 +129,41 @@ watch(() => props.banners.length, start)
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 14px 16px;
+  padding: 12px 14px;
   text-align: left;
-  background: linear-gradient(0deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
+  background: linear-gradient(0deg, rgba(34, 32, 28, 0.62), rgba(34, 32, 28, 0));
   color: #fff;
 }
 .title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
+  letter-spacing: 0.04em;
 }
 .subtitle {
   font-size: 12px;
-  opacity: 0.92;
+  opacity: 0.9;
   margin-top: 2px;
 }
 .dots {
   display: flex;
   justify-content: center;
   gap: 6px;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 .dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   padding: 0;
-  border: 0;
+  border: 1px solid var(--border);
   border-radius: 50%;
-  background: var(--border);
+  background: var(--surface);
   cursor: pointer;
-  transition: width 0.2s, background 0.2s;
+  transition: background 0.15s, border-color 0.15s, width 0.15s;
 }
 .dot.active {
-  width: 18px;
-  border-radius: 4px;
+  width: 16px;
+  border-radius: 3px;
+  border-color: var(--accent);
   background: var(--accent);
 }
 @media (min-width: 900px) {

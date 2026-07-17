@@ -16,6 +16,16 @@
 #         encode gzip
 #     }
 #
+#     handle_path /market* {
+#         reverse_proxy http://127.0.0.1:9090
+#         encode gzip
+#     }
+#
+#     handle_path /shopping* {
+#         reverse_proxy http://127.0.0.1:9092
+#         encode gzip
+#     }
+#
 #     handle_path /pos* {
 #         reverse_proxy http://127.0.0.1:9091
 #         encode gzip

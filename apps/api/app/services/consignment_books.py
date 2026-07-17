@@ -19,10 +19,8 @@ SUPPLIER_INTERNAL_CODE = "BOOK-INTERNAL"
 SUPPLIER_EXTERNAL_CODE = "BOOK-EXTERNAL"
 
 DEFAULT_DISCOUNT_PRESETS: list[dict] = [
-    {"label": "9折", "pct_off": 10},
-    {"label": "8折", "pct_off": 20},
     {"label": "7折", "pct_off": 30},
-    {"label": "5折", "pct_off": 50},
+    {"label": "4折", "pct_off": 60},
 ]
 
 

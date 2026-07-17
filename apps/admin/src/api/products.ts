@@ -27,6 +27,14 @@ export function importProductsCsv(file: File) {
   return client.post('/products/import-csv', form)
 }
 
+export function exportProductsCsv(params?: {
+  q?: string
+  category_id?: string
+  is_active?: boolean
+}) {
+  return client.get('/products/export-csv', { params, responseType: 'blob' })
+}
+
 export function listCategories() {
   return client.get<CategoryRead[]>('/categories')
 }

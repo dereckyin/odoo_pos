@@ -59,12 +59,22 @@ async def poll_pending_jobs(
     scope: TenantScope,
     store_id: str | None = Query(default=None),
     limit: int = Query(default=10, le=50),
+    printer_role: list[str] | None = Query(
+        default=None,
+        description="Only claim jobs for these roles (receipt|kitchen|label). "
+        "Omit to claim any role. Web agents should pass only paired roles.",
+    ),
 ) -> PrintJobPendingResponse:
     """Print agent polls this endpoint; claimed jobs move to ``printing``."""
     scope.require_tenant()
     target_store = store_id or scope.store_id
     if not target_store:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "store_id required")
+
+    # Empty role filter means "this agent cannot print anything yet" — do not
+    # claim jobs (avoids burning retries when WebUSB printers are unpaired).
+    if printer_role is not None and len(printer_role) == 0:
+        return PrintJobPendingResponse(items=[])
 
     now = _now()
     stale_before = now.timestamp() - (_CLAIM_STALE_MINUTES * 60)
@@ -94,12 +104,16 @@ async def poll_pending_jobs(
     if stale_rows:
         await db.flush()
 
+    filters = [
+        PrintJob.store_id == target_store,
+        PrintJob.status == "pending",
+    ]
+    if printer_role:
+        filters.append(PrintJob.printer_role.in_(printer_role))
+
     stmt = (
         apply_tenant(
-            select(PrintJob).where(
-                PrintJob.store_id == target_store,
-                PrintJob.status == "pending",
-            ),
+            select(PrintJob).where(*filters),
             PrintJob,
             scope,
         )

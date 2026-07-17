@@ -84,6 +84,17 @@ services:
       - ./apps/marketplace_web/dist:/usr/share/nginx/html:ro
       - ./deploy/nginx.marketplace.conf:/etc/nginx/conf.d/default.conf:ro
 
+  # 單店統一點餐（base=/shopping/）— Caddy handle_path /shopping 反代至 9092
+  shopping_web:
+    image: nginx:alpine
+    container_name: pos_shopping_web_prod
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9092:80"
+    volumes:
+      - ./apps/shopping_web/dist:/usr/share/nginx/html:ro
+      - ./deploy/nginx.shopping.conf:/etc/nginx/conf.d/default.conf:ro
+
   # 網頁收銀（base=/pos/）— Caddy handle_path /pos 反代至 9091
   cashier_web:
     image: nginx:alpine

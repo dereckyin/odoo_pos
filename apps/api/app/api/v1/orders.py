@@ -1,6 +1,9 @@
 from datetime import datetime, timezone
+from io import StringIO
+import csv
 
 from fastapi import APIRouter, HTTPException, Query, status
+from fastapi.responses import Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
@@ -379,6 +382,99 @@ async def list_orders(
         for o in rows
     ]
     return OrderListResponse(items=items, total=total, offset=offset, limit=limit)
+
+
+@router.get("/export-csv")
+async def export_orders_csv(
+    db: DbSession,
+    scope: NonKitchenScope,
+    member_id: str | None = None,
+    terminal_id: str | None = None,
+    store_id: str | None = None,
+    status: str | None = None,
+    payment_method: str | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    q: str | None = None,
+    limit: int = Query(5000, le=10000),
+):
+    """Export orders matching current filters as UTF-8 BOM CSV."""
+    tenant = await db.get(Tenant, scope.tenant_id) if scope.tenant_id else None
+    tz = tenant_timezone(tenant.settings if tenant else None)
+
+    base = apply_tenant(_select_order(select(Order)), Order, scope)
+    filtered = apply_order_filters(
+        base,
+        scope=scope,
+        since=since,
+        until=until,
+        status=status,
+        store_id=store_id,
+        member_id=member_id,
+        terminal_id=terminal_id,
+        payment_method=payment_method,
+        q=q,
+        tz=tz,
+    )
+    stmt = filtered.order_by(
+        func.coalesce(Order.client_created_at, Order.created_at).desc()
+    ).limit(limit)
+    rows = (await db.execute(stmt)).scalars().unique().all()
+    store_map, cashier_map, member_map = await load_order_display_maps(db, rows)
+
+    buf = StringIO()
+    fieldnames = [
+        "order_no",
+        "created_at",
+        "store_name",
+        "status",
+        "subtotal_cents",
+        "discount_cents",
+        "tax_cents",
+        "total_cents",
+        "refunded_cents",
+        "payment_methods",
+        "member_name",
+        "cashier_name",
+        "source",
+        "invoice_number",
+        "coupon_code",
+    ]
+    writer = csv.DictWriter(buf, fieldnames=fieldnames, lineterminator="\n")
+    writer.writeheader()
+    for o in rows:
+        item = enrich_order_item(
+            o,
+            store_name=store_map.get(o.store_id),
+            cashier_name=cashier_map.get(o.cashier_id),
+            member_name=member_map.get(o.member_id) if o.member_id else None,
+        )
+        ts = item.client_created_at or item.created_at
+        writer.writerow(
+            {
+                "order_no": item.order_no or item.id,
+                "created_at": ts.isoformat() if ts else "",
+                "store_name": item.store_name or "",
+                "status": item.status,
+                "subtotal_cents": item.subtotal_cents,
+                "discount_cents": item.discount_cents,
+                "tax_cents": item.tax_cents,
+                "total_cents": item.total_cents,
+                "refunded_cents": item.refunded_cents,
+                "payment_methods": "|".join(item.payment_methods or []),
+                "member_name": item.member_name or "",
+                "cashier_name": item.cashier_name or "",
+                "source": item.source,
+                "invoice_number": item.invoice_number or "",
+                "coupon_code": item.coupon_code or "",
+            }
+        )
+
+    return Response(
+        content=("\ufeff" + buf.getvalue()).encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="orders-export.csv"'},
+    )
 
 
 @router.get("/{oid}", response_model=OrderListItem)

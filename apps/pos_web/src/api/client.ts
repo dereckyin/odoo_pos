@@ -12,13 +12,13 @@ const client = axios.create({
   timeout: 30_000,
 })
 
-const ANON = ['/auth/login', '/auth/refresh', '/auth/pin-login']
+const ANON = ['/auth/login', '/auth/refresh', '/auth/pin-login', '/auth/admin-login']
 
 client.interceptors.request.use((config) => {
   const auth = useAuthStore()
   const path = `${config.baseURL || ''}/${config.url || ''}`
   const isAnon = ANON.some((p) => path.includes(p))
-  if (!isAnon && auth.accessToken) {
+  if (!isAnon && auth.accessToken && !config.headers?.Authorization) {
     config.headers.Authorization = `Bearer ${auth.accessToken}`
   }
   return config

@@ -12,6 +12,7 @@ param(
   [switch]$SkipCustomer,
   [switch]$SkipCashier,
   [switch]$SkipMarketplace,
+  [switch]$SkipShopping,
   [switch]$SkipBuild
 )
 
@@ -91,9 +92,20 @@ if (-not $SkipBuild) {
   }
 
   if (-not $SkipMarketplace) {
-    Invoke-Step "Build marketplace web (/) " {
+    Invoke-Step "Build marketplace web (/market/)" {
       Push-Location (Join-Path $root "apps/marketplace_web")
       $env:VITE_API_BASE = "https://pos.myvnc.com/api"
+      npm ci
+      npm run build
+      Pop-Location
+    }
+  }
+
+  if (-not $SkipShopping) {
+    Invoke-Step "Build shopping web (/shopping/)" {
+      Push-Location (Join-Path $root "apps/shopping_web")
+      $env:VITE_API_BASE = "https://pos.myvnc.com/api"
+      $env:VITE_SHOW_ENTRY_SIMULATOR = "0"
       npm ci
       npm run build
       Pop-Location
@@ -107,7 +119,8 @@ Invoke-Step "Pack deployment archive" {
     "-czf", "deploy-pack.tar.gz",
     "--exclude=__pycache__", "--exclude=.pytest_cache", "--exclude=.venv", "--exclude=uploads",
     "apps/api", "apps/admin/dist", "deploy/nginx.conf", "deploy/nginx.customer.conf",
-    "deploy/nginx.pos.conf", "deploy/nginx.marketplace.conf", "docker-compose.prod.yml"
+    "deploy/nginx.pos.conf", "deploy/nginx.marketplace.conf", "deploy/nginx.shopping.conf",
+    "docker-compose.prod.yml"
   )
   if (-not $SkipCustomer) {
     $tarArgs += "apps/customer_order_web/dist"
@@ -117,6 +130,9 @@ Invoke-Step "Pack deployment archive" {
   }
   if (-not $SkipMarketplace) {
     $tarArgs += "apps/marketplace_web/dist"
+  }
+  if (-not $SkipShopping) {
+    $tarArgs += "apps/shopping_web/dist"
   }
   & tar @tarArgs
   Pop-Location
@@ -155,6 +171,7 @@ Remove-Item (Join-Path $root "deploy-pack.tar.gz") -ErrorAction SilentlyContinue
 Write-Host "`nDeploy complete." -ForegroundColor Green
 Write-Host "  Admin:       https://pos.myvnc.com/"
 Write-Host "  Marketplace: https://pos.myvnc.com/market/"
+Write-Host "  Shopping:    https://pos.myvnc.com/shopping/"
 Write-Host "  Readme:      https://pos.myvnc.com/readme/"
 Write-Host "  Customer:    https://pos.myvnc.com/customer/"
 Write-Host "  Web POS:     https://pos.myvnc.com/pos/"

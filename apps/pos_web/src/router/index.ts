@@ -15,6 +15,7 @@ const router = createRouter({
         { path: '', name: 'cashier', component: () => import('@/views/CashierView.vue') },
         { path: 'kds', name: 'kds', component: () => import('@/views/KdsView.vue') },
         { path: 'tables', name: 'tables', component: () => import('@/views/TablesView.vue') },
+        { path: 'printer', name: 'printer', component: () => import('@/views/PrinterSetupView.vue') },
       ],
     },
   ],

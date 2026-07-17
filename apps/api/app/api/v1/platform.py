@@ -295,10 +295,54 @@ async def update_tenant(
     t = await db.get(Tenant, tenant_id)
     if not t:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
-    for k, v in payload.model_dump(exclude_unset=True).items():
+
+    data = payload.model_dump(exclude_unset=True)
+    plan: SubscriptionPlan | None = None
+    if "plan_code" in data and data["plan_code"] is not None:
+        plan = (
+            await db.execute(
+                select(SubscriptionPlan).where(SubscriptionPlan.code == data["plan_code"])
+            )
+        ).scalar_one_or_none()
+        if not plan:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "unknown plan_code")
+
+    for k, v in data.items():
         setattr(t, k, v)
+
+    # Usage / feature gates resolve via active TenantSubscription first
+    # (see core.usage.get_active_plan). Keep it in sync when plan_code changes.
+    if "plan_code" in data:
+        sub = (
+            await db.execute(
+                select(TenantSubscription)
+                .where(
+                    TenantSubscription.tenant_id == tenant_id,
+                    TenantSubscription.status == "active",
+                )
+                .order_by(TenantSubscription.started_at.desc())
+            )
+        ).scalar_one_or_none()
+        if plan is None:
+            if sub:
+                sub.status = "cancelled"
+                sub.cancelled_at = _now()
+        elif sub:
+            sub.plan_id = plan.id
+        else:
+            db.add(
+                TenantSubscription(
+                    tenant_id=tenant_id,
+                    plan_id=plan.id,
+                    status="active",
+                    started_at=_now(),
+                )
+            )
+
     await audit(db, user, action="tenant_update", resource_type="tenant",
-                resource_id=tenant_id, request=request, flush=False)
+                resource_id=tenant_id, request=request,
+                extra={"plan_code": data.get("plan_code")} if "plan_code" in data else None,
+                flush=False)
     await db.commit()
     await db.refresh(t)
     return t

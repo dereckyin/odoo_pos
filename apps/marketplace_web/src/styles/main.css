@@ -1,12 +1,23 @@
 :root {
-  --accent: #D70F64;
-  --accent-dark: #B80C55;
-  --accent-soft: #FDEEF4;
-  --bg: #FAFAFA;
-  --surface: #FFFFFF;
-  --text: #333333;
-  --muted: #717171;
-  --border: #EDEDED;
+  /* 對齊餐飲點餐前端交接稿（暫定色票） */
+  --ink: #22201c;
+  --paper: #fbf9f5;
+  --line: #e6e0d6;
+  --card: #ffffff;
+  --red: #b5342a;
+  --green: #4a7a4e;
+  --amber: #b5761f;
+  --muted: #8a857c;
+  --num: Arial, Helvetica, -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+
+  /* 相容既有元件變數名稱 */
+  --accent: var(--red);
+  --accent-dark: #8f2a22;
+  --accent-soft: #f7ebe8;
+  --bg: #ede8e0;
+  --surface: var(--card);
+  --text: var(--ink);
+  --border: var(--line);
   --container-max: 1100px;
 }
 
@@ -20,73 +31,77 @@
 html, body, #app {
   margin: 0; padding: 0; min-height: 100%;
   background: var(--bg);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  font-family: -apple-system, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "Heiti TC", sans-serif;
   color: var(--text);
   -webkit-tap-highlight-color: transparent;
 }
 button { font-family: inherit; cursor: pointer; }
 img { max-width: 100%; display: block; }
+.num { font-family: var(--num); }
 
-.page { min-height: 100vh; padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+.page { min-height: 100vh; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
 .container { max-width: var(--container-max); margin: 0 auto; width: 100%; }
 .hero {
-  background: linear-gradient(180deg, #FFF5F9 0%, var(--surface) 100%);
+  background: var(--paper);
   color: var(--text);
   padding: 24px 16px 20px;
-  box-shadow: 0 1px 0 var(--border);
+  border-bottom: 1px solid var(--border);
 }
-.hero h1 { margin: 0 0 4px; font-size: 1.5rem; }
+.hero h1 { margin: 0 0 4px; font-size: 1.5rem; font-weight: 900; letter-spacing: 0.06em; }
 .hero p { margin: 0 0 16px; color: var(--muted); font-size: 0.95rem; }
 .search-bar {
   display: flex; gap: 8px;
 }
 .search-bar input {
-  flex: 1; border: 1px solid var(--border); border-radius: 24px; padding: 12px 16px; font-size: 16px;
+  flex: 1; border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; font-size: 16px;
   background: var(--surface);
 }
 .search-bar input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: none;
 }
 .search-bar button {
-  border: 0; border-radius: 24px; padding: 0 16px; background: var(--accent); color: #fff; font-weight: 600;
+  border: 0; border-radius: 8px; padding: 0 16px; background: var(--accent); color: #fff; font-weight: 700;
 }
-.chips { display: flex; gap: 8px; overflow-x: auto; padding: 12px 16px; background: var(--surface); }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 12px 16px; background: var(--paper); }
 .chip {
-  flex-shrink: 0; border: 1px solid var(--border); background: var(--surface); border-radius: 20px; padding: 8px 14px; font-size: 14px;
+  flex-shrink: 0; border: 1px solid var(--border); background: var(--surface); border-radius: 6px; padding: 8px 14px; font-size: 14px;
   color: var(--text);
 }
-.chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.chip.active { border-color: var(--accent); border-width: 1.5px; color: var(--accent); background: var(--surface); font-weight: 700; }
 
 .store-list { padding: 0 12px 16px; display: flex; flex-direction: column; gap: 12px; }
 .store-card {
-  background: var(--surface); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(51,51,51,.08);
+  background: var(--surface); border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--border);
   text-decoration: none; color: inherit; display: block;
 }
 .store-banner { height: 100px; background: #ddd center/cover; }
 .store-body { padding: 12px; display: flex; gap: 12px; align-items: flex-start; }
-.store-logo { width: 52px; height: 52px; border-radius: 10px; object-fit: cover; background: #eee; flex-shrink: 0; }
-.store-logo-ph { width: 52px; height: 52px; border-radius: 10px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.store-logo { width: 52px; height: 52px; border-radius: 6px; object-fit: cover; background: #eee; flex-shrink: 0; }
+.store-logo-ph { width: 52px; height: 52px; border-radius: 6px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
 .store-meta h2 { margin: 0; font-size: 1rem; }
 .store-meta p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
 .badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
-.badge { font-size: 11px; background: var(--accent-soft); color: var(--accent-dark); padding: 2px 8px; border-radius: 10px; }
-.closed-tag { color: #b33; font-size: 12px; font-weight: 600; }
+.badge { font-size: 11px; background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 2px 8px; border-radius: 3px; }
+.closed-tag { color: var(--accent); font-size: 12px; font-weight: 700; }
 
 .cart-fab {
-  position: fixed; left: 16px; right: 16px; bottom: calc(12px + env(safe-area-inset-bottom));
-  background: var(--accent); color: #fff; border: 0; border-radius: 12px; padding: 14px 16px;
-  display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 600; z-index: 50;
-  box-shadow: 0 4px 16px rgba(215, 15, 100, 0.35);
+  position: fixed; left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom));
+  max-width: 480px; margin: 0 auto;
+  background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 11px 14px;
+  display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 700;
+  letter-spacing: 0.04em; z-index: 50;
+  box-shadow: none;
 }
 
 .topbar {
-  position: sticky; top: 0; z-index: 10; background: var(--surface);
+  position: sticky; top: 0; z-index: 10; background: var(--paper);
   display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border);
 }
 .topbar .back { border: 0; background: transparent; font-size: 24px; padding: 0 8px 0 0; }
-.topbar .title { font-weight: 600; flex: 1; text-align: center; }
+.topbar .title { font-weight: 700; flex: 1; text-align: center; letter-spacing: 0.08em; }
 .topbar .spacer { width: 32px; }
 
 .state-page { padding: 48px 16px; text-align: center; color: var(--muted); }

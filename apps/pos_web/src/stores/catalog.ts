@@ -26,7 +26,8 @@ export const useCatalogStore = defineStore('catalog', () => {
         (p) =>
           p.name.toLowerCase().includes(q) ||
           p.sku.toLowerCase().includes(q) ||
-          p.barcodes.some((b) => b.includes(q)),
+          p.barcodes.some((b) => b.includes(q)) ||
+          (p.author?.toLowerCase().includes(q) ?? false),
       )
     }
     return list

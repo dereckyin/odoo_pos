@@ -281,6 +281,7 @@ export interface ProductRead {
   print_label?: boolean
   product_kind?: string
   marketplace_category_id: string | null
+  author?: string | null
   barcodes: string[]
   updated_at: string
   deleted_at: string | null

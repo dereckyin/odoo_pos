@@ -10,7 +10,6 @@ import '../../../data/printer/printer_providers.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/widgets/manager_pin_dialog.dart';
 import '../../kds/providers/guest_orders_controller.dart';
-import '../../books/providers/consignment_providers.dart';
 import '../providers/cart_controller.dart';
 import '../../../data/printer/print_helpers.dart';
 import '../../../data/printer/printer_providers.dart';
@@ -397,7 +396,6 @@ class _CartLineTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(cartControllerProvider.notifier);
-    final consignment = ref.watch(consignmentPosConfigProvider);
     return ListTile(
       title: Text(line.product.name),
       subtitle: Column(
@@ -408,14 +406,17 @@ class _CartLineTile extends ConsumerWidget {
               line.product.bookAuthor!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.secondary),
             ),
-          if (line.product.isConsignmentBook && consignment.discountPresets.isNotEmpty)
+          if (line.product.isConsignmentBook)
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    for (final preset in consignment.discountPresets)
+                    for (final preset in const [
+                      (label: '7折', pctOff: 30),
+                      (label: '4折', pctOff: 60),
+                    ])
                       Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: ActionChip(

@@ -17,10 +17,14 @@ from ...core.deps import (
     ensure_same_tenant,
 )
 from ...core.usage import assert_can_add_product
-from ...models import Product, ProductBarcode
+from ...models import BookDetail, Product, ProductBarcode
 from ...schemas.product import ProductCreate, ProductRead, ProductUpdate
 from ...services.category_tree import build_category_maps, descendant_ids, load_tenant_categories
-from ...services.product_import import import_products_from_csv, render_import_template_csv
+from ...services.product_import import (
+    export_products_csv,
+    import_products_from_csv,
+    render_import_template_csv,
+)
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -37,6 +41,13 @@ async def _ensure_barcodes(
         db.add(ProductBarcode(tenant_id=tenant_id, product_id=product.id, barcode=code))
 
 
+def _product_load_options():
+    return (
+        selectinload(Product.barcodes),
+        selectinload(Product.book_detail),
+    )
+
+
 @router.get("", response_model=list[ProductRead])
 async def list_products(
     db: DbSession,
@@ -48,15 +59,23 @@ async def list_products(
     limit: int = Query(50, le=200),
     offset: int = 0,
 ) -> list[ProductRead]:
-    stmt = select(Product).where(Product.deleted_at.is_(None)).options(
-        selectinload(Product.barcodes)
-    )
+    stmt = select(Product).where(Product.deleted_at.is_(None)).options(*_product_load_options())
     stmt = apply_tenant(stmt, Product, scope)
     if q:
         like = f"%{q}%"
-        stmt = stmt.outerjoin(ProductBarcode).where(
-            or_(Product.name.ilike(like), Product.sku.ilike(like), ProductBarcode.barcode == q)
-        ).distinct()
+        stmt = (
+            stmt.outerjoin(ProductBarcode)
+            .outerjoin(BookDetail, BookDetail.product_id == Product.id)
+            .where(
+                or_(
+                    Product.name.ilike(like),
+                    Product.sku.ilike(like),
+                    ProductBarcode.barcode == q,
+                    BookDetail.author.ilike(like),
+                )
+            )
+            .distinct()
+        )
     if category_id:
         if include_subcategories:
             cats = await load_tenant_categories(db, scope.tenant_id)
@@ -67,7 +86,7 @@ async def list_products(
             stmt = stmt.where(Product.category_id == category_id)
     if is_active is not None:
         stmt = stmt.where(Product.is_active == is_active)
-    stmt = stmt.order_by(Product.name).limit(limit).offset(offset)
+    stmt = stmt.order_by(Product.updated_at.desc(), Product.name).limit(limit).offset(offset)
     rows = (await db.execute(stmt)).scalars().unique().all()
     return [ProductRead.from_orm_with_barcodes(r) for r in rows]
 
@@ -87,7 +106,7 @@ async def create_product(
     await db.commit()
     p = (
         await db.execute(
-            select(Product).where(Product.id == p.id).options(selectinload(Product.barcodes))
+            select(Product).where(Product.id == p.id).options(*_product_load_options())
         )
     ).scalar_one()
     return ProductRead.from_orm_with_barcodes(p)
@@ -101,6 +120,54 @@ async def download_import_csv_template(scope: TenantAdminDep) -> Response:
         content=content.encode("utf-8"),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="product-import-sample.csv"'},
+    )
+
+
+@router.get("/export-csv")
+async def export_products_csv_endpoint(
+    db: DbSession,
+    scope: TenantAdminDep,
+    q: str | None = None,
+    category_id: str | None = None,
+    include_subcategories: bool = True,
+    is_active: bool | None = None,
+) -> Response:
+    """Export products as UTF-8 BOM CSV (same columns as import + is_active)."""
+    stmt = select(Product).where(Product.deleted_at.is_(None)).options(*_product_load_options())
+    stmt = apply_tenant(stmt, Product, scope)
+    if q:
+        like = f"%{q}%"
+        stmt = (
+            stmt.outerjoin(ProductBarcode)
+            .outerjoin(BookDetail, BookDetail.product_id == Product.id)
+            .where(
+                or_(
+                    Product.name.ilike(like),
+                    Product.sku.ilike(like),
+                    ProductBarcode.barcode == q,
+                    BookDetail.author.ilike(like),
+                )
+            )
+            .distinct()
+        )
+    if category_id:
+        if include_subcategories:
+            cats = await load_tenant_categories(db, scope.tenant_id)
+            _, children_map = build_category_maps(cats)
+            ids = descendant_ids(category_id, children_map)
+            stmt = stmt.where(Product.category_id.in_(ids))
+        else:
+            stmt = stmt.where(Product.category_id == category_id)
+    if is_active is not None:
+        stmt = stmt.where(Product.is_active == is_active)
+    stmt = stmt.order_by(Product.updated_at.desc(), Product.name)
+    rows = (await db.execute(stmt)).scalars().unique().all()
+    categories = await load_tenant_categories(db, scope.tenant_id)
+    content = export_products_csv(rows, categories)
+    return Response(
+        content=content.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="products-export.csv"'},
     )
 
 
@@ -130,7 +197,7 @@ async def import_products_csv(
 async def get_product(pid: str, db: DbSession, scope: TenantScope) -> ProductRead:
     p = (
         await db.execute(
-            select(Product).where(Product.id == pid).options(selectinload(Product.barcodes))
+            select(Product).where(Product.id == pid).options(*_product_load_options())
         )
     ).scalar_one_or_none()
     if not p or p.deleted_at:
@@ -145,7 +212,7 @@ async def update_product(
 ) -> ProductRead:
     p = (
         await db.execute(
-            select(Product).where(Product.id == pid).options(selectinload(Product.barcodes))
+            select(Product).where(Product.id == pid).options(*_product_load_options())
         )
     ).scalar_one_or_none()
     if not p or p.deleted_at:
@@ -164,7 +231,7 @@ async def update_product(
     await db.commit()
     p = (
         await db.execute(
-            select(Product).where(Product.id == pid).options(selectinload(Product.barcodes))
+            select(Product).where(Product.id == pid).options(*_product_load_options())
         )
     ).scalar_one()
     return ProductRead.from_orm_with_barcodes(p)

@@ -10,7 +10,7 @@ from ..core.deps import TenantScope
 from ..models import Order, OrderLine, Refund, RefundLine, Store
 from ..schemas.book import ConsignmentSettlementReport, ConsignmentSettlementRow
 from .consignment_books import PRODUCT_KIND_CONSIGNMENT, get_consignment_settings
-from .reporting import SALE_STATUSES, apply_date_range, business_ts
+from .reporting import SALE_STATUSES, apply_date_range
 
 
 def refund_share_cents(order_line: OrderLine, refund_amount_cents: int) -> tuple[int, int]:
@@ -31,6 +31,13 @@ def refund_share_cents(order_line: OrderLine, refund_amount_cents: int) -> tuple
     return book, restaurant
 
 
+def refund_list_price_cents(order_line: OrderLine, refund_qty: float) -> int:
+    """定價沖銷：unit_price × refund qty（與折扣前定價一致）。"""
+    if refund_qty <= 0:
+        return 0
+    return int(round(int(order_line.unit_price_cents) * float(refund_qty)))
+
+
 async def build_consignment_settlement(
     db: AsyncSession,
     scope: TenantScope,
@@ -45,6 +52,7 @@ async def build_consignment_settlement(
             Order.store_id,
             Store.name,
             func.coalesce(func.sum(OrderLine.qty), 0),
+            func.coalesce(func.sum(OrderLine.unit_price_cents * OrderLine.qty), 0),
             func.coalesce(func.sum(OrderLine.line_total_cents), 0),
             func.coalesce(func.sum(OrderLine.consignment_book_share_cents), 0),
             func.coalesce(func.sum(OrderLine.consignment_restaurant_share_cents), 0),
@@ -70,9 +78,10 @@ async def build_consignment_settlement(
         sales_by_store[r[0]] = {
             "store_name": r[1] or "",
             "qty": float(r[2]),
-            "revenue_cents": int(r[3]),
-            "book_share_cents": int(r[4]),
-            "restaurant_share_cents": int(r[5]),
+            "list_price_cents": int(r[3]),
+            "revenue_cents": int(r[4]),
+            "book_share_cents": int(r[5]),
+            "restaurant_share_cents": int(r[6]),
         }
 
     refund_stmt = (
@@ -100,12 +109,19 @@ async def build_consignment_settlement(
         sid = order.store_id
         bucket = refunds_by_store.setdefault(
             sid,
-            {"qty": 0.0, "refund_cents": 0, "book_share_cents": 0, "restaurant_share_cents": 0},
+            {
+                "qty": 0.0,
+                "list_price_cents": 0,
+                "refund_cents": 0,
+                "book_share_cents": 0,
+                "restaurant_share_cents": 0,
+            },
         )
         bucket["qty"] += float(refund_line.qty)
         amt = int(refund_line.amount_cents)
         book, restaurant = refund_share_cents(order_line, amt)
         bucket["refund_cents"] += amt
+        bucket["list_price_cents"] += refund_list_price_cents(order_line, float(refund_line.qty))
         bucket["book_share_cents"] += book
         bucket["restaurant_share_cents"] += restaurant
 
@@ -120,6 +136,8 @@ async def build_consignment_settlement(
     for sid in sorted(all_store_ids, key=_net_revenue, reverse=True):
         sales = sales_by_store.get(sid, {})
         refunds = refunds_by_store.get(sid, {})
+        gross_list = sales.get("list_price_cents", 0)
+        list_refund = refunds.get("list_price_cents", 0)
         gross_rev = sales.get("revenue_cents", 0)
         refund_cents = refunds.get("refund_cents", 0)
         gross_book = sales.get("book_share_cents", 0)
@@ -135,6 +153,9 @@ async def build_consignment_settlement(
                 store_id=sid,
                 store_name=store_name,
                 qty=max(0.0, sales.get("qty", 0.0) - refunds.get("qty", 0.0)),
+                gross_list_price_cents=gross_list,
+                list_price_refund_cents=list_refund,
+                list_price_cents=gross_list - list_refund,
                 gross_revenue_cents=gross_rev,
                 refund_cents=refund_cents,
                 revenue_cents=gross_rev - refund_cents,
@@ -151,6 +172,9 @@ async def build_consignment_settlement(
         book_share_pct=cfg["book_share_pct"],
         rows=result_rows,
         total_qty=sum(x.qty for x in result_rows),
+        gross_list_price_cents=sum(x.gross_list_price_cents for x in result_rows),
+        list_price_refund_cents=sum(x.list_price_refund_cents for x in result_rows),
+        total_list_price_cents=sum(x.list_price_cents for x in result_rows),
         gross_revenue_cents=sum(x.gross_revenue_cents for x in result_rows),
         refund_cents=sum(x.refund_cents for x in result_rows),
         total_revenue_cents=sum(x.revenue_cents for x in result_rows),
