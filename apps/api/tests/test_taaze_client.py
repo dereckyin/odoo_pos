@@ -32,8 +32,8 @@ def test_parse_taaze_product_payload():
     assert product.isbn == "9786263965393"
     assert product.category_main == "社會科學"
     assert product.category_sub == "文化研究"
-    assert product.list_price_cents == 35000
-    assert product.sale_price_cents == 27600
+    assert product.list_price_cents == 350
+    assert product.sale_price_cents == 276
     assert product.pages == 232
     assert product.publish_date == "2024-08-06"
     assert product.is_second_hand is True

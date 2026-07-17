@@ -94,7 +94,7 @@ const fieldColumns = [
 const fieldRows = [
   { field: 'sku', required: '是', desc: '商品編號；相同 SKU 視為更新' },
   { field: 'name', required: '否', desc: '商品名稱，空白則使用 sku' },
-  { field: 'price_cents', required: '否', desc: '售價（分），預設 0' },
+  { field: 'price_cents', required: '否', desc: '售價（元），預設 0；欄位名為歷史相容，TWD 以整數元儲存' },
   { field: 'category_path', required: '否', desc: '多層分類路徑，以「 / 」分隔，須與後台分類管理完全一致' },
   { field: 'barcode', required: '否', desc: '主條碼' },
   { field: 'is_weighted', required: '否', desc: '1 / true / yes 表示計重商品' },

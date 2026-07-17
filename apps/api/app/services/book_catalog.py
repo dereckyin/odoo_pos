@@ -132,6 +132,19 @@ async def upsert_book_from_barcode(
 ) -> Product:
     existing = await find_book_by_barcode(db, tenant_id, barcode)
     if existing:
+        if lookup is None:
+            lookup = lookup_barcode(barcode)
+        # Refresh sell/list price from lookup (TWD stores whole dollars in *_cents).
+        existing.price_cents = default_sell_price_cents(lookup)
+        existing.updated_at = _now()
+        bd = existing.book_detail
+        if bd is not None:
+            bd.list_price_cents = lookup.list_price_cents
+            bd.sale_disc = lookup.sale_disc
+            if lookup.author:
+                bd.author = lookup.author
+            bd.updated_at = _now()
+        await db.flush()
         return existing
 
     if lookup is None:

@@ -44,6 +44,7 @@ import { message } from 'ant-design-vue'
 import { getConsignmentSettlement } from '@/api/books'
 import type { ConsignmentSettlementReport } from '@/api/books'
 import { listStores } from '@/api/stores'
+import { formatMoney } from '@/utils/formatMoney'
 
 const range = ref<[Dayjs, Dayjs]>([dayjs().subtract(30, 'day'), dayjs()])
 const storeId = ref<string | undefined>()
@@ -59,10 +60,6 @@ const columns = [
   { title: '應付書籍公司', dataIndex: 'book_share_cents', key: 'money' },
   { title: '餐廳留存', dataIndex: 'restaurant_share_cents', key: 'money' },
 ]
-
-function formatMoney(cents: number) {
-  return `$${(cents / 100).toLocaleString()}`
-}
 
 async function load() {
   try {

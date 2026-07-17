@@ -38,6 +38,7 @@ import { message } from 'ant-design-vue'
 import { listBooks } from '@/api/books'
 import type { BookProduct } from '@/api/books'
 import { listStores } from '@/api/stores'
+import { formatMoney } from '@/utils/formatMoney'
 
 const rows = ref<BookProduct[]>([])
 const loading = ref(false)
@@ -54,11 +55,6 @@ const columns = [
   { title: '折扣', key: 'sale_disc', width: 72 },
   { title: '庫存', key: 'on_hand', width: 72 },
 ]
-
-function formatMoney(cents: number | null | undefined) {
-  if (cents == null) return '—'
-  return (cents / 100).toFixed(0)
-}
 
 function formatSaleDisc(disc: number | null | undefined) {
   if (disc == null) return '—'

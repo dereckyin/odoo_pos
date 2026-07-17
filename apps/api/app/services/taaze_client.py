@@ -75,10 +75,11 @@ def parse_taaze_product_payload(payload: dict) -> TaazeProduct:
     if not title:
         raise TaazeProductNotFoundError("TAAZE 回傳缺少書名")
 
-    list_major = _parse_price_major(book.get("listPrice"))
+    # TWD amounts in this codebase are stored as whole dollars in `*_cents`
+    # (see pos_core Money / admin formatMoney). Do not multiply by 100.
+    list_cents = _parse_price_major(book.get("listPrice"))
     sale_major = _parse_price_major(book.get("salePrice"))
-    list_cents = list_major * 100
-    sale_cents = sale_major * 100 if sale_major > 0 else None
+    sale_cents = sale_major if sale_major > 0 else None
 
     isbn = str(book.get("isbn") or book.get("eanCode") or "").strip() or None
     cat_main = str(book.get("catName1") or "").strip() or None

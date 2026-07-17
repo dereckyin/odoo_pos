@@ -48,6 +48,7 @@ import { message } from 'ant-design-vue'
 import { lookupBook, receiveBook } from '@/api/books'
 import type { BookLookup } from '@/api/books'
 import { listStores } from '@/api/stores'
+import { formatMoney } from '@/utils/formatMoney'
 
 const storeId = ref<string>()
 const barcode = ref('')
@@ -56,11 +57,6 @@ const lookingUp = ref(false)
 const saving = ref(false)
 const preview = ref<BookLookup | null>(null)
 const storeOptions = ref<{ label: string; value: string }[]>([])
-
-function formatMoney(cents: number | null | undefined) {
-  if (cents == null) return '—'
-  return (cents / 100).toFixed(0)
-}
 
 async function onLookup() {
   const code = barcode.value.trim()

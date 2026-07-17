@@ -82,7 +82,7 @@ def _mock_external_lookup(barcode: str) -> BookLookupResult:
         author=authors[seed % len(authors)],
         publisher=publishers[seed % len(publishers)],
         isbn=None,
-        list_price_cents=price_major * 100,
+        list_price_cents=price_major,
         sale_price_cents=None,
         barcode_kind="external_8",
         category_main="他社書籍",
