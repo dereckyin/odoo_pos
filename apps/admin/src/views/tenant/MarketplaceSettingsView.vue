@@ -242,8 +242,8 @@ function fillForm(row: MarketplaceListing) {
   form.payment_counter = row.payment_counter
   form.payment_online = row.payment_online
   cuisineInput.value = (row.cuisine_tags ?? []).join(', ')
-  minOrderYuan.value = Math.round(row.min_order_cents / 100)
-  deliveryFeeYuan.value = Math.round(row.delivery_fee_cents / 100)
+  minOrderYuan.value = Math.round(row.min_order_cents)
+  deliveryFeeYuan.value = Math.round(row.delivery_fee_cents)
   for (const d of weekdays) {
     const slots = row.business_hours?.[d.key]
     if (slots && slots.length) {
@@ -301,8 +301,8 @@ async function handleSave() {
       logo_url: form.logo_url || null,
       banner_url: form.banner_url || null,
       cuisine_tags: cuisineInput.value.split(/[,，]/).map((s) => s.trim()).filter(Boolean),
-      min_order_cents: minOrderYuan.value * 100,
-      delivery_fee_cents: deliveryFeeYuan.value * 100,
+      min_order_cents: minOrderYuan.value,
+      delivery_fee_cents: deliveryFeeYuan.value,
       delivery_radius_km: form.delivery_radius_km,
       prep_time_min: form.prep_time_min,
       price_level: form.price_level,

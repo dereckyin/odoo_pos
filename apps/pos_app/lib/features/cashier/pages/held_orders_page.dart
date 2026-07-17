@@ -33,7 +33,7 @@ class HeldOrdersPage extends ConsumerWidget {
                 child: ListTile(
                   title: Text(h.label),
                   subtitle: Text(
-                    '${df.format(h.createdAt)} · ${h.lineCount} 品項 · \$${(h.totalCents / 100).toStringAsFixed(0)}',
+                    '${df.format(h.createdAt)} · ${h.lineCount} 品項 · \$${h.totalCents}',
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,

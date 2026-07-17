@@ -49,7 +49,7 @@
         </a-row>
         <a-row :gutter="16">
           <a-col :span="12"><a-form-item label="名額上限 (0=不限)"><a-input-number v-model:value="form.capacity" :min="0" style="width: 100%" /></a-form-item></a-col>
-          <a-col :span="12"><a-form-item label="票價 (元)"><a-input-number v-model:value="priceYuan" :min="0" style="width: 100%" /></a-form-item></a-col>
+          <a-col :span="12"><a-form-item label="票價 (元)"><a-input-number v-model:value="form.price_cents" :min="0" style="width: 100%" /></a-form-item></a-col>
         </a-row>
         <a-space>
           <a-form-item label="發布"><a-switch v-model:checked="form.is_published" /></a-form-item>
@@ -105,7 +105,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import dayjs, { Dayjs } from 'dayjs'
 import {
@@ -132,11 +132,6 @@ const form = reactive({
   price_cents: 0,
   is_published: false,
   list_on_marketplace: false,
-})
-
-const priceYuan = computed({
-  get: () => Math.round(form.price_cents / 100),
-  set: (v: number) => { form.price_cents = Math.round((v || 0) * 100) },
 })
 
 const columns = [

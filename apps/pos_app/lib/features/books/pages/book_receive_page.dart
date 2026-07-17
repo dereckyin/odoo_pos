@@ -93,7 +93,7 @@ class _BookReceivePageState extends ConsumerState<BookReceivePage> {
 
   String _money(int? cents) {
     if (cents == null) return '—';
-    return (cents / 100).toStringAsFixed(0);
+    return cents.toString();
   }
 
   @override

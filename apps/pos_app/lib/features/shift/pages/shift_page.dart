@@ -57,7 +57,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
     }
   }
 
-  String _money(int cents) => 'NT\$ ${(cents / 100).toStringAsFixed(0)}';
+  String _money(int cents) => 'NT\$ ${cents.toString()}';
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +106,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
                     ? null
                     : () async {
                         final yuan = int.tryParse(cashCtl.text.trim()) ?? 0;
-                        await _open(yuan * 100);
+                        await _open(yuan);
                       },
               ),
             ],
@@ -159,7 +159,7 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
               ? null
               : () async {
                   final yuan = int.tryParse(countedCtl.text.trim()) ?? 0;
-                  await _close(yuan * 100);
+                  await _close(yuan);
                 },
         ),
       ],
@@ -271,6 +271,6 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
   Future<List<int>> _zrow(Generator gen, String k, int v, {bool raw = false}) => escRow2(
         gen,
         left: k,
-        right: raw ? '$v' : 'NT\$ ${(v / 100).toStringAsFixed(0)}',
+        right: raw ? '$v' : 'NT\$ $v',
       );
 }

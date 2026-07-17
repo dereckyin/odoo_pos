@@ -274,7 +274,7 @@ class _GuestOrderTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final df = DateFormat('HH:mm');
-    final estimated = (order.estimatedSubtotalCents / 100).toStringAsFixed(0);
+    final estimated = order.estimatedSubtotalCents.toString();
     final l10n = AppLocalizations.of(context)!;
     final isSubmitted = order.status == 'submitted';
     final showComplete = !isSubmitted &&
@@ -343,7 +343,7 @@ class _GuestOrderTile extends StatelessWidget {
                   children: [
                     Expanded(child: Text('${l.productName} × ${_fmtQty(l.qty)}')),
                     Text(
-                      '\$${(l.lineTotalCents / 100).toStringAsFixed(0)}',
+                      '\$${l.lineTotalCents}',
                     ),
                   ],
                 ),
@@ -375,7 +375,7 @@ class _GuestOrderTile extends StatelessWidget {
                       onPressed: () => onComplete!(order),
                       icon: const Icon(Icons.check_circle_outline),
                       label: Text(
-                        '確認完成（免收款） \$${(order.estimatedSubtotalCents / 100).toStringAsFixed(0)}',
+                        '確認完成（免收款） \$${order.estimatedSubtotalCents}',
                       ),
                     ),
                   if (showImport && onImport != null)

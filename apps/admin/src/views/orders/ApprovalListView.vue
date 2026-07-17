@@ -83,6 +83,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
+import { formatMoney } from '@/utils/formatMoney'
 import {
   listRefundApprovals, approveRefund, rejectRefund,
   listVoidApprovals, approveVoid, rejectVoid,
@@ -126,9 +127,6 @@ const voidColumns = [
   { title: '操作', key: 'actions', width: 130 },
 ]
 
-function formatMoney(cents: number) {
-  return `NT$ ${(cents / 100).toLocaleString('zh-TW', { minimumFractionDigits: 0 })}`
-}
 function formatTime(s: string) {
   return s ? new Date(s).toLocaleString('zh-TW') : ''
 }

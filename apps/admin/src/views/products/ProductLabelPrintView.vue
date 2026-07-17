@@ -54,7 +54,7 @@
       <div v-for="(lb, idx) in labels" :key="idx" class="label">
         <div v-if="showName" class="label-name">{{ lb.name }}</div>
         <svg class="label-barcode" :ref="(el) => setSvgRef(el, idx)"></svg>
-        <div v-if="showPrice" class="label-price">NT$ {{ (lb.price_cents / 100).toLocaleString('zh-TW') }}</div>
+        <div v-if="showPrice" class="label-price">{{ formatMoney(lb.price_cents) }}</div>
       </div>
     </div>
   </div>
@@ -66,6 +66,7 @@ import { message } from 'ant-design-vue'
 import JsBarcode from 'jsbarcode'
 import { listProducts } from '@/api/products'
 import type { ProductRead } from '@/types'
+import { formatMoney } from '@/utils/formatMoney'
 
 interface Label {
   code: string
@@ -99,10 +100,6 @@ const groupedLabels = computed(() => {
   }
   return [...map.values()]
 })
-
-function formatMoney(cents: number) {
-  return `NT$ ${(cents / 100).toLocaleString('zh-TW')}`
-}
 
 function setSvgRef(el: any, idx: number) {
   svgRefs[idx] = el as Element | null
