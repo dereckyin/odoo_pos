@@ -116,16 +116,28 @@ class PrinterService {
   final AppLogger logger;
 
   EscPosReceiptBuilder _receiptBuilder(PrinterPreferences prefs) =>
-      EscPosReceiptBuilder(paperWidth: paperSizeFromMm(prefs.paperWidth));
+      EscPosReceiptBuilder(
+        paperWidth: paperSizeFromMm(prefs.paperWidth),
+        charset: prefs.escposCharset,
+      );
 
   EscPosConfirmationBuilder _confirmationBuilder(PrinterPreferences prefs) =>
-      EscPosConfirmationBuilder(paperWidth: paperSizeFromMm(prefs.paperWidth));
+      EscPosConfirmationBuilder(
+        paperWidth: paperSizeFromMm(prefs.paperWidth),
+        charset: prefs.escposCharset,
+      );
 
   EscPosInvoiceBuilder _invoiceBuilder(PrinterPreferences prefs) =>
-      EscPosInvoiceBuilder(paperWidth: paperSizeFromMm(prefs.paperWidth));
+      EscPosInvoiceBuilder(
+        paperWidth: paperSizeFromMm(prefs.paperWidth),
+        charset: prefs.escposCharset,
+      );
 
   EscPosTableQrBuilder _tableQrBuilder(PrinterPreferences prefs) =>
-      EscPosTableQrBuilder(paperWidth: paperSizeFromMm(prefs.paperWidth));
+      EscPosTableQrBuilder(
+        paperWidth: paperSizeFromMm(prefs.paperWidth),
+        charset: prefs.escposCharset,
+      );
 
   Future<void> _send(
     String label,
@@ -236,7 +248,10 @@ class KitchenPrinterService {
   final AppLogger logger;
 
   EscPosKitchenBuilder _kitchenBuilder(PrinterPreferences prefs) =>
-      EscPosKitchenBuilder(paperWidth: paperSizeFromMm(prefs.paperWidth));
+      EscPosKitchenBuilder(
+        paperWidth: paperSizeFromMm(prefs.paperWidth),
+        charset: prefs.escposCharset,
+      );
 
   Future<bool> printTicket(KitchenTicket ticket) async {
     final prefs = ref.read(kitchenPrinterPrefsProvider);

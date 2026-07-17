@@ -233,27 +233,28 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
       final profile = await CapabilityProfile.load();
       final gen = Generator(paperSizeFromMm(prefs.paperWidth), profile);
       final bytes = <int>[];
+      bytes.addAll(escBeginJob(prefs.escposCharset));
       final df = DateFormat('yyyy/MM/dd HH:mm:ss');
       final totals = (shift['totals_json'] as Map?)?.cast<String, dynamic>() ?? {};
       final byMethod = (totals['by_method'] as Map?)?.cast<String, dynamic>() ?? {};
 
-      bytes.addAll(escText(gen, 'Z 報表 / 交班結帳',
+      bytes.addAll(await escText(gen, 'Z 報表 / 交班結帳',
           styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2)));
-      bytes.addAll(escText(gen, '=' * 32, styles: const PosStyles(align: PosAlign.center)));
-      bytes.addAll(escText(gen, '交班時間: ${df.format(DateTime.now())}'));
-      bytes.addAll(escText(gen, '-' * 32, styles: const PosStyles(align: PosAlign.center)));
-      bytes.addAll(_zrow(gen, '開班備用金', (shift['opening_cash_cents'] as num?)?.toInt() ?? 0));
-      bytes.addAll(_zrow(gen, '訂單數', (totals['order_count'] as num?)?.toInt() ?? 0, raw: true));
-      bytes.addAll(_zrow(gen, '銷售總額', (totals['sales_total'] as num?)?.toInt() ?? 0));
-      bytes.addAll(_zrow(gen, '退款總額', (totals['refund_total'] as num?)?.toInt() ?? 0));
-      bytes.addAll(escText(gen, '-' * 32, styles: const PosStyles(align: PosAlign.center)));
+      bytes.addAll(await escText(gen, '=' * 32, styles: const PosStyles(align: PosAlign.center)));
+      bytes.addAll(await escText(gen, '交班時間: ${df.format(DateTime.now())}'));
+      bytes.addAll(await escText(gen, '-' * 32, styles: const PosStyles(align: PosAlign.center)));
+      bytes.addAll(await _zrow(gen, '開班備用金', (shift['opening_cash_cents'] as num?)?.toInt() ?? 0));
+      bytes.addAll(await _zrow(gen, '訂單數', (totals['order_count'] as num?)?.toInt() ?? 0, raw: true));
+      bytes.addAll(await _zrow(gen, '銷售總額', (totals['sales_total'] as num?)?.toInt() ?? 0));
+      bytes.addAll(await _zrow(gen, '退款總額', (totals['refund_total'] as num?)?.toInt() ?? 0));
+      bytes.addAll(await escText(gen, '-' * 32, styles: const PosStyles(align: PosAlign.center)));
       for (final e in byMethod.entries) {
-        bytes.addAll(_zrow(gen, e.key, (e.value as num).toInt()));
+        bytes.addAll(await _zrow(gen, e.key, (e.value as num).toInt()));
       }
-      bytes.addAll(escText(gen, '-' * 32, styles: const PosStyles(align: PosAlign.center)));
-      bytes.addAll(_zrow(gen, '應有現金', (shift['expected_cash_cents'] as num?)?.toInt() ?? 0));
-      bytes.addAll(_zrow(gen, '實點現金', (shift['counted_cash_cents'] as num?)?.toInt() ?? 0));
-      bytes.addAll(_zrow(gen, '差異', (shift['diff_cents'] as num?)?.toInt() ?? 0));
+      bytes.addAll(await escText(gen, '-' * 32, styles: const PosStyles(align: PosAlign.center)));
+      bytes.addAll(await _zrow(gen, '應有現金', (shift['expected_cash_cents'] as num?)?.toInt() ?? 0));
+      bytes.addAll(await _zrow(gen, '實點現金', (shift['counted_cash_cents'] as num?)?.toInt() ?? 0));
+      bytes.addAll(await _zrow(gen, '差異', (shift['diff_cents'] as num?)?.toInt() ?? 0));
       bytes.addAll(gen.feed(2));
       bytes.addAll(gen.cut());
 
@@ -267,12 +268,9 @@ class _ShiftPageState extends ConsumerState<ShiftPage> {
     }
   }
 
-  List<int> _zrow(Generator gen, String k, int v, {bool raw = false}) => gen.row([
-        escCol(k, width: 6),
-        escCol(
-          raw ? '$v' : 'NT\$ ${(v / 100).toStringAsFixed(0)}',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.right),
-        ),
-      ]);
+  Future<List<int>> _zrow(Generator gen, String k, int v, {bool raw = false}) => escRow2(
+        gen,
+        left: k,
+        right: raw ? '$v' : 'NT\$ ${(v / 100).toStringAsFixed(0)}',
+      );
 }

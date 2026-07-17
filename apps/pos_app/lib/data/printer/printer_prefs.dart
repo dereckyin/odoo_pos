@@ -1,3 +1,5 @@
+import 'escpos_zh.dart';
+
 enum PrinterKind { escpos, tspl }
 
 enum PrinterConnectionType { network, bluetooth }
@@ -16,6 +18,7 @@ class PrinterPreferences {
     this.bluetoothAddress,
     this.bluetoothName,
     this.bluetoothIsBle = false,
+    this.escposCharset = EscPosCharset.big5,
   });
 
   final String host;
@@ -32,6 +35,9 @@ class PrinterPreferences {
 
   /// iOS / BLE printers only; classic SPP thermal printers use `false` on Android.
   final bool bluetoothIsBle;
+
+  /// Taiwan printers typically need Big5; mainland clones need GBK.
+  final EscPosCharset escposCharset;
 
   bool get usesBluetooth => connectionType == PrinterConnectionType.bluetooth;
 
@@ -55,6 +61,7 @@ class PrinterPreferences {
         'bluetoothAddress': bluetoothAddress,
         'bluetoothName': bluetoothName,
         'bluetoothIsBle': bluetoothIsBle,
+        'escposCharset': escposCharset.name,
       };
 
   factory PrinterPreferences.fromJson(Map<String, dynamic> j) => PrinterPreferences(
@@ -72,6 +79,9 @@ class PrinterPreferences {
         bluetoothAddress: j['bluetoothAddress'] as String?,
         bluetoothName: j['bluetoothName'] as String?,
         bluetoothIsBle: j['bluetoothIsBle'] as bool? ?? false,
+        escposCharset: EscPosCharset.values.byName(
+          j['escposCharset'] as String? ?? 'big5',
+        ),
       );
 
   PrinterPreferences copyWith({
@@ -87,6 +97,7 @@ class PrinterPreferences {
     String? bluetoothAddress,
     String? bluetoothName,
     bool? bluetoothIsBle,
+    EscPosCharset? escposCharset,
     bool clearBluetooth = false,
   }) =>
       PrinterPreferences(
@@ -102,5 +113,6 @@ class PrinterPreferences {
         bluetoothAddress: clearBluetooth ? null : (bluetoothAddress ?? this.bluetoothAddress),
         bluetoothName: clearBluetooth ? null : (bluetoothName ?? this.bluetoothName),
         bluetoothIsBle: bluetoothIsBle ?? this.bluetoothIsBle,
+        escposCharset: escposCharset ?? this.escposCharset,
       );
 }

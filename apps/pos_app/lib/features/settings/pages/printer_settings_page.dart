@@ -4,6 +4,7 @@ import 'package:flutter_pos_printer_platform_image_3/flutter_pos_printer_platfor
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pos_ui_kit/pos_ui_kit.dart';
 
+import '../../../data/printer/escpos_zh.dart';
 import '../../../data/printer/printer_providers.dart';
 import '../../../data/printer/raw_printer_driver.dart';
 import '../../../data/printer/remote_print_job_worker.dart';
@@ -83,6 +84,7 @@ class _EscPosFormState extends ConsumerState<_EscPosForm> {
   late int _paperWidth;
   late bool _enabled;
   late PrinterConnectionType _connectionType;
+  late EscPosCharset _charset;
   String? _btAddress;
   String? _btName;
   late bool _btIsBle;
@@ -99,6 +101,7 @@ class _EscPosFormState extends ConsumerState<_EscPosForm> {
     _paperWidth = p.paperWidth;
     _enabled = p.enabled;
     _connectionType = p.connectionType;
+    _charset = p.escposCharset;
     _btAddress = p.bluetoothAddress;
     _btName = p.bluetoothName;
     _btIsBle = p.bluetoothIsBle || defaultTargetPlatform == TargetPlatform.iOS;
@@ -120,6 +123,7 @@ class _EscPosFormState extends ConsumerState<_EscPosForm> {
         bluetoothAddress: _btAddress,
         bluetoothName: _btName,
         bluetoothIsBle: _btIsBle,
+        escposCharset: _charset,
       );
 
   Future<void> _save() async {
@@ -314,6 +318,23 @@ class _EscPosFormState extends ConsumerState<_EscPosForm> {
             DropdownMenuItem(value: 80, child: Text('80mm')),
           ],
           onChanged: (v) => setState(() => _paperWidth = v ?? 80),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<EscPosCharset>(
+          value: _charset,
+          decoration: const InputDecoration(labelText: '中文編碼'),
+          items: [
+            for (final cs in EscPosCharset.values)
+              DropdownMenuItem(value: cs, child: Text(cs.label)),
+          ],
+          onChanged: (v) => setState(() => _charset = v ?? EscPosCharset.big5),
+        ),
+        const Padding(
+          padding: EdgeInsets.only(top: 4),
+          child: Text(
+            '台灣機型請用 Big5；若仍亂碼可改試 GBK。數字正常、中文亂碼通常就是編碼不符。',
+            style: TextStyle(fontSize: 12, color: Colors.black54),
+          ),
         ),
         const SizedBox(height: 24),
         BigButton(
