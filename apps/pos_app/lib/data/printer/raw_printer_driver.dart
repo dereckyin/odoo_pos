@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter_pos_printer_platform_image_3/flutter_pos_printer_platform_image_3.dart';
@@ -60,6 +61,8 @@ class RawPrinterDriver {
   StreamSubscription<BTStatus>? _statusSub;
   BTStatus _btStatus = BTStatus.none;
 
+  static const int _btChunkSize = 512;
+
   Future<void> printBytes(
     PrinterPreferences prefs,
     Uint8List bytes, {
@@ -90,10 +93,12 @@ class RawPrinterDriver {
     });
   }
 
-  Future<void> _waitUntilConnected({Duration timeout = const Duration(seconds: 12)}) async {
-    if (_btStatus == BTStatus.connected || _manager.currentStatusBT == BTStatus.connected) {
-      return;
-    }
+  bool get _isConnected =>
+      _btStatus == BTStatus.connected || _manager.currentStatusBT == BTStatus.connected;
+
+  Future<void> _waitUntilConnected({Duration timeout = const Duration(seconds: 15)}) async {
+    if (_isConnected) return;
+
     final completer = Completer<void>();
     late StreamSubscription<BTStatus> sub;
     Timer? timer;
@@ -101,9 +106,6 @@ class RawPrinterDriver {
       _btStatus = status;
       if (status == BTStatus.connected && !completer.isCompleted) {
         completer.complete();
-      }
-      if (status == BTStatus.none && !completer.isCompleted) {
-        // keep waiting until timeout — transient none during connect is possible
       }
     });
     timer = Timer(timeout, () {
@@ -121,7 +123,19 @@ class RawPrinterDriver {
     }
   }
 
-  Future<void> _ensureBluetoothConnected(PrinterPreferences prefs) async {
+  Future<void> _hardResetBluetooth() async {
+    try {
+      await _manager.disconnect(type: PrinterType.bluetooth, delayMs: 200);
+    } catch (_) {}
+    _connectedAddress = null;
+    _btStatus = BTStatus.none;
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+  }
+
+  Future<void> _ensureBluetoothConnected(
+    PrinterPreferences prefs, {
+    bool forceReconnect = false,
+  }) async {
     final address = normalizeBluetoothAddress(prefs.bluetoothAddress);
     if (address == null || address.isEmpty) {
       throw StateError('尚未選擇藍牙印表機');
@@ -130,20 +144,20 @@ class RawPrinterDriver {
     await ensureBluetoothPrintPermissions(isBle: prefs.bluetoothIsBle);
     _ensureStatusListener();
 
+    // Discovery interferes with RFCOMM connect on many Android stacks.
+    try {
+      await _manager.bluetoothPrinterConnector.stopScan();
+    } catch (_) {}
+
     final already =
+        !forceReconnect &&
         _connectedAddress == address &&
         _connectedIsBle == prefs.bluetoothIsBle &&
-        (_btStatus == BTStatus.connected || _manager.currentStatusBT == BTStatus.connected);
+        _isConnected;
 
     if (already) return;
 
-    if (_connectedAddress != null && _connectedAddress != address) {
-      try {
-        await _manager.disconnect(type: PrinterType.bluetooth, delayMs: 300);
-      } catch (_) {}
-      _connectedAddress = null;
-      await Future<void>.delayed(const Duration(milliseconds: 400));
-    }
+    await _hardResetBluetooth();
 
     final ok = await _manager.connect(
       type: PrinterType.bluetooth,
@@ -151,24 +165,44 @@ class RawPrinterDriver {
         name: prefs.bluetoothName ?? address,
         address: address,
         isBle: prefs.bluetoothIsBle,
-        // Keep trying if the socket drops between jobs.
-        autoConnect: true,
+        // autoConnect races with our own reconnect and often leaves state
+        // CONNECTING so sendDataByte returns false.
+        autoConnect: false,
       ),
     );
-    if (!ok && _manager.currentStatusBT != BTStatus.connected) {
+    if (!ok && !_isConnected) {
       throw StateError('無法連線藍牙印表機（$address）。請先在系統藍牙設定完成配對後再試');
     }
 
     await _waitUntilConnected();
-    // Android classic SPP often needs a short settle time before write.
-    if (Platform.isAndroid) {
-      await Future<void>.delayed(const Duration(milliseconds: 1000));
-    } else {
-      await Future<void>.delayed(const Duration(milliseconds: 300));
+
+    // Short settle only — long idle waits cause some printers to drop SPP.
+    await Future<void>.delayed(
+      Duration(milliseconds: Platform.isAndroid ? 250 : 200),
+    );
+
+    if (!_isConnected) {
+      throw StateError('藍牙連線在就緒前已斷開，請關閉附近掃描後重試，或於系統設定重新配對');
     }
 
     _connectedAddress = address;
     _connectedIsBle = prefs.bluetoothIsBle;
+  }
+
+  Future<bool> _sendBluetoothChunks(Uint8List bytes) async {
+    if (bytes.isEmpty) return true;
+
+    for (var offset = 0; offset < bytes.length; offset += _btChunkSize) {
+      if (!_isConnected) return false;
+      final end = math.min(offset + _btChunkSize, bytes.length);
+      final chunk = Uint8List.sublistView(bytes, offset, end);
+      final ok = await _manager.send(type: PrinterType.bluetooth, bytes: chunk);
+      if (!ok) return false;
+      if (end < bytes.length) {
+        await Future<void>.delayed(const Duration(milliseconds: 25));
+      }
+    }
+    return true;
   }
 
   Future<void> _printBluetooth(PrinterPreferences prefs, Uint8List bytes) async {
@@ -176,23 +210,22 @@ class RawPrinterDriver {
       throw StateError('此平台不支援藍牙印表機（請改用網路印表機）');
     }
 
-    await _ensureBluetoothConnected(prefs);
+    Future<bool> attempt({required bool forceReconnect}) async {
+      await _ensureBluetoothConnected(prefs, forceReconnect: forceReconnect);
+      return _sendBluetoothChunks(bytes);
+    }
 
-    final ok = await _manager.send(type: PrinterType.bluetooth, bytes: bytes);
+    var ok = await attempt(forceReconnect: false);
     if (!ok) {
-      // One reconnect + retry — common after printer sleeps.
-      _connectedAddress = null;
-      await _ensureBluetoothConnected(prefs);
-      final retry = await _manager.send(type: PrinterType.bluetooth, bytes: bytes);
-      if (!retry) {
-        throw StateError('藍牙印表機傳送失敗（連線狀態異常，請重新配對後再測）');
-      }
+      ok = await attempt(forceReconnect: true);
+    }
+    if (!ok) {
+      throw StateError('藍牙印表機傳送失敗（連線狀態異常，請重新配對後再測）');
     }
 
     // Let the printer drain the buffer. Do NOT disconnect immediately —
-    // closing the socket triggers "Bluetooth connection lost" toast and
-    // often cuts the end of the receipt.
-    final drainMs = (800 + (bytes.length / 40).round()).clamp(800, 4000);
+    // closing the socket often cuts the end of the receipt.
+    final drainMs = (600 + (bytes.length / 50).round()).clamp(600, 3500);
     await Future<void>.delayed(Duration(milliseconds: drainMs));
   }
 
@@ -250,5 +283,8 @@ class BluetoothPrinterScanner {
   Future<void> stop() async {
     await _sub?.cancel();
     _sub = null;
+    try {
+      await PrinterManager.instance.bluetoothPrinterConnector.stopScan();
+    } catch (_) {}
   }
 }

@@ -1,0 +1,4 @@
+# Vendored plugin — keep Android/iOS/Windows sources; skip example & tests
+/example/
+/test/
+*.png
