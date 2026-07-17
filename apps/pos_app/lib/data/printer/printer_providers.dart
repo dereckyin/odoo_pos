@@ -9,77 +9,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'escpos_service.dart';
 import 'print_job_queue.dart';
+import 'printer_prefs.dart';
 import 'printer_samples.dart';
+import 'raw_printer_driver.dart';
 import 'tspl_service.dart';
 
+export 'printer_prefs.dart';
+
 PaperSize paperSizeFromMm(int mm) => mm <= 58 ? PaperSize.mm58 : PaperSize.mm80;
-
-enum PrinterKind { escpos, tspl }
-
-class PrinterPreferences {
-  PrinterPreferences({
-    this.host = '192.168.1.100',
-    this.port = 9100,
-    this.paperWidth = 80,
-    this.enabled = false,
-    this.kind = PrinterKind.escpos,
-    this.labelWidthMm = 40,
-    this.labelHeightMm = 30,
-    this.gapMm = 2.0,
-  });
-
-  final String host;
-  final int port;
-  final int paperWidth;
-  final bool enabled;
-  final PrinterKind kind;
-  final int labelWidthMm;
-  final int labelHeightMm;
-  final double gapMm;
-
-  Map<String, dynamic> toJson() => {
-        'host': host,
-        'port': port,
-        'paperWidth': paperWidth,
-        'enabled': enabled,
-        'kind': kind.name,
-        'labelWidthMm': labelWidthMm,
-        'labelHeightMm': labelHeightMm,
-        'gapMm': gapMm,
-      };
-
-  factory PrinterPreferences.fromJson(Map<String, dynamic> j) => PrinterPreferences(
-        host: j['host'] as String? ?? '192.168.1.100',
-        port: (j['port'] as num?)?.toInt() ?? 9100,
-        paperWidth: (j['paperWidth'] as num?)?.toInt() ?? 80,
-        enabled: j['enabled'] as bool? ?? false,
-        kind: PrinterKind.values.byName(j['kind'] as String? ?? 'escpos'),
-        labelWidthMm: (j['labelWidthMm'] as num?)?.toInt() ?? 40,
-        labelHeightMm: (j['labelHeightMm'] as num?)?.toInt() ?? 30,
-        gapMm: (j['gapMm'] as num?)?.toDouble() ?? 2.0,
-      );
-
-  PrinterPreferences copyWith({
-    String? host,
-    int? port,
-    int? paperWidth,
-    bool? enabled,
-    PrinterKind? kind,
-    int? labelWidthMm,
-    int? labelHeightMm,
-    double? gapMm,
-  }) =>
-      PrinterPreferences(
-        host: host ?? this.host,
-        port: port ?? this.port,
-        paperWidth: paperWidth ?? this.paperWidth,
-        enabled: enabled ?? this.enabled,
-        kind: kind ?? this.kind,
-        labelWidthMm: labelWidthMm ?? this.labelWidthMm,
-        labelHeightMm: labelHeightMm ?? this.labelHeightMm,
-        gapMm: gapMm ?? this.gapMm,
-      );
-}
 
 class PrinterPrefsController extends StateNotifier<PrinterPreferences> {
   PrinterPrefsController({required this.storageKey, PrinterPreferences? defaults})
@@ -132,7 +69,7 @@ final labelPrinterPrefsProvider =
 final printerServiceProvider = Provider<PrinterService>((ref) {
   return PrinterService(
     ref: ref,
-    driver: TcpPrinterDriver(),
+    driver: RawPrinterDriver(),
     queue: ref.watch(printJobQueueProvider),
     logger: AppLogger.named('printer'),
   );
@@ -141,7 +78,7 @@ final printerServiceProvider = Provider<PrinterService>((ref) {
 final kitchenPrinterServiceProvider = Provider<KitchenPrinterService>((ref) {
   return KitchenPrinterService(
     ref: ref,
-    driver: TcpPrinterDriver(),
+    driver: RawPrinterDriver(),
     queue: ref.watch(printJobQueueProvider),
     logger: AppLogger.named('kitchen-printer'),
   );
@@ -150,7 +87,7 @@ final kitchenPrinterServiceProvider = Provider<KitchenPrinterService>((ref) {
 final labelPrinterServiceProvider = Provider<LabelPrinterService>((ref) {
   return LabelPrinterService(
     ref: ref,
-    driver: TsplPrinterDriver(),
+    driver: RawPrinterDriver(),
     queue: ref.watch(printJobQueueProvider),
     logger: AppLogger.named('label-printer'),
   );
@@ -165,7 +102,7 @@ class PrinterService {
   });
 
   final Ref ref;
-  final TcpPrinterDriver driver;
+  final RawPrinterDriver driver;
   final PrintJobQueue queue;
   final AppLogger logger;
 
@@ -181,11 +118,15 @@ class PrinterService {
   EscPosTableQrBuilder _tableQrBuilder(PrinterPreferences prefs) =>
       EscPosTableQrBuilder(paperWidth: paperSizeFromMm(prefs.paperWidth));
 
-  Future<void> _send(String label, PrinterPreferences prefs, Uint8List bytes,
-      {String? hostOverride}) {
+  Future<void> _send(
+    String label,
+    PrinterPreferences prefs,
+    Uint8List bytes, {
+    String? hostOverride,
+  }) {
     if (!prefs.enabled && hostOverride == null) return Future.value();
     return queue.run(label, () async {
-      await driver.printRaw(hostOverride ?? prefs.host, bytes, port: prefs.port);
+      await driver.printBytes(prefs, bytes, hostOverride: hostOverride);
     });
   }
 
@@ -264,16 +205,11 @@ class PrinterService {
     await _send('點餐 QR', prefs, bytes, hostOverride: hostOverride);
   }
 
-  Future<void> printTestReceipt({
-    required String host,
-    required int port,
-    required int paperWidth,
-  }) async {
-    final prefs = PrinterPreferences(host: host, port: port, paperWidth: paperWidth, enabled: true);
+  Future<void> printTestReceipt(PrinterPreferences prefs) async {
     final bytes = Uint8List.fromList(
       await _receiptBuilder(prefs).build(PrinterSamples.sampleReceiptOrder(), storeName: '點餐趣 測試列印'),
     );
-    await driver.printRaw(host, bytes, port: port);
+    await driver.printBytes(prefs, bytes);
   }
 }
 
@@ -286,7 +222,7 @@ class KitchenPrinterService {
   });
 
   final Ref ref;
-  final TcpPrinterDriver driver;
+  final RawPrinterDriver driver;
   final PrintJobQueue queue;
   final AppLogger logger;
 
@@ -298,21 +234,16 @@ class KitchenPrinterService {
     if (!prefs.enabled) return true;
     final bytes = Uint8List.fromList(await _kitchenBuilder(prefs).build(ticket));
     await queue.run('廚房單', () async {
-      await driver.printRaw(prefs.host, bytes, port: prefs.port);
+      await driver.printBytes(prefs, bytes);
     });
     return true;
   }
 
-  Future<void> printTestTicket({
-    required String host,
-    required int port,
-    required int paperWidth,
-  }) async {
-    final prefs = PrinterPreferences(host: host, port: port, paperWidth: paperWidth, enabled: true);
+  Future<void> printTestTicket(PrinterPreferences prefs) async {
     final bytes = Uint8List.fromList(
       await _kitchenBuilder(prefs).build(PrinterSamples.sampleKitchenTicket()),
     );
-    await driver.printRaw(host, bytes, port: port);
+    await driver.printBytes(prefs, bytes);
   }
 }
 
@@ -325,7 +256,7 @@ class LabelPrinterService {
   });
 
   final Ref ref;
-  final TsplPrinterDriver driver;
+  final RawPrinterDriver driver;
   final PrintJobQueue queue;
   final AppLogger logger;
 
@@ -340,7 +271,7 @@ class LabelPrinterService {
     if (!prefs.enabled && hostOverride == null) return;
     final bytes = await _builder(prefs).build(label);
     await queue.run('標籤', () async {
-      await driver.printRaw(hostOverride ?? prefs.host, bytes, port: prefs.port);
+      await driver.printBytes(prefs, bytes, hostOverride: hostOverride);
     });
   }
 
@@ -350,22 +281,7 @@ class LabelPrinterService {
     }
   }
 
-  Future<void> printTestLabel({
-    required String host,
-    required int port,
-    required int labelWidthMm,
-    required int labelHeightMm,
-    required double gapMm,
-  }) async {
-    final prefs = PrinterPreferences(
-      host: host,
-      port: port,
-      enabled: true,
-      kind: PrinterKind.tspl,
-      labelWidthMm: labelWidthMm,
-      labelHeightMm: labelHeightMm,
-      gapMm: gapMm,
-    );
+  Future<void> printTestLabel(PrinterPreferences prefs) async {
     final bytes = await _builder(prefs).build(
       DrinkLabel(
         productName: '測試飲料',
@@ -377,6 +293,6 @@ class LabelPrinterService {
         optionsLabel: '半糖 / 少冰',
       ),
     );
-    await driver.printRaw(host, bytes, port: port);
+    await driver.printBytes(prefs, bytes);
   }
 }

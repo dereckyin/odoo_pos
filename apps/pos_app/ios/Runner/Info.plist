@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>點餐趣需要藍牙連線至收據／廚房印表機</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>點餐趣需要藍牙連線至收據／廚房印表機</string>
 </dict>
 </plist>
