@@ -7,6 +7,7 @@ import 'package:pos_core/pos_core.dart';
 import 'package:pos_domain/pos_domain.dart' as dom;
 
 import '../../features/history/order_list_display.dart';
+import 'escpos_zh.dart';
 
 /// Lightweight ESC/POS abstraction. Concrete connection (TCP / USB / BT) is
 /// resolved by [PrinterConnection].
@@ -25,10 +26,10 @@ class EscPosReceiptBuilder {
     final gen = Generator(paperWidth, profile);
     final bytes = <int>[];
 
-    bytes.addAll(gen.text(storeName,
+    bytes.addAll(escText(gen, storeName,
         styles: const PosStyles(align: PosAlign.center, height: PosTextSize.size2, width: PosTextSize.size2)));
     bytes.addAll(gen.feed(1));
-    bytes.addAll(gen.text('=' * 32, styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(escText(gen, '=' * 32, styles: const PosStyles(align: PosAlign.center)));
 
     final df = DateFormat('yyyy/MM/dd HH:mm:ss');
     final orderRef = OrderListDisplay.receiptOrderRef(
@@ -37,46 +38,40 @@ class EscPosReceiptBuilder {
       tableLabel: tableLabel,
     );
     bytes.addAll(gen.row([
-      PosColumn(text: '單號', width: 4, styles: const PosStyles()),
-      PosColumn(text: orderRef, width: 8, styles: const PosStyles(align: PosAlign.right)),
+      escCol('單號', width: 4),
+      escCol(orderRef, width: 8, styles: const PosStyles(align: PosAlign.right)),
     ]));
     if (tableLabel != null && tableLabel.isNotEmpty) {
       bytes.addAll(gen.row([
-        PosColumn(text: '桌號', width: 4),
-        PosColumn(text: tableLabel, width: 8, styles: const PosStyles(align: PosAlign.right)),
+        escCol('桌號', width: 4),
+        escCol(tableLabel, width: 8, styles: const PosStyles(align: PosAlign.right)),
       ]));
     }
     bytes.addAll(gen.row([
-      PosColumn(text: '時間', width: 4),
-      PosColumn(text: df.format(order.createdAt.toLocal()), width: 8, styles: const PosStyles(align: PosAlign.right)),
+      escCol('時間', width: 4),
+      escCol(df.format(order.createdAt.toLocal()), width: 8, styles: const PosStyles(align: PosAlign.right)),
     ]));
     bytes.addAll(gen.row([
-      PosColumn(text: '收銀', width: 4),
-      PosColumn(text: order.cashierId.substring(0, 8), width: 8, styles: const PosStyles(align: PosAlign.right)),
+      escCol('收銀', width: 4),
+      escCol(order.cashierId.substring(0, 8), width: 8, styles: const PosStyles(align: PosAlign.right)),
     ]));
-    bytes.addAll(gen.text('-' * 32, styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(escText(gen, '-' * 32, styles: const PosStyles(align: PosAlign.center)));
 
     for (final line in order.lines) {
       final optionLabel = line.selectedOptions.displayLabel;
-      bytes.addAll(gen.text(
+      bytes.addAll(escText(
+        gen,
         optionLabel.isEmpty ? line.productName : '${line.productName} / $optionLabel',
       ));
       if (line.note != null && line.note!.isNotEmpty) {
-        bytes.addAll(gen.text('  備註: ${line.note}'));
+        bytes.addAll(escText(gen, '  備註: ${line.note}'));
       }
       bytes.addAll(gen.row([
-        PosColumn(
-          text: '  ${line.qty} x ${_money(line.unitPrice)}',
-          width: 8,
-        ),
-        PosColumn(
-          text: _money(line.lineTotal),
-          width: 4,
-          styles: const PosStyles(align: PosAlign.right),
-        ),
+        escCol('  ${line.qty} x ${_money(line.unitPrice)}', width: 8),
+        escCol(_money(line.lineTotal), width: 4, styles: const PosStyles(align: PosAlign.right)),
       ]));
     }
-    bytes.addAll(gen.text('-' * 32, styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(escText(gen, '-' * 32, styles: const PosStyles(align: PosAlign.center)));
 
     bytes.addAll(_kv(gen, '小計', order.subtotal));
     if (!order.discount.isZero) {
@@ -84,9 +79,9 @@ class EscPosReceiptBuilder {
     }
     bytes.addAll(_kv(gen, '稅(內含) 5%', order.tax));
     bytes.addAll(gen.row([
-      PosColumn(text: '合計', width: 4, styles: const PosStyles(bold: true, height: PosTextSize.size2)),
-      PosColumn(
-        text: _money(order.total),
+      escCol('合計', width: 4, styles: const PosStyles(bold: true, height: PosTextSize.size2)),
+      escCol(
+        _money(order.total),
         width: 8,
         styles: const PosStyles(align: PosAlign.right, bold: true, height: PosTextSize.size2),
       ),
@@ -95,35 +90,36 @@ class EscPosReceiptBuilder {
     bytes.addAll(gen.feed(1));
     for (final pay in order.payments) {
       bytes.addAll(gen.row([
-        PosColumn(text: pay.method.label, width: 4),
-        PosColumn(text: _money(pay.amount), width: 8, styles: const PosStyles(align: PosAlign.right)),
+        escCol(pay.method.label, width: 4),
+        escCol(_money(pay.amount), width: 8, styles: const PosStyles(align: PosAlign.right)),
       ]));
     }
 
     if (invoice != null && invoice.invoiceNumber != null) {
       bytes.addAll(gen.feed(1));
-      bytes.addAll(gen.text('-' * 32, styles: const PosStyles(align: PosAlign.center)));
-      bytes.addAll(gen.text('發票號碼: ${invoice.invoiceNumber}', styles: const PosStyles(align: PosAlign.center, bold: true)));
+      bytes.addAll(escText(gen, '-' * 32, styles: const PosStyles(align: PosAlign.center)));
+      bytes.addAll(escText(gen, '發票號碼: ${invoice.invoiceNumber}',
+          styles: const PosStyles(align: PosAlign.center, bold: true)));
       if (invoice.invoiceDate != null) {
-        bytes.addAll(gen.text('發票日期: ${df.format(invoice.invoiceDate!)}',
+        bytes.addAll(escText(gen, '發票日期: ${df.format(invoice.invoiceDate!)}',
             styles: const PosStyles(align: PosAlign.center)));
       }
       if (invoice.carrier?.code != null) {
-        bytes.addAll(gen.text('載具: ${invoice.carrier!.code}',
+        bytes.addAll(escText(gen, '載具: ${invoice.carrier!.code}',
             styles: const PosStyles(align: PosAlign.center)));
       }
     }
 
     bytes.addAll(gen.feed(2));
-    bytes.addAll(gen.text('謝謝惠顧 歡迎再來', styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(escText(gen, '謝謝惠顧 歡迎再來', styles: const PosStyles(align: PosAlign.center)));
     bytes.addAll(gen.feed(2));
     bytes.addAll(gen.cut());
     return bytes;
   }
 
   List<int> _kv(Generator gen, String k, Money v) => gen.row([
-        PosColumn(text: k, width: 4),
-        PosColumn(text: _money(v), width: 8, styles: const PosStyles(align: PosAlign.right)),
+        escCol(k, width: 4),
+        escCol(_money(v), width: 8, styles: const PosStyles(align: PosAlign.right)),
       ]);
 
   String _money(Money m) => m.format(withSymbol: true);
@@ -167,11 +163,13 @@ class EscPosKitchenBuilder {
     final gen = Generator(paperWidth, profile);
     final bytes = <int>[];
 
-    bytes.addAll(gen.text(
+    bytes.addAll(escText(
+      gen,
       '*** 廚房製作單 ***',
       styles: const PosStyles(align: PosAlign.center, bold: true),
     ));
-    bytes.addAll(gen.text(
+    bytes.addAll(escText(
+      gen,
       '桌號 ${ticket.tableLabel}',
       styles: const PosStyles(
         align: PosAlign.center,
@@ -181,23 +179,26 @@ class EscPosKitchenBuilder {
       ),
     ));
     final df = DateFormat('HH:mm:ss');
-    bytes.addAll(gen.text(
+    bytes.addAll(escText(
+      gen,
       '時間: ${df.format(ticket.placedAt.toLocal())}'
       '${ticket.partySize != null ? '   ${ticket.partySize}人' : ''}',
       styles: const PosStyles(align: PosAlign.center),
     ));
-    bytes.addAll(gen.text(
+    bytes.addAll(escText(
+      gen,
       '單號: ${ticket.guestOrderId.substring(0, 8)}',
       styles: const PosStyles(align: PosAlign.center),
     ));
-    bytes.addAll(gen.text('=' * 32, styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(escText(gen, '=' * 32, styles: const PosStyles(align: PosAlign.center)));
 
     for (final ln in ticket.lines) {
       final qty = ln.qty is int ? ln.qty.toString() : ln.qty.toString();
       final nameLine = ln.optionsLabel != null && ln.optionsLabel!.isNotEmpty
           ? '${ln.name} / ${ln.optionsLabel}'
           : ln.name;
-      bytes.addAll(gen.text(
+      bytes.addAll(escText(
+        gen,
         '$nameLine  x $qty',
         styles: const PosStyles(
           bold: true,
@@ -206,17 +207,15 @@ class EscPosKitchenBuilder {
         ),
       ));
       if (ln.note != null && ln.note!.isNotEmpty) {
-        bytes.addAll(gen.text(
-          '  → ${ln.note}',
-          styles: const PosStyles(),
-        ));
+        bytes.addAll(escText(gen, '  → ${ln.note}'));
       }
       bytes.addAll(gen.feed(1));
     }
 
     if (ticket.note != null && ticket.note!.isNotEmpty) {
-      bytes.addAll(gen.text('-' * 32, styles: const PosStyles(align: PosAlign.center)));
-      bytes.addAll(gen.text(
+      bytes.addAll(escText(gen, '-' * 32, styles: const PosStyles(align: PosAlign.center)));
+      bytes.addAll(escText(
+        gen,
         '備註: ${ticket.note}',
         styles: const PosStyles(bold: true),
       ));
@@ -273,68 +272,56 @@ class EscPosConfirmationBuilder {
     final bytes = <int>[];
     final df = DateFormat('yyyy/MM/dd HH:mm');
 
-    bytes.addAll(gen.text(storeName,
+    bytes.addAll(escText(gen, storeName,
         styles: const PosStyles(align: PosAlign.center, height: PosTextSize.size2)));
-    bytes.addAll(gen.text('餐點確認單（非發票）',
+    bytes.addAll(escText(gen, '餐點確認單（非發票）',
         styles: const PosStyles(align: PosAlign.center, bold: true)));
-    bytes.addAll(gen.text('=' * 32, styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(escText(gen, '=' * 32, styles: const PosStyles(align: PosAlign.center)));
     bytes.addAll(gen.row([
-      PosColumn(text: '桌號', width: 4),
-      PosColumn(
-        text: order.tableLabel,
-        width: 8,
-        styles: const PosStyles(align: PosAlign.right, bold: true),
-      ),
+      escCol('桌號', width: 4),
+      escCol(order.tableLabel, width: 8, styles: const PosStyles(align: PosAlign.right, bold: true)),
     ]));
     if (order.orderRef != null) {
       bytes.addAll(gen.row([
-        PosColumn(text: '單號', width: 4),
-        PosColumn(text: order.orderRef!, width: 8, styles: const PosStyles(align: PosAlign.right)),
+        escCol('單號', width: 4),
+        escCol(order.orderRef!, width: 8, styles: const PosStyles(align: PosAlign.right)),
       ]));
     }
     bytes.addAll(gen.row([
-      PosColumn(text: '時間', width: 4),
-      PosColumn(
-        text: df.format(order.placedAt.toLocal()),
-        width: 8,
-        styles: const PosStyles(align: PosAlign.right),
-      ),
+      escCol('時間', width: 4),
+      escCol(df.format(order.placedAt.toLocal()), width: 8, styles: const PosStyles(align: PosAlign.right)),
     ]));
-    bytes.addAll(gen.text('-' * 32, styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(escText(gen, '-' * 32, styles: const PosStyles(align: PosAlign.center)));
 
     for (final ln in order.lines) {
       final label = ln.optionsLabel != null && ln.optionsLabel!.isNotEmpty
           ? '${ln.name} / ${ln.optionsLabel}'
           : ln.name;
-      bytes.addAll(gen.text(label));
+      bytes.addAll(escText(gen, label));
       if (ln.note != null && ln.note!.isNotEmpty) {
-        bytes.addAll(gen.text('  備註: ${ln.note}'));
+        bytes.addAll(escText(gen, '  備註: ${ln.note}'));
       }
       bytes.addAll(gen.row([
-        PosColumn(text: '  ${ln.qty} x', width: 6),
-        PosColumn(
-          text: ln.lineTotal.format(withSymbol: true),
-          width: 6,
-          styles: const PosStyles(align: PosAlign.right),
-        ),
+        escCol('  ${ln.qty} x', width: 6),
+        escCol(ln.lineTotal.format(withSymbol: true), width: 6, styles: const PosStyles(align: PosAlign.right)),
       ]));
     }
 
-    bytes.addAll(gen.text('-' * 32, styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(escText(gen, '-' * 32, styles: const PosStyles(align: PosAlign.center)));
     bytes.addAll(gen.row([
-      PosColumn(text: '預估合計', width: 6, styles: const PosStyles(bold: true)),
-      PosColumn(
-        text: order.estimatedTotal.format(withSymbol: true),
+      escCol('預估合計', width: 6, styles: const PosStyles(bold: true)),
+      escCol(
+        order.estimatedTotal.format(withSymbol: true),
         width: 6,
         styles: const PosStyles(align: PosAlign.right, bold: true),
       ),
     ]));
     if (order.note != null && order.note!.isNotEmpty) {
       bytes.addAll(gen.feed(1));
-      bytes.addAll(gen.text('備註: ${order.note}', styles: const PosStyles(bold: true)));
+      bytes.addAll(escText(gen, '備註: ${order.note}', styles: const PosStyles(bold: true)));
     }
     bytes.addAll(gen.feed(2));
-    bytes.addAll(gen.text('請核對品項，結帳時以櫃台金額為準',
+    bytes.addAll(escText(gen, '請核對品項，結帳時以櫃台金額為準',
         styles: const PosStyles(align: PosAlign.center)));
     bytes.addAll(gen.feed(2));
     bytes.addAll(gen.cut());
@@ -368,25 +355,26 @@ class EscPosInvoiceBuilder {
     final periodEnd = period + 1;
     final df = DateFormat('yyyy-MM-dd HH:mm:ss');
 
-    bytes.addAll(gen.text('電子發票證明聯',
+    bytes.addAll(escText(gen, '電子發票證明聯',
         styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2)));
-    bytes.addAll(gen.text(storeName, styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(escText(gen, storeName, styles: const PosStyles(align: PosAlign.center)));
     if (storeTaxId != null && storeTaxId.isNotEmpty) {
-      bytes.addAll(gen.text('賣方 $storeTaxId', styles: const PosStyles(align: PosAlign.center)));
+      bytes.addAll(escText(gen, '賣方 $storeTaxId', styles: const PosStyles(align: PosAlign.center)));
     }
     bytes.addAll(gen.feed(1));
-    bytes.addAll(gen.text(
+    bytes.addAll(escText(
+      gen,
       '$rocYear年${period.toString().padLeft(2, '0')}-${periodEnd.toString().padLeft(2, '0')}月',
       styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2),
     ));
-    bytes.addAll(gen.text(invoiceNumber,
+    bytes.addAll(escText(gen, invoiceNumber,
         styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2)));
-    bytes.addAll(gen.text(df.format(local), styles: const PosStyles(align: PosAlign.center)));
-    bytes.addAll(gen.text('隨機碼 $randomCode', styles: const PosStyles(align: PosAlign.center)));
-    bytes.addAll(gen.text('總計 ${total.format(withSymbol: true)}',
+    bytes.addAll(escText(gen, df.format(local), styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(escText(gen, '隨機碼 $randomCode', styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(escText(gen, '總計 ${total.format(withSymbol: true)}',
         styles: const PosStyles(align: PosAlign.center, bold: true)));
     if (buyerTaxId != null && buyerTaxId.isNotEmpty) {
-      bytes.addAll(gen.text('買方 $buyerTaxId', styles: const PosStyles(align: PosAlign.center)));
+      bytes.addAll(escText(gen, '買方 $buyerTaxId', styles: const PosStyles(align: PosAlign.center)));
     }
     bytes.addAll(gen.feed(1));
     if (barcode != null && barcode.isNotEmpty) {
@@ -421,17 +409,17 @@ class EscPosTableQrBuilder {
     final bytes = <int>[];
     final df = DateFormat('yyyy/MM/dd HH:mm');
 
-    bytes.addAll(gen.text(storeName,
+    bytes.addAll(escText(gen, storeName,
         styles: const PosStyles(align: PosAlign.center, height: PosTextSize.size2)));
-    bytes.addAll(gen.text('桌號 $tableLabel',
+    bytes.addAll(escText(gen, '桌號 $tableLabel',
         styles: const PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2)));
     bytes.addAll(gen.feed(1));
-    bytes.addAll(gen.text('掃描 QR 點餐', styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(escText(gen, '掃描 QR 點餐', styles: const PosStyles(align: PosAlign.center)));
     bytes.addAll(gen.qrcode(orderUrl, align: PosAlign.center));
     bytes.addAll(gen.feed(1));
-    bytes.addAll(gen.text('請勿分享此 QR', styles: const PosStyles(align: PosAlign.center)));
+    bytes.addAll(escText(gen, '請勿分享此 QR', styles: const PosStyles(align: PosAlign.center)));
     if (expiresAt != null) {
-      bytes.addAll(gen.text('有效至 ${df.format(expiresAt.toLocal())}',
+      bytes.addAll(escText(gen, '有效至 ${df.format(expiresAt.toLocal())}',
           styles: const PosStyles(align: PosAlign.center)));
     }
     bytes.addAll(gen.feed(2));
