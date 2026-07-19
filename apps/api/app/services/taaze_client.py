@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import httpx
 
 TAAZE_PRODUCT_URL = "https://service.taaze.tw/product/{prod_id}"
+TAAZE_ISBN_URL = "https://service.taaze.tw/isbn/{prod_id}"
 TAAZE_COVER_URL = (
     "https://media.taaze.tw/showLargeImage.html?sc={prod_id}&height=200&width=150&fill=f"
 )
@@ -126,17 +127,14 @@ def parse_taaze_product_payload(payload: dict) -> TaazeProduct:
     )
 
 
-def fetch_taaze_product(prod_id: str, *, timeout: float = 12.0) -> TaazeProduct:
-    code = prod_id.strip()
-    url = TAAZE_PRODUCT_URL.format(prod_id=code)
+def _fetch_taaze_url(client: httpx.Client, url: str) -> TaazeProduct:
     try:
-        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-            resp = client.get(url, headers={"Accept": "application/json"})
+        resp = client.get(url, headers={"Accept": "application/json"})
     except httpx.HTTPError as e:
         raise TaazeProductError(f"無法連線 TAAZE：{e}") from e
 
     if resp.status_code == 404:
-        raise TaazeProductNotFoundError(f"TAAZE 找不到商品 {code}")
+        raise TaazeProductNotFoundError(f"TAAZE 找不到：{url}")
     if resp.status_code >= 400:
         raise TaazeProductError(f"TAAZE HTTP {resp.status_code}")
 
@@ -146,3 +144,22 @@ def fetch_taaze_product(prod_id: str, *, timeout: float = 12.0) -> TaazeProduct:
         raise TaazeProductError("TAAZE 回傳非 JSON") from e
 
     return parse_taaze_product_payload(payload)
+
+
+def fetch_taaze_product(prod_id: str, *, timeout: float = 12.0) -> TaazeProduct:
+    code = prod_id.strip()
+    urls = (
+        TAAZE_PRODUCT_URL.format(prod_id=code),
+        TAAZE_ISBN_URL.format(prod_id=code),
+    )
+    last_not_found: TaazeProductNotFoundError | None = None
+
+    with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+        for url in urls:
+            try:
+                return _fetch_taaze_url(client, url)
+            except TaazeProductNotFoundError as e:
+                last_not_found = e
+                continue
+
+    raise last_not_found or TaazeProductNotFoundError(f"TAAZE 找不到商品 {code}")
