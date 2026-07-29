@@ -118,6 +118,6 @@ const noticeHtml = computed(() => {
 
 function backMenu() {
   session.resetAfterDone()
-  router.replace({ name: 'menu', query: session.entryQuery() })
+  router.replace({ name: 'home', query: session.entryQuery() })
 }
 </script>

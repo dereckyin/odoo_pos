@@ -16,6 +16,7 @@ from ...core.usage import assert_can_add_store
 from ...models import Store, Terminal
 from ...schemas.store import StoreCreate, StoreRead, StoreUpdate, TerminalRead
 from ...services.geocoding import geocode_store_rate_limited
+from ...services.online_ordering import normalize_online_ordering_patch
 
 router = APIRouter(prefix="/stores", tags=["stores"])
 
@@ -33,7 +34,11 @@ async def list_stores(db: DbSession, scope: TenantScope):
 @router.post("", response_model=StoreRead, status_code=201)
 async def create_store(payload: StoreCreate, db: DbSession, scope: TenantAdminDep):
     await assert_can_add_store(db, scope.tenant_id)
-    s = Store(tenant_id=scope.tenant_id, **payload.model_dump())
+    data = payload.model_dump()
+    oo = data.pop("online_ordering_json", None)
+    if oo is not None:
+        data["online_ordering_json"] = normalize_online_ordering_patch(oo)
+    s = Store(tenant_id=scope.tenant_id, **data)
     db.add(s)
     await audit(db, scope, action="store_create", resource_type="store", flush=False)
     await db.commit()
@@ -58,7 +63,13 @@ async def update_store(
     if not s or s.deleted_at:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     ensure_same_tenant(scope, s)
-    for k, v in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True)
+    if "online_ordering_json" in data:
+        oo = data["online_ordering_json"]
+        data["online_ordering_json"] = (
+            normalize_online_ordering_patch(oo) if oo is not None else None
+        )
+    for k, v in data.items():
         setattr(s, k, v)
     await audit(db, scope, action="store_update", resource_type="store",
                 resource_id=store_id, flush=False)

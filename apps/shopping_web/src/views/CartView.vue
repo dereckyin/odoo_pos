@@ -110,8 +110,8 @@ const hint = computed(() => {
 })
 
 function goMenu() {
-  if (!cart.lines.length) router.replace({ name: 'menu', query: session.entryQuery() })
-  else router.push({ name: 'menu', query: session.entryQuery() })
+  if (!cart.lines.length) router.replace({ name: 'home', query: session.entryQuery() })
+  else router.push({ name: 'home', query: session.entryQuery() })
 }
 
 function goCheckout() {

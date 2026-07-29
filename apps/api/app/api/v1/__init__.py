@@ -31,6 +31,7 @@ from . import (
     public_members,
     public_member_center,
     public_marketplace,
+    public_shopping,
     marketplace_admin,
     marketplace_payments,
     tenant_apply,
@@ -78,6 +79,7 @@ api_router.include_router(table_sessions.router)
 api_router.include_router(guest_orders.router)
 api_router.include_router(public_orders.router)
 api_router.include_router(public_marketplace.router)
+api_router.include_router(public_shopping.router)
 api_router.include_router(marketplace_payments.router)
 api_router.include_router(public_members.router)
 api_router.include_router(public_member_center.router)

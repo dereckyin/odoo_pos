@@ -1,7 +1,8 @@
-"""Shared marketplace order creation used by single + multi-store checkout."""
+"""Shared guest-order creation for marketplace + unified shopping channels."""
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 from uuid import uuid4
 
 from fastapi import HTTPException, status
@@ -17,6 +18,7 @@ from .loyalty_engine import (
     preview_coupon,
 )
 from .marketplace import get_or_create_web_dinein_table, is_store_open
+from .online_ordering import read_online_ordering
 from .option_validation import (
     OptionValidationError,
     load_product_option_context,
@@ -26,6 +28,23 @@ from .public_menu import product_orderable_via_public_menu
 
 FULFILLMENT_TYPES = ("pickup", "delivery", "dine_in")
 PAYMENT_METHODS = ("counter", "online")
+
+
+@dataclass
+class OrderingProfile:
+    """Channel-agnostic ordering constraints (marketplace listing or store settings)."""
+
+    display_name: str
+    supports_pickup: bool = True
+    supports_delivery: bool = False
+    supports_dine_in: bool = False
+    payment_counter: bool = True
+    payment_online: bool = False
+    min_order_cents: int = 0
+    delivery_fee_cents: int = 0
+    business_hours: dict | None = None
+    # Stored in GuestOrder.extras for status pages / redirects.
+    store_slug: str | None = None
 
 
 @dataclass
@@ -48,37 +67,78 @@ class MarketplaceOrderInput:
     lines: list[GuestOrderLineCreate] | None = None
 
 
+def profile_from_listing(listing: MarketplaceListing) -> OrderingProfile:
+    return OrderingProfile(
+        display_name=listing.display_name,
+        supports_pickup=bool(listing.supports_pickup),
+        supports_delivery=bool(listing.supports_delivery),
+        supports_dine_in=bool(listing.supports_dine_in),
+        payment_counter=bool(listing.payment_counter),
+        payment_online=bool(listing.payment_online),
+        min_order_cents=int(listing.min_order_cents or 0),
+        delivery_fee_cents=int(listing.delivery_fee_cents or 0),
+        business_hours=listing.business_hours,
+        store_slug=listing.slug,
+    )
+
+
+def profile_from_store(store: Store) -> OrderingProfile:
+    cfg = read_online_ordering(store)
+    return OrderingProfile(
+        display_name=store.name,
+        supports_pickup=bool(cfg["supports_pickup"]),
+        supports_delivery=bool(cfg["supports_delivery"]),
+        supports_dine_in=bool(cfg["supports_dine_in"]),
+        payment_counter=bool(cfg["payment_counter"]),
+        payment_online=bool(cfg["payment_online"]),
+        min_order_cents=int(cfg["min_order_cents"]),
+        delivery_fee_cents=int(cfg["delivery_fee_cents"]),
+        business_hours=None,
+        store_slug=store.id,
+    )
+
+
 async def build_marketplace_order(
     db: AsyncSession,
     *,
-    listing: MarketplaceListing,
     store: Store,
     data: MarketplaceOrderInput,
+    profile: OrderingProfile | None = None,
+    listing: MarketplaceListing | None = None,
+    channel: str = "marketplace",
     order_group_id: str | None = None,
 ) -> tuple[GuestOrder, str, int]:
-    """Validate inputs and persist a marketplace ``GuestOrder`` (+ lines).
+    """Validate inputs and persist a guest order (+ lines).
+
+    Prefer ``profile``. ``listing`` is accepted for backward compatibility and
+    converted via :func:`profile_from_listing`.
 
     Returns ``(guest_order, access_token, estimated_subtotal_cents)``. The
     caller is responsible for committing the transaction.
     """
+    if profile is None:
+        if listing is None:
+            raise ValueError("profile or listing required")
+        profile = profile_from_listing(listing)
+
     if not data.lines:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "empty cart")
     if data.fulfillment_type not in FULFILLMENT_TYPES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid fulfillment_type")
     if data.payment_method not in PAYMENT_METHODS:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid payment_method")
-    if not is_store_open(listing.business_hours):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{listing.display_name} 目前休息中")
+    if not is_store_open(profile.business_hours):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{profile.display_name} 目前休息中")
 
-    if data.fulfillment_type == "pickup" and not listing.supports_pickup:
+    if data.fulfillment_type == "pickup" and not profile.supports_pickup:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "pickup not supported")
-    if data.fulfillment_type == "delivery" and not listing.supports_delivery:
+    if data.fulfillment_type == "delivery" and not profile.supports_delivery:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "delivery not supported")
-    if data.fulfillment_type == "dine_in" and not listing.supports_dine_in:
+    if data.fulfillment_type == "dine_in" and not profile.supports_dine_in:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "dine_in not supported")
-    if data.payment_method == "counter" and not listing.payment_counter:
+    if data.payment_method == "counter" and not profile.payment_counter:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "counter payment not supported")
-    if data.payment_method == "online" and not listing.payment_online:
+    if data.payment_method == "online" and not profile.payment_online:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "online payment not supported")
     if data.fulfillment_type == "delivery" and not data.delivery_address:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "delivery_address required")
@@ -107,7 +167,7 @@ async def build_marketplace_order(
     by_id = {p.id: p for p in products}
     option_ctx = await load_product_option_context(db, store.tenant_id, product_ids)
 
-    delivery_fee = listing.delivery_fee_cents if data.fulfillment_type == "delivery" else 0
+    delivery_fee = profile.delivery_fee_cents if data.fulfillment_type == "delivery" else 0
     items_total = 0
     line_models: list[GuestOrderLine] = []
     for ln in data.lines:
@@ -142,10 +202,10 @@ async def build_marketplace_order(
             )
         )
 
-    if items_total < listing.min_order_cents:
+    if items_total < profile.min_order_cents:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            f"{listing.display_name} 最低消費為 ${listing.min_order_cents}",
+            f"{profile.display_name} 最低消費為 ${profile.min_order_cents}",
         )
 
     # Validate the member belongs to this tenant (already resolved by caller).
@@ -159,7 +219,6 @@ async def build_marketplace_order(
     discount = 0
     points_redeemed = 0
     coupon_code = None
-    tenant = store  # placeholder; need tenant for settings
     if data.payment_method == "online" and member is not None:
         from ..models import Tenant
 
@@ -192,11 +251,15 @@ async def build_marketplace_order(
     payment_status = "pending" if data.payment_method == "online" else None
     delivery_status = "pending" if data.fulfillment_type == "delivery" else None
 
+    extras: dict[str, Any] = {"access_token": access_token}
+    if profile.store_slug:
+        extras["store_slug"] = profile.store_slug
+
     g = GuestOrder(
         tenant_id=store.tenant_id,
         store_id=store.id,
         table_id=table_id,
-        channel="marketplace",
+        channel=channel,
         fulfillment_type=data.fulfillment_type,
         status="submitted",
         customer_name=data.customer_name,
@@ -216,7 +279,7 @@ async def build_marketplace_order(
         points_redeemed=points_redeemed,
         coupon_code=coupon_code,
         discount_cents=discount,
-        extras={"access_token": access_token, "store_slug": listing.slug},
+        extras=extras,
     )
     db.add(g)
     await db.flush()

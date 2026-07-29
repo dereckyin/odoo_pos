@@ -12,6 +12,16 @@ import type {
 } from '@/types'
 import { useCartStore } from './cart'
 
+function axiosDetail(err: unknown): string {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const data = (err as { response?: { data?: { detail?: string }; status?: number } }).response
+    if (data?.data?.detail) return String(data.data.detail)
+    if (data?.status === 404) return '找不到此店家或尚未開放線上點餐'
+  }
+  if (err instanceof Error && err.message) return err.message
+  return '載入菜單失敗'
+}
+
 export const useSessionStore = defineStore('session', () => {
   const storeSlug = ref('')
   const mode = ref<FulfillmentMode>('takeout')
@@ -33,13 +43,14 @@ export const useSessionStore = defineStore('session', () => {
   const submitError = ref('')
 
   const store = computed(() => menu.value?.store ?? null)
-  const isDemo = computed(() => menu.value?.isDemo ?? true)
+  const isDemo = computed(() => menu.value?.isDemo ?? false)
+  const needsStorePick = computed(() => !storeSlug.value)
   const deliveryFee = computed(() =>
     mode.value === 'delivery' ? store.value?.deliveryFeeCents ?? 0 : 0,
   )
   const discount = computed(() => {
     const cart = useCartStore()
-    return memberOn.value && cart.lines.length ? MEMBER_DISCOUNT_CENTS : 0
+    return memberOn.value && cart.lines.length && isDemo.value ? MEMBER_DISCOUNT_CENTS : 0
   })
 
   function applySearch(search: string) {
@@ -58,29 +69,36 @@ export const useSessionStore = defineStore('session', () => {
     })
   }
 
+  function clampModeToStore(m: ShoppingMenu) {
+    if (mode.value === 'delivery' && !m.store.supportsDelivery) mode.value = 'takeout'
+    if (mode.value === 'takeout' && !m.store.supportsPickup && m.store.supportsDelivery) {
+      mode.value = 'delivery'
+    }
+    if (mode.value === 'dinein' && !m.store.supportsDineIn && !lockedDineIn.value) {
+      mode.value = m.store.supportsPickup ? 'takeout' : 'delivery'
+    }
+  }
+
   async function loadMenu() {
     loading.value = true
     loadError.value = ''
+    menu.value = null
     try {
       if (!storeSlug.value) {
+        // No store selected — StorePickerView handles this route.
+        return
+      }
+      if (storeSlug.value === 'demo') {
         menu.value = buildDemoMenu()
+        clampModeToStore(menu.value)
         return
       }
       const { data } = await fetchStoreMenu(storeSlug.value)
       menu.value = adaptApiMenu(data)
-      // Clamp mode to what store supports
-      if (mode.value === 'delivery' && !menu.value.store.supportsDelivery) mode.value = 'takeout'
-      if (mode.value === 'takeout' && !menu.value.store.supportsPickup && menu.value.store.supportsDelivery) {
-        mode.value = 'delivery'
-      }
-      if (mode.value === 'dinein' && !menu.value.store.supportsDineIn && !lockedDineIn.value) {
-        mode.value = menu.value.store.supportsPickup ? 'takeout' : 'delivery'
-      }
+      clampModeToStore(menu.value)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '載入菜單失敗'
-      loadError.value = `${msg}（已改用示菜單）`
-      menu.value = buildDemoMenu()
-      menu.value.store.slug = storeSlug.value || 'demo'
+      loadError.value = axiosDetail(err)
+      menu.value = null
     } finally {
       loading.value = false
     }
@@ -154,6 +172,7 @@ export const useSessionStore = defineStore('session', () => {
     submitError,
     store,
     isDemo,
+    needsStorePick,
     deliveryFee,
     discount,
     applySearch,

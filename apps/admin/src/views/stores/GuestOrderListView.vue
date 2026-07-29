@@ -72,7 +72,7 @@
 
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'channel'">
-          {{ record.channel === 'marketplace' ? '市集' : 'QR' }}
+          {{ channelLabel(record.channel) }}
         </template>
         <template v-else-if="column.key === 'fulfillment'">
           {{ fulfillmentLabel(record.fulfillment_type) }}
@@ -150,6 +150,7 @@ const statusOptions = [
 const channelOptions = [
   { label: '桌邊 QR', value: 'table_qr' },
   { label: '網路市集', value: 'marketplace' },
+  { label: '統一點餐', value: 'shopping' },
 ]
 const fulfillmentOptions = [
   { label: '外帶', value: 'pickup' },
@@ -170,6 +171,13 @@ const columns = [
   { title: 'guest order id', dataIndex: 'id' },
 ]
 
+function channelLabel(ch: string | null | undefined) {
+  return (
+    ({ table_qr: 'QR', marketplace: '市集', shopping: '統一點餐' } as Record<string, string>)[
+      ch ?? ''
+    ] || ch || '—'
+  )
+}
 function fulfillmentLabel(s: string | null | undefined) {
   return ({ pickup: '外帶', delivery: '外送', dine_in: '內用' } as Record<string, string>)[s ?? ''] || '—'
 }

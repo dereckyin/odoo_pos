@@ -5,6 +5,14 @@
         <div class="brand">
           <h1>{{ brandTitle }}</h1>
           <div class="branch">{{ brandBranch }}</div>
+          <button
+            v-if="session.storeSlug && session.storeSlug !== 'demo'"
+            type="button"
+            class="switch-store"
+            @click="goPicker"
+          >
+            換店家
+          </button>
         </div>
         <div v-if="session.mode === 'dinein'" class="table-chip">
           <span class="label">內用桌號</span>
@@ -188,6 +196,14 @@ function goCart() {
   router.push({ name: 'cart', query: session.entryQuery() })
 }
 
+function goPicker() {
+  cart.clear()
+  session.menu = null
+  session.loadError = ''
+  session.storeSlug = ''
+  router.replace({ path: '/', query: {} })
+}
+
 function setSecRef(i: number, el: unknown) {
   const node = el as Element | null
   if (node) secEls.set(i, node)
@@ -241,3 +257,18 @@ onUnmounted(() => {
   spy?.disconnect()
 })
 </script>
+
+<style scoped>
+.switch-store {
+  margin-top: 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+</style>

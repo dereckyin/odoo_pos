@@ -96,7 +96,7 @@ async def list_guest_orders(
     db: DbSession,
     scope: TenantScope,
     store_id: str | None = Query(default=None),
-    channel: str | None = Query(default=None, description="table_qr|marketplace"),
+    channel: str | None = Query(default=None, description="table_qr|marketplace|shopping"),
     fulfillment_type: str | None = Query(default=None),
     status_in: str = Query(
         default="submitted,accepted,ready",

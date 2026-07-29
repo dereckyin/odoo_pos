@@ -5,6 +5,14 @@ const baseURL = import.meta.env.VITE_API_BASE || '/api'
 
 export const client = axios.create({ baseURL, timeout: 30000 })
 
+/** Store UUID (shopping channel) vs marketplace slug. */
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+export function isStoreUuid(value: string): boolean {
+  return UUID_RE.test(value.trim())
+}
+
 export function resolveUploadPath(url: string | null | undefined) {
   if (!url) return ''
   if (url.startsWith('http://') || url.startsWith('https://')) return url
@@ -26,6 +34,21 @@ export interface ApiStoreDetail {
   delivery_fee_cents: number
   is_open: boolean
   prep_time_min: number
+}
+
+export interface ShoppingStoreSummary {
+  id: string
+  name: string
+  address: string | null
+  phone: string | null
+  supports_pickup: boolean
+  supports_delivery: boolean
+  supports_dine_in: boolean
+  payment_counter: boolean
+  payment_online: boolean
+  min_order_cents: number
+  delivery_fee_cents: number
+  is_open: boolean
 }
 
 export interface ApiOptionChoice {
@@ -81,20 +104,67 @@ export interface ApiMenu {
   products: ApiProduct[]
 }
 
-export function fetchStore(slug: string) {
-  return client.get<ApiStoreDetail>(`/public/marketplace/stores/${slug}`)
+export function fetchShoppingStores() {
+  return client.get<ShoppingStoreSummary[]>('/public/shopping/stores')
 }
 
-export function fetchStoreMenu(slug: string) {
-  return client.get<ApiMenu>(`/public/marketplace/stores/${slug}/menu`)
+export function fetchStore(slugOrId: string) {
+  if (isStoreUuid(slugOrId)) {
+    return client.get<ShoppingStoreSummary>(`/public/shopping/stores`).then((res) => {
+      const hit = res.data.find((s) => s.id === slugOrId)
+      if (!hit) {
+        const err = new Error('store not found') as Error & { response?: { status: number } }
+        err.response = { status: 404 }
+        throw err
+      }
+      return {
+        ...res,
+        data: {
+          slug: hit.id,
+          display_name: hit.name,
+          store_address: hit.address,
+          supports_pickup: hit.supports_pickup,
+          supports_delivery: hit.supports_delivery,
+          supports_dine_in: hit.supports_dine_in,
+          payment_counter: hit.payment_counter,
+          payment_online: hit.payment_online,
+          min_order_cents: hit.min_order_cents,
+          delivery_fee_cents: hit.delivery_fee_cents,
+          is_open: hit.is_open,
+          prep_time_min: 15,
+        } satisfies ApiStoreDetail,
+      }
+    })
+  }
+  return client.get<ApiStoreDetail>(`/public/marketplace/stores/${slugOrId}`)
 }
 
-export function submitOrder(slug: string, payload: SubmitOrderPayload) {
-  return client.post<MarketplaceOrderCreated>(`/public/marketplace/stores/${slug}/orders`, payload)
+export function fetchStoreMenu(slugOrId: string) {
+  if (isStoreUuid(slugOrId)) {
+    return client.get<ApiMenu>(`/public/shopping/stores/${slugOrId}/menu`)
+  }
+  return client.get<ApiMenu>(`/public/marketplace/stores/${slugOrId}/menu`)
 }
 
-export function fetchOrderStatus(orderId: string, accessToken: string) {
-  return client.get(`/public/marketplace/orders/${orderId}`, {
+export function submitOrder(slugOrId: string, payload: SubmitOrderPayload) {
+  if (isStoreUuid(slugOrId)) {
+    return client.post<MarketplaceOrderCreated>(
+      `/public/shopping/stores/${slugOrId}/orders`,
+      payload,
+    )
+  }
+  return client.post<MarketplaceOrderCreated>(
+    `/public/marketplace/stores/${slugOrId}/orders`,
+    payload,
+  )
+}
+
+export function fetchOrderStatus(orderId: string, accessToken: string, storeKey?: string) {
+  const path =
+    storeKey && isStoreUuid(storeKey)
+      ? `/public/shopping/orders/${orderId}`
+      : `/public/marketplace/orders/${orderId}`
+  return client.get(path, {
     params: { access_token: accessToken },
   })
 }

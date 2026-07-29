@@ -536,7 +536,19 @@ export interface StoreRead {
   longitude?: number | null
   geocoded_at?: string | null
   geocode_label?: string | null
+  online_ordering_json?: OnlineOrderingSettings | null
   updated_at: string
+}
+
+export interface OnlineOrderingSettings {
+  enabled: boolean
+  supports_pickup: boolean
+  supports_dine_in: boolean
+  supports_delivery: boolean
+  payment_counter: boolean
+  payment_online: boolean
+  min_order_cents: number
+  delivery_fee_cents: number
 }
 
 export interface StoreCreate {
@@ -545,6 +557,7 @@ export interface StoreCreate {
   tax_id?: string | null
   address?: string | null
   phone?: string | null
+  online_ordering_json?: OnlineOrderingSettings | null
 }
 
 export type StoreUpdate = Partial<StoreCreate>
