@@ -4,8 +4,6 @@ Unlike marketplace (slug + approved listing), this channel uses store UUID and
 per-store ``online_ordering_json.enabled``, gated by the tenant
 ``online_ordering`` module.
 """
-from __future__ import annotations
-
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
