@@ -110,7 +110,7 @@ export function fetchShoppingStores() {
 
 export function fetchStore(slugOrId: string) {
   if (isStoreUuid(slugOrId)) {
-    return client.get<ShoppingStoreSummary>(`/public/shopping/stores`).then((res) => {
+    return client.get<ShoppingStoreSummary[]>('/public/shopping/stores').then((res) => {
       const hit = res.data.find((s) => s.id === slugOrId)
       if (!hit) {
         const err = new Error('store not found') as Error & { response?: { status: number } }
