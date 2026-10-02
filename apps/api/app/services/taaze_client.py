@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import httpx
 
@@ -63,10 +63,13 @@ def _parse_publish_date(raw: str | None) -> str | None:
     return f"{raw[0:4]}-{raw[4:6]}-{raw[6:8]}"
 
 
-def parse_taaze_product_payload(payload: dict) -> TaazeProduct:
-    book = payload.get("book_data")
+def parse_taaze_product_payload(payload: object) -> TaazeProduct:
+    if not isinstance(payload, dict):
+        raise TaazeProductNotFoundError("TAAZE 查無此商品")
+    # /product/ wraps fields in book_data; /isbn/ returns them at the top level.
+    book = payload.get("book_data", payload if "prodId" in payload else None)
     if not isinstance(book, dict):
-        raise TaazeProductNotFoundError("TAAZE 回傳無 book_data")
+        raise TaazeProductNotFoundError("TAAZE 查無此商品")
 
     prod_id = str(book.get("prodId") or book.get("orgProdId") or book.get("istProdId") or "").strip()
     if not prod_id:
@@ -157,9 +160,33 @@ def fetch_taaze_product(prod_id: str, *, timeout: float = 12.0) -> TaazeProduct:
     with httpx.Client(timeout=timeout, follow_redirects=True) as client:
         for url in urls:
             try:
-                return _fetch_taaze_url(client, url)
+                product = _fetch_taaze_url(client, url)
             except TaazeProductNotFoundError as e:
                 last_not_found = e
                 continue
+            return _enrich_from_isbn(client, product)
 
     raise last_not_found or TaazeProductNotFoundError(f"TAAZE 找不到商品 {code}")
+
+
+def _enrich_from_isbn(client: httpx.Client, product: TaazeProduct) -> TaazeProduct:
+    """Some prodIds (e.g. 813…) have no cover or category; the ISBN's
+    canonical TAAZE record does. Best effort — never fails the lookup."""
+    isbn = re.sub(r"[^0-9Xx]", "", product.isbn or "")
+    if len(isbn) not in (10, 13):
+        return product
+    try:
+        canon = _fetch_taaze_url(client, TAAZE_ISBN_URL.format(prod_id=isbn))
+    except (TaazeProductError, TaazeProductNotFoundError):
+        return product
+    if canon.prod_id == product.prod_id:
+        return product
+    return replace(
+        product,
+        image_url=product.image_url if product.is_second_hand else canon.image_url,
+        category_main=product.category_main or canon.category_main,
+        category_sub=product.category_sub or canon.category_sub,
+        publisher=product.publisher if product.publisher != "—" else canon.publisher,
+        author=product.author if product.author != "—" else canon.author,
+        publish_date=product.publish_date or canon.publish_date,
+    )

@@ -41,6 +41,51 @@ def test_parse_taaze_product_payload():
     assert "11101042331" in product.image_url
 
 
+def test_parse_taaze_empty_payload_is_not_found():
+    import pytest
+
+    from app.services.taaze_client import TaazeProductNotFoundError
+
+    for payload in ([], {}, None):
+        with pytest.raises(TaazeProductNotFoundError):
+            parse_taaze_product_payload(payload)
+
+
+def test_813_prod_id_uses_isbn_canonical_cover_and_category():
+    import httpx
+
+    from app.services import taaze_client
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if path == "/product/81301768663":
+            return httpx.Response(200, json={"book_data": {
+                "prodId": "81301768663", "titleMain": "測試書", "isbn": "9789861365145",
+                "listPrice": "350", "salePrice": "0", "sndHandFlg": "N",
+            }})
+        if path == "/isbn/9789861365145":
+            return httpx.Response(200, json={
+                "prodId": "11100858846", "titleMain": "測試書", "eanCode": "9789861365145",
+                "catName1": "心理勵志", "catName": "心靈成長", "pubNmMain": "測試出版",
+            })
+        return httpx.Response(200, json=[])
+
+    real_client = httpx.Client
+    transport = httpx.MockTransport(handler)
+    taaze_client.httpx.Client = lambda **kw: real_client(transport=transport, **kw)
+    try:
+        product = taaze_client.fetch_taaze_product("81301768663")
+    finally:
+        taaze_client.httpx.Client = real_client
+
+    assert product.prod_id == "81301768663"
+    assert product.isbn == "9789861365145"
+    assert product.list_price_cents == 350
+    assert "sc=11100858846" in product.image_url
+    assert product.category_main == "心理勵志"
+    assert product.publisher == "測試出版"
+
+
 def test_lookup_barcode_invalid_length():
     import pytest
 

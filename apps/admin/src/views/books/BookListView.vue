@@ -50,6 +50,7 @@ const columns = [
   { title: '書名', dataIndex: 'name' },
   { title: '作者', dataIndex: 'author', width: 120 },
   { title: '條碼', dataIndex: 'sku', width: 140 },
+  { title: 'ISBN', dataIndex: 'isbn', width: 150 },
   { title: '牌價', key: 'list_price', width: 72 },
   { title: '售價', key: 'sale_price', width: 72 },
   { title: '折扣', key: 'sale_disc', width: 72 },

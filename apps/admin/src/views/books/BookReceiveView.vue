@@ -16,8 +16,16 @@
       </a-form-item>
 
       <a-card v-if="preview" size="small" style="margin-bottom: 16px">
-        <a-descriptions :column="1" size="small" bordered>
+        <div style="display: flex; gap: 16px; align-items: flex-start">
+        <img
+          v-if="preview.image_url"
+          :src="preview.image_url"
+          alt="書封"
+          style="width: 96px; flex: none; border: 1px solid #f0f0f0"
+        />
+        <a-descriptions :column="1" size="small" bordered style="flex: 1">
           <a-descriptions-item label="書名">{{ preview.title }}</a-descriptions-item>
+          <a-descriptions-item label="ISBN">{{ preview.isbn || '—' }}</a-descriptions-item>
           <a-descriptions-item label="作者">{{ preview.author }}</a-descriptions-item>
           <a-descriptions-item label="出版社">{{ preview.publisher }}</a-descriptions-item>
           <a-descriptions-item label="分類">
@@ -29,6 +37,7 @@
             {{ preview.sale_disc != null ? `${preview.sale_disc}折` : '—' }}
           </a-descriptions-item>
         </a-descriptions>
+        </div>
       </a-card>
 
       <a-form-item label="入庫數量" required>

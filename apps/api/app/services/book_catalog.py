@@ -136,6 +136,10 @@ async def upsert_book_from_barcode(
             lookup = lookup_barcode(barcode)
         # Refresh sell/list price from lookup (TWD stores whole dollars in *_cents).
         existing.price_cents = default_sell_price_cents(lookup)
+        if lookup.image_url and (
+            not existing.image_url or existing.image_url.startswith("https://media.taaze.tw/")
+        ):
+            existing.image_url = lookup.image_url
         existing.updated_at = _now()
         bd = existing.book_detail
         if bd is not None:
@@ -143,6 +147,10 @@ async def upsert_book_from_barcode(
             bd.sale_disc = lookup.sale_disc
             if lookup.author:
                 bd.author = lookup.author
+            if lookup.isbn:
+                bd.isbn = lookup.isbn
+            if lookup.publisher and lookup.publisher != "—":
+                bd.publisher = lookup.publisher
             bd.updated_at = _now()
         await db.flush()
         return existing
