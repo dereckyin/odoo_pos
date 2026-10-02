@@ -537,7 +537,20 @@ export interface StoreRead {
   geocoded_at?: string | null
   geocode_label?: string | null
   online_ordering_json?: OnlineOrderingSettings | null
+  store_kind?: StoreKind
+  bookstore_json?: BookstoreSettings | null
   updated_at: string
+}
+
+export type StoreKind = 'restaurant' | 'bookstore'
+
+export interface BookstoreSettings {
+  is_open?: boolean
+  qr_version?: number
+  cash_enabled?: boolean
+  /** 現金價佔原價百分比：95 = 95 折 */
+  cash_price_pct?: number
+  online_payment_enabled?: boolean
 }
 
 export interface OnlineOrderingSettings {
@@ -558,6 +571,7 @@ export interface StoreCreate {
   address?: string | null
   phone?: string | null
   online_ordering_json?: OnlineOrderingSettings | null
+  store_kind?: StoreKind
 }
 
 export type StoreUpdate = Partial<StoreCreate>

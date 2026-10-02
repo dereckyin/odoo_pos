@@ -28,6 +28,8 @@ const CONSIGNMENT_BOOKS_ROUTES = new Set([
   'book-reports',
 ])
 
+const PHYSICAL_BOOKSTORE_ROUTES = new Set(['bookstore-checkouts'])
+
 const merchantChildren: RouteRecordRaw[] = [
   { path: '', name: 'dashboard', component: () => import('@/views/dashboard/DashboardView.vue') },
   // Products
@@ -76,6 +78,7 @@ const merchantChildren: RouteRecordRaw[] = [
   { path: 'books/import', name: 'book-import', component: () => import('@/views/books/BookImportView.vue') },
   { path: 'books/settings', name: 'book-settings', component: () => import('@/views/books/ConsignmentSettingsView.vue') },
   { path: 'books/reports', name: 'book-reports', component: () => import('@/views/books/ConsignmentReportView.vue') },
+  { path: 'bookstore/checkouts', name: 'bookstore-checkouts', component: () => import('@/views/bookstore/BookstoreCheckoutsView.vue') },
   // Business intelligence
   { path: 'analytics/sales', name: 'analytics-sales', component: () => import('@/views/analytics/SalesAnalyticsView.vue') },
   { path: 'analytics/stores', name: 'analytics-stores', component: () => import('@/views/analytics/StorePerformanceView.vue') },
@@ -156,7 +159,8 @@ router.beforeEach(async (to) => {
       ONLINE_ORDERING_ROUTES.has(routeName) ||
       MARKETPLACE_ROUTES.has(routeName) ||
       BUSINESS_INTELLIGENCE_ROUTES.has(routeName) ||
-      CONSIGNMENT_BOOKS_ROUTES.has(routeName)
+      CONSIGNMENT_BOOKS_ROUTES.has(routeName) ||
+      PHYSICAL_BOOKSTORE_ROUTES.has(routeName)
     )
   ) {
     const modules = useTenantModulesStore()
@@ -179,6 +183,9 @@ router.beforeEach(async (to) => {
       return { name: 'dashboard' }
     }
     if (CONSIGNMENT_BOOKS_ROUTES.has(routeName) && !modules.consignmentBooks) {
+      return { name: 'dashboard' }
+    }
+    if (PHYSICAL_BOOKSTORE_ROUTES.has(routeName) && !modules.physicalBookstore) {
       return { name: 'dashboard' }
     }
   }

@@ -88,6 +88,10 @@
           <a-menu-item key="book-settings" @click="$router.push({ name: 'book-settings' })">寄賣設定</a-menu-item>
           <a-menu-item key="book-reports" @click="$router.push({ name: 'book-reports' })">分帳報表</a-menu-item>
         </a-sub-menu>
+        <a-menu-item v-if="modules.physicalBookstore" key="bookstore-checkouts" @click="$router.push({ name: 'bookstore-checkouts' })">
+          <template #icon><ScanOutlined /></template>
+          <span>實體書店核銷</span>
+        </a-menu-item>
         <a-sub-menu key="order-group">
           <template #icon><FileTextOutlined /></template>
           <template #title>訂單報表</template>
@@ -167,7 +171,7 @@ import {
   DashboardOutlined, ShoppingOutlined, GiftOutlined, TeamOutlined,
   InboxOutlined, ShopOutlined, FileTextOutlined, BarChartOutlined, UserOutlined,
   MenuFoldOutlined, MenuUnfoldOutlined, QrcodeOutlined,
-  SafetyOutlined, BookOutlined, CalendarOutlined,
+  SafetyOutlined, BookOutlined, CalendarOutlined, ScanOutlined,
 } from '@ant-design/icons-vue'
 
 const collapsed = ref(false)
@@ -190,6 +194,7 @@ const nameMap: Record<string, string> = {
   tables: '桌位管理', 'tables-print': 'QR 列印',
   'guest-orders': '桌邊訂單',
   orders: '訂單查詢', 'order-detail': '訂單詳情', approvals: '退貨/作廢審核', reports: '銷售報表',
+  'bookstore-checkouts': '實體書店核銷',
   books: '寄賣書籍', 'book-receive': '寄賣入庫', 'book-import': 'CSV 批次入庫', 'book-settings': '寄賣設定', 'book-reports': '分帳報表',
   'analytics-sales': '銷售分析', 'analytics-stores': '門店績效', 'analytics-context': '環境洞察',
   'tenant-settings': '租戶設定',

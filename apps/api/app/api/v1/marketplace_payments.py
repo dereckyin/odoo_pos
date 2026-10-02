@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload
 
 from ...core.deps import DbSession
@@ -40,6 +40,8 @@ async def initiate_payment(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "order is not online payment")
     if g.payment_status == "paid":
         raise HTTPException(status.HTTP_409_CONFLICT, "already paid")
+    if (g.estimated_subtotal_cents or 0) <= 0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "order total must be positive")
 
     listing = (
         await db.execute(select(MarketplaceListing).where(MarketplaceListing.store_id == g.store_id))
@@ -93,6 +95,15 @@ async def ecpay_webhook(request: Request, db: DbSession):
         return "0|FAIL"
     if g.estimated_subtotal_cents != amount_cents:
         return "0|FAIL"
+    # ECPay retries notifies until it sees 1|OK; only the first one may settle loyalty.
+    claimed = await db.execute(
+        update(GuestOrder)
+        .where(GuestOrder.id == g.id, GuestOrder.payment_status != "paid")
+        .values(payment_status="paid", online_payment_ref=provider_ref)
+        .execution_options(synchronize_session=False)
+    )
+    if claimed.rowcount == 0:
+        return "1|OK"
 
     g.payment_status = "paid"
     g.online_payment_ref = provider_ref

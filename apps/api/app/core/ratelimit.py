@@ -12,16 +12,15 @@ from typing import Callable
 from fastapi import HTTPException, Request, status
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
-
+from .client_ip import request_client_ip
 from .config import get_settings
 
 
 def _key_func(request: Request) -> str:
     """Combine the client IP with a logical bucket so different endpoints
     don't share counters by accident. We also honour ``X-Forwarded-For``
-    when behind a trusted proxy (set ``forwarded_allow_ips`` on uvicorn)."""
-    return get_remote_address(request)
+    when the socket peer is our own proxy (see ``client_ip``)."""
+    return request_client_ip(request)
 
 
 _settings = get_settings()

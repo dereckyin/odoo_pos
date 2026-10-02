@@ -17,6 +17,7 @@ MODULE_BUSINESS_INTELLIGENCE = "business_intelligence"
 MODULE_CONSIGNMENT_BOOKS = "consignment_books"
 MODULE_LINE = "line"
 MODULE_EVENTS = "events"
+MODULE_PHYSICAL_BOOKSTORE = "physical_bookstore"
 
 ALL_MODULES = (
     MODULE_ONLINE_ORDERING,
@@ -25,6 +26,7 @@ ALL_MODULES = (
     MODULE_CONSIGNMENT_BOOKS,
     MODULE_LINE,
     MODULE_EVENTS,
+    MODULE_PHYSICAL_BOOKSTORE,
 )
 
 DEFAULT_MODULES: dict[str, bool] = {
@@ -34,6 +36,7 @@ DEFAULT_MODULES: dict[str, bool] = {
     MODULE_CONSIGNMENT_BOOKS: True,
     MODULE_LINE: False,
     MODULE_EVENTS: False,
+    MODULE_PHYSICAL_BOOKSTORE: False,
 }
 
 MODULE_LABELS: dict[str, str] = {
@@ -43,6 +46,7 @@ MODULE_LABELS: dict[str, str] = {
     MODULE_CONSIGNMENT_BOOKS: "寄賣書籍",
     MODULE_LINE: "LINE 官方帳號",
     MODULE_EVENTS: "活動報名/票券",
+    MODULE_PHYSICAL_BOOKSTORE: "實體書店",
 }
 
 
@@ -118,6 +122,11 @@ async def require_line(db: DbSession, scope: TenantScope) -> None:
 async def require_events(db: DbSession, scope: TenantScope) -> None:
     if scope.tenant_id:
         await assert_tenant_module(db, scope.tenant_id, MODULE_EVENTS)
+
+
+async def require_physical_bookstore(db: DbSession, scope: TenantScope) -> None:
+    if scope.tenant_id:
+        await assert_tenant_module(db, scope.tenant_id, MODULE_PHYSICAL_BOOKSTORE)
 
 
 def online_ordering_dep():

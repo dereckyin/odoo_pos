@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -30,7 +30,12 @@ class StoreRead(ORMModel):
     geocoded_at: datetime | None = None
     geocode_label: str | None = None
     online_ordering_json: dict[str, Any] | None = None
+    store_kind: str = "restaurant"
+    bookstore_json: dict[str, Any] | None = None
     updated_at: datetime
+
+
+StoreKind = Literal["restaurant", "bookstore"]
 
 
 class StoreCreate(BaseModel):
@@ -40,6 +45,7 @@ class StoreCreate(BaseModel):
     address: str | None = None
     phone: str | None = None
     online_ordering_json: OnlineOrderingSettings | None = None
+    store_kind: StoreKind = "restaurant"
 
 
 class StoreUpdate(BaseModel):
@@ -49,6 +55,7 @@ class StoreUpdate(BaseModel):
     address: str | None = None
     phone: str | None = None
     online_ordering_json: OnlineOrderingSettings | None = None
+    store_kind: StoreKind | None = None
 
 
 class TerminalRead(ORMModel):

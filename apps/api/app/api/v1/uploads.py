@@ -2,29 +2,22 @@ import os
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, UploadFile
 
 from ...core.deps import StoreAdminDep
+from ...core.uploads import MAX_IMAGE_BYTES, validated_image_ext
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "uploads"))
-ALLOWED_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
-MAX_SIZE = 5 * 1024 * 1024
 
 
 @router.post("/images")
 async def upload_image(
     scope: StoreAdminDep, file: UploadFile = File(...)
 ) -> dict:
-    if file.content_type not in ALLOWED_TYPES:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"unsupported type: {file.content_type}")
-
-    data = await file.read()
-    if len(data) > MAX_SIZE:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "file too large (max 5MB)")
-
-    ext = file.filename.rsplit(".", 1)[-1] if file.filename and "." in file.filename else "jpg"
+    data = await file.read(MAX_IMAGE_BYTES + 1)
+    ext = validated_image_ext(data)
     filename = f"{uuid.uuid4().hex}.{ext}"
 
     # Store under per-tenant subdirectory so future per-tenant lifecycle

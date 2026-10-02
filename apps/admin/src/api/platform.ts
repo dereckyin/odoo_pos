@@ -93,6 +93,7 @@ export interface TenantModulesRead {
   consignment_books: boolean
   line: boolean
   events: boolean
+  physical_bookstore?: boolean
 }
 
 export interface TenantModulesUpdate {
@@ -102,6 +103,7 @@ export interface TenantModulesUpdate {
   consignment_books?: boolean
   line?: boolean
   events?: boolean
+  physical_bookstore?: boolean
 }
 
 export function getTenantModules(id: string) {

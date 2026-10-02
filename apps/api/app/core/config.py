@@ -84,6 +84,71 @@ class Settings(BaseSettings):
     ECPAY_INVOICE_HASH_IV: str = ""
     ECPAY_INVOICE_BASE_URL: str = "https://einvoice-stage.ecpay.com.tw"
 
+    # Physical bookstore partner API (TAAZE app via my_api). Only SHA-256 hex
+    # digests of the partner keys are configured; comma-separate several to
+    # rotate with an overlap window.
+    BOOKSTORE_PARTNER_TENANT_CODE: str = ""
+    BOOKSTORE_PARTNER_KEY_SHA256: str = ""
+    BOOKSTORE_PARTNER_ALLOWED_IPS: str = ""
+    BOOKSTORE_SIGNING_SECRET: str = ""
+    BOOKSTORE_PUBLIC_BASE_URL: str = ""
+    BOOKSTORE_RETURN_URL_PREFIXES: str = ""
+    BOOKSTORE_RESERVATION_MINUTES: int = 5
+    BOOKSTORE_EXIT_PASS_MINUTES: int = 30
+    BOOKSTORE_CASH_RESERVATION_MINUTES: int = 15
+    BOOKSTORE_PRESENCE_HOURS: int = 4
+    BOOKSTORE_DOOR_QR_DAYS: int = 180
+    BOOKSTORE_MAX_PENDING_PER_CUSTOMER: int = 2
+    BOOKSTORE_MAX_LINES: int = 20
+    BOOKSTORE_MAX_QTY_PER_LINE: int = 5
+    BOOKSTORE_ECPAY_CHOOSE_PAYMENT: str = "Credit"
+
+    # Intrusion detection (same rule model as my_api). A request is blocked when
+    # the summed severity of matched rules reaches the threshold; an IP that
+    # does so IDS_SUSPICIOUS_HIT_LIMIT times within the window is banned.
+    IDS_ENABLED: bool = True
+    IDS_LOG_ONLY: bool = False
+    IDS_BLOCK_THRESHOLD: int = 70
+    IDS_MAX_BODY_SCAN_BYTES: int = 8192
+    IDS_SUSPICIOUS_WINDOW_SECONDS: int = 600
+    IDS_SUSPICIOUS_HIT_LIMIT: int = 3
+    IDS_IP_BLOCK_SECONDS: int = 1800
+    IDS_INCIDENT_LOG_PATH: str = "logs/ids_incidents.jsonl"
+    # Signed gateway / LINE callbacks carry free text and must never be dropped.
+    IDS_WHITELIST_PATHS: str = (
+        "/health,/readyz,/line/webhook/*,/public/marketplace/payments/webhook/*,"
+        "/public/bookstore/payments/*"
+    )
+    IDS_WHITELIST_IPS: str = ""
+
+    SECURITY_HEADERS: bool = True
+    # None => docs on in dev, off in production.
+    ENABLE_DOCS: bool | None = None
+
+    @property
+    def ids_whitelist_paths(self) -> list[str]:
+        return [p.strip() for p in self.IDS_WHITELIST_PATHS.split(",") if p.strip()]
+
+    @property
+    def ids_whitelist_ips(self) -> list[str]:
+        return [p.strip() for p in self.IDS_WHITELIST_IPS.split(",") if p.strip()]
+
+    @property
+    def docs_enabled(self) -> bool:
+        return (not self.is_production) if self.ENABLE_DOCS is None else self.ENABLE_DOCS
+
+    @property
+    def bookstore_partner_key_hashes(self) -> list[str]:
+        return [h.strip().lower() for h in self.BOOKSTORE_PARTNER_KEY_SHA256.split(",") if h.strip()]
+
+    @property
+    def bookstore_allowed_ips(self) -> list[str]:
+        return [i.strip() for i in self.BOOKSTORE_PARTNER_ALLOWED_IPS.split(",") if i.strip()]
+
+    @property
+    def bookstore_return_url_prefixes(self) -> list[str]:
+        return [p.strip() for p in self.BOOKSTORE_RETURN_URL_PREFIXES.split(",") if p.strip()]
+
     @property
     def cors_origin_list(self) -> List[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
@@ -122,3 +187,24 @@ def validate_settings_or_raise(settings: Settings) -> None:
                 "SECRETS_ENCRYPTION_KEY is required in production to encrypt "
                 "per-tenant payment / invoice credentials."
             )
+        if "*" in settings.cors_origin_list:
+            raise RuntimeError(
+                "CORS_ORIGINS must list explicit origins in production "
+                "(credentials are allowed, so '*' is unsafe)."
+            )
+        if settings.bookstore_partner_key_hashes:
+            if len(settings.BOOKSTORE_SIGNING_SECRET) < 32:
+                raise RuntimeError(
+                    "BOOKSTORE_SIGNING_SECRET (>= 32 chars) is required when the "
+                    "bookstore partner API is enabled."
+                )
+            if not settings.bookstore_allowed_ips:
+                raise RuntimeError(
+                    "BOOKSTORE_PARTNER_ALLOWED_IPS is required when the bookstore "
+                    "partner API is enabled in production."
+                )
+            if not settings.bookstore_return_url_prefixes:
+                raise RuntimeError(
+                    "BOOKSTORE_RETURN_URL_PREFIXES is required when the bookstore "
+                    "partner API is enabled in production."
+                )

@@ -65,6 +65,7 @@ from .member_extras import (
 )
 from .purchasing import PurchaseOrder, PurchaseOrderLine, Supplier
 from .print_job import PrintJob
+from .bookstore import BookstoreCheckout, BookstoreCheckoutLine
 
 __all__ = [
     "Tenant",
@@ -140,4 +141,6 @@ __all__ = [
     "PurchaseOrder",
     "PurchaseOrderLine",
     "PrintJob",
+    "BookstoreCheckout",
+    "BookstoreCheckoutLine",
 ]

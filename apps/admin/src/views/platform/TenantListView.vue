@@ -126,6 +126,14 @@
           />
           <div class="field-hint">活動建立、報名、票券核銷</div>
         </a-form-item>
+        <a-form-item label="實體書店">
+          <a-switch
+            v-model:checked="editForm.physical_bookstore"
+            checked-children="啟用"
+            un-checked-children="停用"
+          />
+          <div class="field-hint">門店可設為實體書店，讀冊 App 掃書付款後直接帶走</div>
+        </a-form-item>
       </a-form>
     </a-modal>
 
@@ -231,6 +239,7 @@ const editForm = ref<{
   consignment_books: boolean
   line: boolean
   events: boolean
+  physical_bookstore: boolean
 }>({
   name: '',
   contact_email: '',
@@ -243,6 +252,7 @@ const editForm = ref<{
   consignment_books: true,
   line: false,
   events: false,
+  physical_bookstore: false,
 })
 const createForm = ref({
   company_name: '',
@@ -320,6 +330,7 @@ function openEdit(rec: TenantRead) {
     consignment_books: true,
     line: false,
     events: false,
+    physical_bookstore: false,
   }
   editVisible.value = true
   platformApi.getTenantModules(rec.id).then(({ data }) => {
@@ -330,6 +341,7 @@ function openEdit(rec: TenantRead) {
       editForm.value.consignment_books = data.consignment_books
       editForm.value.line = (data as any).line ?? false
       editForm.value.events = (data as any).events ?? false
+      editForm.value.physical_bookstore = data.physical_bookstore ?? false
     }
   }).catch(() => {
     message.warning('無法載入模組設定，將使用預設值')
@@ -354,6 +366,7 @@ async function submitEdit() {
       consignment_books: editForm.value.consignment_books,
       line: editForm.value.line,
       events: editForm.value.events,
+      physical_bookstore: editForm.value.physical_bookstore,
     })
     message.success('已更新')
     editVisible.value = false

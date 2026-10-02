@@ -46,6 +46,9 @@ from . import (
     events,
     line,
     print_jobs,
+    bookstore,
+    bookstore_partner,
+    bookstore_public,
 )
 
 api_router = APIRouter()
@@ -95,3 +98,6 @@ api_router.include_router(books.router)
 api_router.include_router(events.router)
 api_router.include_router(line.router)
 api_router.include_router(print_jobs.router)
+api_router.include_router(bookstore.router)
+api_router.include_router(bookstore_partner.router)
+api_router.include_router(bookstore_public.router)

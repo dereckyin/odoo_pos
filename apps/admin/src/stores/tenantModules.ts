@@ -9,6 +9,7 @@ export const useTenantModulesStore = defineStore('tenantModules', () => {
   const consignmentBooks = ref(false)
   const line = ref(false)
   const events = ref(false)
+  const physicalBookstore = ref(false)
   const loaded = ref(false)
   const loading = ref(false)
 
@@ -26,6 +27,7 @@ export const useTenantModulesStore = defineStore('tenantModules', () => {
       consignmentBooks.value = data.consignment_books
       line.value = (data as any).line ?? false
       events.value = (data as any).events ?? false
+      physicalBookstore.value = data.physical_bookstore ?? false
       loaded.value = true
     } catch {
       onlineOrdering.value = false
@@ -34,6 +36,7 @@ export const useTenantModulesStore = defineStore('tenantModules', () => {
       consignmentBooks.value = false
       line.value = false
       events.value = false
+      physicalBookstore.value = false
       loaded.value = false
     } finally {
       loading.value = false
@@ -47,6 +50,7 @@ export const useTenantModulesStore = defineStore('tenantModules', () => {
     consignmentBooks.value = false
     line.value = false
     events.value = false
+    physicalBookstore.value = false
     loaded.value = false
   }
 
@@ -57,6 +61,7 @@ export const useTenantModulesStore = defineStore('tenantModules', () => {
     consignmentBooks,
     line,
     events,
+    physicalBookstore,
     guestOrdersEnabled,
     loaded,
     loading,

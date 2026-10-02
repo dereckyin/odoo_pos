@@ -16,7 +16,9 @@ from ...core.usage import assert_can_add_store
 from ...models import Store, Terminal
 from ...schemas.store import StoreCreate, StoreRead, StoreUpdate, TerminalRead
 from ...services.geocoding import geocode_store_rate_limited
+from ...services.bookstore import STORE_KIND_BOOKSTORE, ensure_app_identity
 from ...services.online_ordering import normalize_online_ordering_patch
+from ...services.tenant_modules import MODULE_PHYSICAL_BOOKSTORE, assert_tenant_module
 
 router = APIRouter(prefix="/stores", tags=["stores"])
 
@@ -38,8 +40,13 @@ async def create_store(payload: StoreCreate, db: DbSession, scope: TenantAdminDe
     oo = data.pop("online_ordering_json", None)
     if oo is not None:
         data["online_ordering_json"] = normalize_online_ordering_patch(oo)
+    if data.get("store_kind") == STORE_KIND_BOOKSTORE:
+        await assert_tenant_module(db, scope.tenant_id, MODULE_PHYSICAL_BOOKSTORE)
     s = Store(tenant_id=scope.tenant_id, **data)
     db.add(s)
+    await db.flush()
+    if s.store_kind == STORE_KIND_BOOKSTORE:
+        await ensure_app_identity(db, s)
     await audit(db, scope, action="store_create", resource_type="store", flush=False)
     await db.commit()
     await db.refresh(s)
@@ -69,8 +76,14 @@ async def update_store(
         data["online_ordering_json"] = (
             normalize_online_ordering_patch(oo) if oo is not None else None
         )
+    if data.get("store_kind") == STORE_KIND_BOOKSTORE and s.store_kind != STORE_KIND_BOOKSTORE:
+        await assert_tenant_module(db, scope.tenant_id, MODULE_PHYSICAL_BOOKSTORE)
+    if data.get("store_kind") is None:
+        data.pop("store_kind", None)
     for k, v in data.items():
         setattr(s, k, v)
+    if s.store_kind == STORE_KIND_BOOKSTORE:
+        await ensure_app_identity(db, s)
     await audit(db, scope, action="store_update", resource_type="store",
                 resource_id=store_id, flush=False)
     await db.commit()

@@ -24,6 +24,11 @@ class Store(Base, UUIDPrimaryKey, Timestamped, SoftDelete):
     allow_static_table_qr: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     # Unified shopping (/shopping/) public ordering settings. See services.online_ordering.
     online_ordering_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # restaurant | bookstore. See services.bookstore for bookstore-only behaviour.
+    store_kind: Mapped[str] = mapped_column(
+        String(16), default="restaurant", server_default="restaurant", nullable=False
+    )
+    bookstore_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     terminals: Mapped[list["Terminal"]] = relationship(back_populates="store", cascade="all, delete-orphan")
 

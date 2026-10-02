@@ -137,6 +137,7 @@ class TenantModulesRead(BaseModel):
     consignment_books: bool = True
     line: bool = False
     events: bool = False
+    physical_bookstore: bool = False
 
 
 class TenantModulesUpdate(BaseModel):
@@ -146,3 +147,4 @@ class TenantModulesUpdate(BaseModel):
     consignment_books: bool | None = None
     line: bool | None = None
     events: bool | None = None
+    physical_bookstore: bool | None = None

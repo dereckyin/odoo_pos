@@ -66,6 +66,7 @@ class ECPayProvider(PaymentProvider):
         self.merchant_id = merchant_id
         self.hash_key = hash_key
         self.hash_iv = hash_iv
+        self.sandbox = sandbox
         self.api_url = (
             "https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5"
             if sandbox
@@ -83,14 +84,18 @@ class ECPayProvider(PaymentProvider):
         return_url: str,
         notify_url: str,
     ) -> PaymentInitResult:
-        from urllib.parse import urlencode
+        import html
 
+        # *_cents columns hold whole TWD; ECPay TotalAmount is also whole TWD.
+        amount = int(amount_cents)
+        if amount <= 0:
+            raise ValueError("payment amount must be positive")
         params = {
             "MerchantID": self.merchant_id,
             "MerchantTradeNo": order_id.replace("-", "")[:20],
             "MerchantTradeDate": __import__("datetime").datetime.now().strftime("%Y/%m/%d %H:%M:%S"),
             "PaymentType": "aio",
-            "TotalAmount": str(amount_cents // 100 or 1),
+            "TotalAmount": str(amount),
             "TradeDesc": description[:200],
             "ItemName": description[:400],
             "ReturnURL": notify_url,
@@ -101,16 +106,19 @@ class ECPayProvider(PaymentProvider):
         check_mac = _ecpay_check_mac(params, self.hash_key, self.hash_iv)
         params["CheckMacValue"] = check_mac
         form_fields = "".join(
-            f'<input type="hidden" name="{k}" value="{v}">' for k, v in params.items()
+            f'<input type="hidden" name="{html.escape(k)}" value="{html.escape(str(v))}">'
+            for k, v in params.items()
         )
-        html = (
-            f'<form id="ecpay" method="post" action="{self.api_url}">{form_fields}'
+        form_html = (
+            f'<form id="ecpay" method="post" action="{html.escape(self.api_url)}">{form_fields}'
             f'<script>document.getElementById("ecpay").submit();</script></form>'
         )
-        return PaymentInitResult(payment_form_html=html, provider_ref=params["MerchantTradeNo"])
+        return PaymentInitResult(payment_form_html=form_html, provider_ref=params["MerchantTradeNo"])
 
     async def verify_webhook(self, payload: dict) -> tuple[str, str, int] | None:
-        mac = payload.get("CheckMacValue")
+        import hmac
+
+        mac = str(payload.get("CheckMacValue") or "")
         if not mac:
             return None
         expected = _ecpay_check_mac(
@@ -118,13 +126,19 @@ class ECPayProvider(PaymentProvider):
             self.hash_key,
             self.hash_iv,
         )
-        if mac.upper() != expected.upper():
+        if not hmac.compare_digest(mac.upper(), expected.upper()):
             return None
-        if payload.get("RtnCode") != "1":
+        if str(payload.get("RtnCode")) != "1":
             return None
-        trade_no = payload.get("MerchantTradeNo", "")
-        amount = int(float(payload.get("TradeAmt", 0))) * 100
-        return trade_no, payload.get("TradeNo", ""), amount
+        # ECPay back-office "simulate paid" notifies carry a valid MAC but no money moved.
+        if str(payload.get("SimulatePaid", "0")) == "1" and not self.sandbox:
+            return None
+        trade_no = str(payload.get("MerchantTradeNo", ""))
+        try:
+            amount = int(str(payload.get("TradeAmt", "0")))
+        except ValueError:
+            return None
+        return trade_no, str(payload.get("TradeNo", "")), amount
 
 
 def _ecpay_check_mac(params: dict, hash_key: str, hash_iv: str) -> str:
@@ -138,8 +152,9 @@ def _ecpay_check_mac(params: dict, hash_key: str, hash_iv: str) -> str:
 
 
 def get_payment_provider() -> PaymentProvider:
-    from ...core.config import settings
+    from ...core.config import get_settings
 
+    settings = get_settings()
     mid = settings.ECPAY_MERCHANT_ID
     key = settings.ECPAY_HASH_KEY
     iv = settings.ECPAY_HASH_IV

@@ -9,6 +9,7 @@ from slowapi.errors import RateLimitExceeded
 
 from .api.v1 import api_router
 from .core.config import get_settings, validate_settings_or_raise
+from .core.ids import IDSMiddleware, SecurityHeadersMiddleware
 from .core.ratelimit import limiter, rate_limit_handler
 
 
@@ -18,15 +19,22 @@ def create_app() -> FastAPI:
 
     logging.basicConfig(level=logging.INFO)
 
+    docs = settings.docs_enabled
     app = FastAPI(
         title="點餐趣 API",
         version="0.2.0",
         description="點餐趣／多租戶 POS SaaS 後端（FastAPI + PostgreSQL）。",
+        docs_url="/docs" if docs else None,
+        redoc_url="/redoc" if docs else None,
+        openapi_url="/openapi.json" if docs else None,
     )
 
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
+    # Starlette runs the last-added middleware first: CORS -> headers -> IDS -> app.
+    app.add_middleware(IDSMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
@@ -71,9 +79,10 @@ def create_app() -> FastAPI:
             async with factory() as db:
                 await db.execute(text("SELECT 1"))
             details["db"] = "ok"
-        except Exception as e:  # noqa: BLE001
+        except Exception:  # noqa: BLE001
             ok = False
-            details["db"] = f"error: {e}"
+            logging.getLogger("app.readyz").exception("readiness check failed")
+            details["db"] = "error"
         return {"ok": ok, **details}
 
     return app

@@ -31,6 +31,8 @@ async def charge(
     if not order:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "order not found")
     ensure_same_tenant(scope, order)
+    if amount_cents <= 0 or amount_cents > (order.total_cents or 0):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid amount")
 
     # Per-tenant credentials are pulled from tenant_payment_settings
     # (Fernet-encrypted at rest); falls back to platform settings only
@@ -64,7 +66,11 @@ async def refund(payload: dict, db: DbSession, scope: TenantScope) -> dict:
     if not payment:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "payment not found")
     order = await db.get(Order, payment.order_id) if payment.order_id else None
+    if order is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "payment not found")
     ensure_same_tenant(scope, order)
+    if amount_cents <= 0 or amount_cents > (payment.amount_cents or 0):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "invalid amount")
     if not payment.gateway_ref:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "payment has no gateway_ref")
 
@@ -98,7 +104,7 @@ async def gateway_confirm(driver: str, payload: dict, db: DbSession, scope: Tena
     if res.status == "captured":
         payment = (
             await db.execute(
-                _select_payment_by_ref(res.gateway_ref or gateway_ref)
+                _select_payment_by_ref(res.gateway_ref or gateway_ref, scope.tenant_id)
             )
         ).scalar_one_or_none()
         if payment:
@@ -112,6 +118,10 @@ async def gateway_confirm(driver: str, payload: dict, db: DbSession, scope: Tena
     }
 
 
-def _select_payment_by_ref(ref: str):
+def _select_payment_by_ref(ref: str, tenant_id: str | None):
     from sqlalchemy import select
-    return select(Payment).where(Payment.gateway_ref == ref)
+    return (
+        select(Payment)
+        .join(Order, Order.id == Payment.order_id)
+        .where(Payment.gateway_ref == ref, Order.tenant_id == tenant_id)
+    )

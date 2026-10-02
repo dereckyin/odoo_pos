@@ -868,14 +868,10 @@ async def platform_upload_image(_: PlatformSuperDep, file: UploadFile = File(...
     import uuid
     from pathlib import Path
 
-    allowed = {"image/jpeg", "image/png", "image/gif", "image/webp"}
-    max_size = 5 * 1024 * 1024
-    if file.content_type not in allowed:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"unsupported type: {file.content_type}")
-    data = await file.read()
-    if len(data) > max_size:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "file too large (max 5MB)")
-    ext = file.filename.rsplit(".", 1)[-1] if file.filename and "." in file.filename else "jpg"
+    from ...core.uploads import MAX_IMAGE_BYTES, validated_image_ext
+
+    data = await file.read(MAX_IMAGE_BYTES + 1)
+    ext = validated_image_ext(data)
     filename = f"{uuid.uuid4().hex}.{ext}"
     base_dir = Path(os.getenv("UPLOAD_DIR", "uploads")) / "_platform"
     base_dir.mkdir(parents=True, exist_ok=True)
