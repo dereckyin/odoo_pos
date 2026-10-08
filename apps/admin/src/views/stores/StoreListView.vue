@@ -183,7 +183,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import QrcodeVue from 'qrcode.vue'
 import { listStores, createStore, updateStore, deleteStore } from '@/api/stores'
-import { issueDoorQr, updateBookstoreSettings, type DoorQrRead } from '@/api/bookstore'
+import { getDoorQr, issueDoorQr, updateBookstoreSettings, type DoorQrRead } from '@/api/bookstore'
 import { shoppingOrderUrl } from '@/lib/shoppingOrderBase'
 import { useTenantModulesStore } from '@/stores/tenantModules'
 import type { OnlineOrderingSettings, StoreKind, StoreRead } from '@/types'
@@ -308,6 +308,15 @@ async function openDoorQr(record: StoreRead) {
   pay.cash_price_pct = cfg.cash_price_pct ?? 100
   pay.online_payment_enabled = Boolean(cfg.online_payment_enabled)
   doorQrOpen.value = true
+  doorQrLoading.value = true
+  try {
+    const { data } = await getDoorQr(record.id)
+    doorQr.value = data
+  } catch {
+    doorQr.value = null
+  } finally {
+    doorQrLoading.value = false
+  }
 }
 
 async function savePaymentSettings() {

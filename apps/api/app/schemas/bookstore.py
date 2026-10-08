@@ -26,6 +26,7 @@ class BookstoreStoreRead(BaseModel):
     cash_enabled: bool = True
     cash_price_pct: int = 100
     online_payment_enabled: bool = False
+    member_sync_enabled: bool = False
 
 
 class DoorQrResolveRequest(BaseModel):
@@ -101,6 +102,8 @@ class CheckoutCreate(BaseModel):
     client_request_id: str = Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9\-_]+$")
     lines: list[CheckoutLineIn] = Field(min_length=1)
     invoice: InvoiceIn | None = None
+    # Server-computed by my_api from 紅利/回饋金. The app cannot call this API.
+    member_discount_cents: int = Field(default=0, ge=0, le=10_000_000)
 
     @field_validator("lines")
     @classmethod
@@ -114,6 +117,7 @@ class CheckoutCreate(BaseModel):
 class CheckoutLineRead(BaseModel):
     product_id: str
     product_name: str
+    sku: str | None = None
     isbn: str | None = None
     qty: int
     unit_price_cents: int
@@ -250,4 +254,4 @@ class CashLookupResponse(BaseModel):
 
 class CashConfirmRequest(BaseModel):
     store_id: str | None = None
-    expected_total_cents: int = Field(ge=1)
+    expected_total_cents: int = Field(ge=0)

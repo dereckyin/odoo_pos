@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -494,3 +495,127 @@ async def test_idempotent_checkout_and_pending_limit(app, client, bookstore_sett
     await _checkout(client, store_id, presence, line, request_id="req-other-02")
     c = await _checkout(client, store_id, presence, line, request_id="req-other-03")
     assert c.status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_door_qr_survives_reopen_and_settings_patch(app, client, bookstore_settings):
+    _, admin, store_id, _ = await _setup(client)
+    missing = await client.get(f"/bookstore/stores/{store_id}/door-qr", headers=admin)
+    assert missing.status_code == 404
+    created = await client.post(f"/bookstore/stores/{store_id}/door-qr", headers=admin)
+    assert created.status_code == 200, created.text
+    content = created.json()["content"]
+    assert content.startswith("TAAZEBK1:")
+    again = await client.get(f"/bookstore/stores/{store_id}/door-qr", headers=admin)
+    assert again.status_code == 200
+    assert again.json()["content"] == content
+    patched = await client.patch(
+        f"/bookstore/stores/{store_id}/settings", headers=admin, json={"cash_price_pct": 79}
+    )
+    assert patched.status_code == 200, patched.text
+    still = await client.get(f"/bookstore/stores/{store_id}/door-qr", headers=admin)
+    assert still.json()["content"] == content
+
+
+@pytest.mark.asyncio
+async def test_member_discount_survives_cash_pct_and_exposes_sku(app, client, bookstore_settings):
+    bookstore_settings.BOOKSTORE_MEMBER_SYNC_ENABLED = True
+    _, _, store_id, books = await _setup(client, online=False, cash_price_pct=95)
+    presence = await _presence(client, store_id)
+    r = await client.post(
+        "/partner/bookstore/checkouts",
+        headers=_headers(),
+        json={
+            "store_id": store_id,
+            "presence_token": presence,
+            "client_request_id": "req-member-01",
+            "lines": [{"product_id": books[0], "qty": 1}, {"product_id": books[1], "qty": 1}],
+            "member_discount_cents": 100,
+        },
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["subtotal_cents"] == 550
+    assert body["discount_cents"] == 100
+    assert body["total_cents"] == 450
+    assert {ln["sku"] for ln in body["lines"]} == {"BK-1", "BK-2"}
+    cash = await client.post(f"/partner/bookstore/checkouts/{body['id']}/cash", headers=_headers())
+    assert cash.status_code == 200, cash.text
+    assert (cash.json()["subtotal_cents"], cash.json()["total_cents"]) == (550, 422)
+
+
+@pytest.mark.asyncio
+async def test_member_sync_off_ignores_discount_and_skips_invoice(app, client, bookstore_settings, monkeypatch):
+    monkeypatch.setattr(bookstore_settings, "BOOKSTORE_MEMBER_SYNC_ENABLED", False)
+    monkeypatch.setattr(bookstore_settings, "BOOKSTORE_SKIP_POS_INVOICE", False)
+    _, admin, store_id, books = await _setup(client, online=False)
+    presence = await _presence(client, store_id)
+    r = await client.post(
+        "/partner/bookstore/checkouts",
+        headers=_headers(),
+        json={
+            "store_id": store_id,
+            "presence_token": presence,
+            "client_request_id": "req-sync-off",
+            "lines": [{"product_id": books[0], "qty": 1}],
+            "member_discount_cents": 100,
+        },
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["discount_cents"] == 0
+    assert body["total_cents"] == body["subtotal_cents"]
+    cash = await client.post(f"/partner/bookstore/checkouts/{body['id']}/cash", headers=_headers())
+    ok = await client.post(
+        f"/bookstore/checkouts/{body['id']}/cash-confirm",
+        headers=admin,
+        json={"expected_total_cents": cash.json()["total_cents"]},
+    )
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["invoice_status"] == "skipped"
+
+
+@pytest.mark.asyncio
+async def test_skip_pos_invoice_and_notify_taaze(app, client, bookstore_settings, monkeypatch):
+    import httpx
+
+    from app.services import taaze_settle
+
+    captured = []
+
+    class _Client:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def post(self, url, content=None, headers=None):
+            captured.append((url, content, headers))
+            return httpx.Response(200, json={"ok": True})
+
+    monkeypatch.setattr(bookstore_settings, "BOOKSTORE_SKIP_POS_INVOICE", True)
+    monkeypatch.setattr(bookstore_settings, "TAAZE_SETTLE_URL", "https://api.taaze.tw/api/v1/internal/bookstore/paid")
+    monkeypatch.setattr(bookstore_settings, "TAAZE_SETTLE_SECRET", "settle-secret")
+    monkeypatch.setattr(taaze_settle.httpx, "AsyncClient", _Client)
+
+    _, admin, store_id, books = await _setup(client, online=False)
+    presence = await _presence(client, store_id)
+    cid = (await _checkout(client, store_id, presence, [{"product_id": books[1], "qty": 1}])).json()["id"]
+    cash = (await client.post(f"/partner/bookstore/checkouts/{cid}/cash", headers=_headers())).json()
+    ok = await client.post(
+        f"/bookstore/checkouts/{cid}/cash-confirm",
+        headers=admin,
+        json={"expected_total_cents": cash["total_cents"]},
+    )
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["invoice_status"] == "skipped"
+    assert len(captured) == 1
+    url, content, headers = captured[0]
+    assert url.endswith("/internal/bookstore/paid")
+    assert headers["X-Taaze-Signature"].startswith("sha256=")
+    payload = json.loads(content)
+    assert payload["checkout_id"] == cid and payload["status"] == "paid"

@@ -102,6 +102,15 @@ class Settings(BaseSettings):
     BOOKSTORE_MAX_LINES: int = 20
     BOOKSTORE_MAX_QTY_PER_LINE: int = 5
     BOOKSTORE_ECPAY_CHOOSE_PAYMENT: str = "Credit"
+    # After cash/online pay, POST checkout_id to my_api so 讀冊 can write ORDER_MAS.
+    # Empty URL disables the callback (App JWT settle is the backup).
+    TAAZE_SETTLE_URL: str = ""
+    TAAZE_SETTLE_SECRET: str = ""
+    # 連正式 Oracle 時務必保持 false：不套用會員折抵、不開發票。
+    # 連上 192.168.100.169 測試庫並打開 my_api 同名旗標後再設 true。
+    BOOKSTORE_MEMBER_SYNC_ENABLED: bool = False
+    # 本站雲端發票：不要再用 POS 的 ezPay/ECPay 開第二張。
+    BOOKSTORE_SKIP_POS_INVOICE: bool = True
 
     # Intrusion detection (same rule model as my_api). A request is blocked when
     # the summed severity of matched rules reaches the threshold; an IP that

@@ -45,6 +45,10 @@ def read_bookstore_settings(store: Store) -> dict:
         "qr_version": int(raw.get("qr_version", 0)),
         "app_terminal_id": raw.get("app_terminal_id"),
         "app_user_id": raw.get("app_user_id"),
+        # Exact poster payload from the last rotate; omitted keys would be
+        # wiped on the next settings patch.
+        "door_qr_content": raw.get("door_qr_content"),
+        "door_qr_expires_at": raw.get("door_qr_expires_at"),
     }
 
 

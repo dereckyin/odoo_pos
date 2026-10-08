@@ -57,6 +57,10 @@ export interface RefundResponse {
   message: string
 }
 
+export function getDoorQr(storeId: string) {
+  return client.get<DoorQrRead>(`/bookstore/stores/${storeId}/door-qr`)
+}
+
 export function issueDoorQr(storeId: string) {
   return client.post<DoorQrRead>(`/bookstore/stores/${storeId}/door-qr`)
 }

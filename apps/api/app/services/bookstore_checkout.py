@@ -108,6 +108,7 @@ def store_read(store: Store) -> BookstoreStoreRead:
         cash_enabled=cfg["cash_enabled"],
         cash_price_pct=cfg["cash_price_pct"],
         online_payment_enabled=cfg["online_payment_enabled"],
+        member_sync_enabled=bool(get_settings().BOOKSTORE_MEMBER_SYNC_ENABLED),
     )
 
 
@@ -506,7 +507,7 @@ async def create_checkout(
         reservation_active=True,
         expires_at=now + timedelta(minutes=s.BOOKSTORE_RESERVATION_MINUTES),
     )
-    if payload.invoice:
+    if payload.invoice and s.BOOKSTORE_MEMBER_SYNC_ENABLED:
         checkout.invoice_carrier_type = payload.invoice.carrier_type
         checkout.invoice_carrier_code = payload.invoice.carrier_code
         checkout.invoice_tax_id = payload.invoice.tax_id
@@ -550,9 +551,14 @@ async def create_checkout(
         await db.rollback()
         raise _error(status.HTTP_400_BAD_REQUEST, "invalid_amount", "結帳金額不正確")
 
+    requested_discount = int(payload.member_discount_cents or 0)
+    if not get_settings().BOOKSTORE_MEMBER_SYNC_ENABLED:
+        requested_discount = 0
+    member_discount = min(max(requested_discount, 0), subtotal)
     checkout.subtotal_cents = subtotal
     checkout.tax_cents = tax
-    checkout.total_cents = subtotal
+    checkout.discount_cents = member_discount
+    checkout.total_cents = subtotal - member_discount
     await db.commit()
     return await get_customer_checkout(db, tenant_id, customer_ref, checkout.id)
 
@@ -599,7 +605,9 @@ async def select_cash(db: AsyncSession, checkout: BookstoreCheckout) -> Bookstor
     if not cfg["cash_enabled"]:
         raise _error(status.HTTP_409_CONFLICT, "cash_unavailable", "這家店目前不接受現金結帳")
 
+    member_discount = checkout.discount_cents or 0
     total = checkout.subtotal_cents * cfg["cash_price_pct"] // 100
+    total = max(0, total - member_discount)
     discount = checkout.subtotal_cents - total
     expires = max(
         _aware(checkout.expires_at),
@@ -829,6 +837,11 @@ async def issue_invoice_for_checkout(db: AsyncSession, checkout_id: str) -> None
     checkout = await load_checkout(db, checkout_id)
     if checkout is None or checkout.order_id is None or checkout.invoice_status == "issued":
         return
+    settings = get_settings()
+    if (not settings.BOOKSTORE_MEMBER_SYNC_ENABLED) or settings.BOOKSTORE_SKIP_POS_INVOICE:
+        checkout.invoice_status = "skipped"
+        await db.commit()
+        return
     order = (
         await db.execute(select(Order).where(Order.id == checkout.order_id).options(selectinload(Order.lines)))
     ).scalar_one()
@@ -927,6 +940,7 @@ def _lines(checkout: BookstoreCheckout) -> list[CheckoutLineRead]:
         CheckoutLineRead(
             product_id=ln.product_id,
             product_name=ln.product_name,
+            sku=ln.sku,
             isbn=ln.isbn,
             qty=ln.qty,
             unit_price_cents=ln.unit_price_cents,

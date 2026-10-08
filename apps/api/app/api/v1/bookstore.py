@@ -1,5 +1,7 @@
 """Staff / admin side of physical bookstore stores: exit-pass verification
 at the door, app checkout list, refunds and door QR management."""
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 
@@ -21,6 +23,7 @@ from ...schemas.bookstore import (
 from ...schemas.store import StoreRead
 from ...services import bookstore_checkout as svc
 from ...services.bookstore import issue_door_qr, read_bookstore_settings, write_bookstore_settings
+from ...services.taaze_settle import notify_paid
 from ...services.tenant_modules import require_physical_bookstore
 
 router = APIRouter(
@@ -114,6 +117,7 @@ async def confirm_cash(
     )
     await db.commit()
     await svc.issue_invoice_for_checkout(db, checkout.id)
+    await notify_paid(checkout.id, checkout.total_cents)
     return await svc.staff_checkout_read(db, await svc.load_checkout(db, checkout.id))
 
 
@@ -176,17 +180,49 @@ async def refund_checkout(
     )
 
 
+def _store_door_qr(store, content: str, expires) -> DoorQrRead:
+    write_bookstore_settings(
+        store,
+        {"door_qr_content": content, "door_qr_expires_at": expires.isoformat()},
+    )
+    return DoorQrRead(content=content, expires_at=expires)
+
+
+@router.get("/stores/{store_id}/door-qr", response_model=DoorQrRead)
+async def get_door_qr(store_id: str, db: DbSession, scope: StoreAdminDep):
+    """Return the currently posted door QR without rotating it."""
+    _resolve_store_id(scope, store_id)
+    store = await svc.load_bookstore(db, scope.tenant_id, store_id)
+    cfg = read_bookstore_settings(store)
+    content = cfg.get("door_qr_content")
+    expires_raw = cfg.get("door_qr_expires_at")
+    if content and expires_raw:
+        expires = (
+            expires_raw
+            if isinstance(expires_raw, datetime)
+            else datetime.fromisoformat(str(expires_raw).replace("Z", "+00:00"))
+        )
+        return DoorQrRead(content=content, expires_at=expires)
+    if int(cfg.get("qr_version") or 0) > 0:
+        content, expires = issue_door_qr(store)
+        read = _store_door_qr(store, content, expires)
+        await db.commit()
+        return read
+    raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+
 @router.post("/stores/{store_id}/door-qr", response_model=DoorQrRead)
 async def rotate_door_qr(store_id: str, request: Request, db: DbSession, scope: TenantAdminDep):
     store = await svc.load_bookstore(db, scope.tenant_id, store_id)
     write_bookstore_settings(store, {"qr_version": read_bookstore_settings(store)["qr_version"] + 1})
     content, expires = issue_door_qr(store)
+    read = _store_door_qr(store, content, expires)
     await audit(
         db, scope, action="bookstore_door_qr_rotate", resource_type="store",
         resource_id=store.id, request=request, flush=False,
     )
     await db.commit()
-    return DoorQrRead(content=content, expires_at=expires)
+    return read
 
 
 @router.patch("/stores/{store_id}/settings", response_model=StoreRead)
