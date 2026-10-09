@@ -380,7 +380,7 @@ async def admin_login(
     _check_account_lock(user)
     if not user.is_active:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "user disabled")
-    if user.role not in STORE_ADMIN_ROLES:
+    if user.role not in STORE_ADMIN_ROLES and user.role != "cashier":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "insufficient permissions for admin console")
     if user.totp_enabled and user.totp_secret:
         if not req.totp_code:

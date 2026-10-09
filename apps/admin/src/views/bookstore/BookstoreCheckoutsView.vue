@@ -1,7 +1,7 @@
 <template>
   <div>
-    <a-page-header title="實體書店 App 結帳" sub-title="現金收款、出門核銷、App 訂單與退貨">
-      <template #extra>
+    <a-page-header :title="pageTitle" :sub-title="pageSubtitle">
+      <template v-if="!isCashier" #extra>
         <a-select
           v-model:value="storeId"
           style="width: 220px"
@@ -66,29 +66,6 @@
         </div>
       </a-card>
 
-      <a-card title="出門核銷" size="small" style="margin-bottom: 16px">
-        <a-input-search
-          ref="verifyInput"
-          v-model:value="verifyValue"
-          placeholder="掃描顧客的出門 QR，或輸入 6 位數核銷碼"
-          enter-button="核銷"
-          size="large"
-          :loading="verifying"
-          autocomplete="off"
-          @search="doVerify"
-        />
-        <div v-if="verifyResult" class="verify-result" :class="`verify-${verifyResult.result}`">
-          <div class="verify-title">{{ resultLabel(verifyResult.result) }}</div>
-          <div v-if="verifyResult.order_no">訂單 {{ verifyResult.order_no }}・NT$ {{ verifyResult.total_cents }}</div>
-          <div v-if="verifyResult.result === 'already_used' && verifyResult.verified_at">
-            已於 {{ fmt(verifyResult.verified_at) }} 核銷
-          </div>
-          <ul v-if="verifyResult.lines.length" class="verify-lines">
-            <li v-for="ln in verifyResult.lines" :key="ln.product_id">{{ ln.product_name }} × {{ ln.qty }}</li>
-          </ul>
-        </div>
-      </a-card>
-
       <a-card size="small">
         <template #title>
           App 結帳紀錄
@@ -96,7 +73,7 @@
             <a-radio-button value="">全部</a-radio-button>
             <a-radio-button value="pending">待付款</a-radio-button>
             <a-radio-button value="paid">已付款</a-radio-button>
-            <a-radio-button value="refunded">已退貨</a-radio-button>
+            <a-radio-button v-if="!isCashier" value="refunded">已退貨</a-radio-button>
           </a-radio-group>
         </template>
         <a-table
@@ -125,16 +102,13 @@
               {{ record.payment_method === 'cash' ? '現金' : record.payment_method ? '線上' : '-' }}
             </template>
             <template v-else-if="column.key === 'paid_at'">{{ record.paid_at ? fmt(record.paid_at) : '-' }}</template>
-            <template v-else-if="column.key === 'exit'">
-              {{ record.exit_verified_at ? fmt(record.exit_verified_at) : '-' }}
-            </template>
             <template v-else-if="column.key === 'invoice'">
               <span v-if="record.invoice_number">{{ record.invoice_number }}</span>
               <a-tag v-else-if="record.invoice_status === 'failed'" color="red">開立失敗</a-tag>
               <span v-else>-</span>
             </template>
             <template v-else-if="column.key === 'actions'">
-              <a-button v-if="record.status === 'paid'" size="small" danger @click="openRefund(record)">退貨</a-button>
+              <a-button v-if="!isCashier && record.status === 'paid'" size="small" danger @click="openRefund(record)">退貨</a-button>
             </template>
           </template>
         </a-table>
@@ -164,30 +138,28 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
+import { useAuthStore } from '@/stores/auth'
 import { listStores } from '@/api/stores'
 import {
   confirmCashPayment,
   listBookstoreCheckouts,
   lookupCashPayment,
   refundBookstoreCheckout,
-  verifyExitPass,
   type CashLookupResponse,
-  type ExitVerifyResponse,
   type StaffCheckoutRead,
 } from '@/api/bookstore'
 import type { StoreRead } from '@/types'
 
+const auth = useAuthStore()
+const isCashier = computed(() => auth.isFloorCashier)
+const pageTitle = computed(() => (isCashier.value ? '櫃台收款' : '實體書店 App 結帳'))
+const pageSubtitle = '掃描顧客 App 付款碼，確認收款後即可帶書離開'
 const bookstores = ref<StoreRead[]>([])
 const loadingStores = ref(true)
 const storeId = ref<string>()
 const rows = ref<StaffCheckoutRead[]>([])
 const loading = ref(false)
 const statusFilter = ref('')
-
-const verifyInput = ref()
-const verifyValue = ref('')
-const verifying = ref(false)
-const verifyResult = ref<ExitVerifyResponse | null>(null)
 
 const cashInput = ref()
 const cashValue = ref('')
@@ -206,17 +178,22 @@ const refundTarget = ref<StaffCheckoutRead | null>(null)
 const refundReason = ref('')
 const refunding = ref(false)
 
-const columns = [
-  { title: '訂單', dataIndex: 'order_no', width: 170 },
-  { title: '狀態', key: 'status', width: 140 },
-  { title: '品項', key: 'items' },
-  { title: '金額', key: 'total', width: 100 },
-  { title: '付款方式', key: 'method', width: 90 },
-  { title: '付款時間', key: 'paid_at', width: 160 },
-  { title: '出門核銷', key: 'exit', width: 160 },
-  { title: '發票', key: 'invoice', width: 120 },
-  { title: '', key: 'actions', width: 80 },
-]
+const columns = computed(() => {
+  const base = [
+    { title: '訂單', dataIndex: 'order_no', width: 170 },
+    { title: '狀態', key: 'status', width: 140 },
+    { title: '品項', key: 'items' },
+    { title: '金額', key: 'total', width: 100 },
+    { title: '付款方式', key: 'method', width: 90 },
+    { title: '付款時間', key: 'paid_at', width: 160 },
+  ]
+  if (isCashier.value) return base
+  return [
+    ...base,
+    { title: '發票', key: 'invoice', width: 120 },
+    { title: '', key: 'actions', width: 80 },
+  ]
+})
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleString()
@@ -228,16 +205,6 @@ function statusLabel(s: string) {
 
 function statusColor(s: string) {
   return ({ paid: 'green', refunded: 'red', pending: 'blue' } as Record<string, string>)[s] || 'default'
-}
-
-function resultLabel(r: ExitVerifyResponse['result']) {
-  return {
-    valid: '核銷成功，可放行',
-    already_used: '此憑證已核銷過',
-    expired: '憑證已過期，請顧客在 App 重新產生',
-    not_paid: '此筆未付款或已退貨',
-    invalid: '無效的憑證',
-  }[r]
 }
 
 function cashResultLabel(r: CashLookupResponse['result']) {
@@ -279,7 +246,7 @@ async function doCashConfirm() {
   cashConfirming.value = true
   try {
     const { data } = await confirmCashPayment(checkout.id, checkout.total_cents)
-    message.success(`已收款 NT$ ${data.total_cents}，顧客 App 會出現出門憑證`)
+    message.success(`已收款 NT$ ${data.total_cents}，訂單完成，顧客可以帶書離開`)
     cashResult.value = null
     cashReceived.value = null
     reload()
@@ -309,27 +276,6 @@ async function reload() {
   }
 }
 
-async function doVerify() {
-  const raw = verifyValue.value.trim()
-  if (!raw || !storeId.value) return
-  verifying.value = true
-  try {
-    const isCode = /^\d{6}$/.test(raw)
-    const { data } = await verifyExitPass(
-      isCode ? { code: raw, store_id: storeId.value } : { token: raw, store_id: storeId.value },
-    )
-    verifyResult.value = data
-    if (data.result === 'valid') reload()
-  } catch (e: any) {
-    message.error(e.response?.data?.detail || '核銷失敗')
-  } finally {
-    verifying.value = false
-    verifyValue.value = ''
-    await nextTick()
-    verifyInput.value?.focus?.()
-  }
-}
-
 function openRefund(rec: StaffCheckoutRead) {
   refundTarget.value = rec
   refundReason.value = ''
@@ -356,7 +302,9 @@ onMounted(async () => {
   try {
     const { data } = await listStores()
     bookstores.value = data.filter((s) => s.store_kind === 'bookstore')
-    storeId.value = bookstores.value[0]?.id
+    storeId.value =
+      (auth.storeId && bookstores.value.some((s) => s.id === auth.storeId) && auth.storeId) ||
+      bookstores.value[0]?.id
     await reload()
   } finally {
     loadingStores.value = false
@@ -375,20 +323,6 @@ onMounted(async () => {
   font-size: 20px;
   font-weight: 700;
   margin-bottom: 4px;
-}
-.verify-valid {
-  background: #f6ffed;
-  border: 1px solid #b7eb8f;
-}
-.verify-already_used,
-.verify-expired {
-  background: #fffbe6;
-  border: 1px solid #ffe58f;
-}
-.verify-not_paid,
-.verify-invalid {
-  background: #fff1f0;
-  border: 1px solid #ffa39e;
 }
 .verify-lines {
   margin: 8px 0 0;

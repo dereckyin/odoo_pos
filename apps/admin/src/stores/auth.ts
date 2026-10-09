@@ -46,6 +46,7 @@ export const useAuthStore = defineStore('auth', () => {
       role.value === 'admin' ||
       (isPlatformSuper.value && !!actingTenantId.value),
   )
+  const isFloorCashier = computed(() => role.value === 'cashier')
 
   function setSession(s: SessionRead) {
     accessToken.value = s.access_token
@@ -139,6 +140,7 @@ export const useAuthStore = defineStore('auth', () => {
     isMerchantMode,
     isPureTenantUser,
     isTenantAdmin,
+    isFloorCashier,
     login,
     refreshSession,
     logout,

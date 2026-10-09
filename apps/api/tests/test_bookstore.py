@@ -19,6 +19,7 @@ from app.models import (
     Product,
     ProductBarcode,
     Tenant,
+    User,
 )
 from app.services.bookstore import issue_door_qr
 from app.services.tenant_modules import apply_modules_patch
@@ -438,7 +439,8 @@ async def test_cash_at_counter_with_discount(app, client, bookstore_settings):
         assert c.payment_gateway == "cash" and c.cash_confirmed_by
 
     body = (await client.get(f"/partner/bookstore/checkouts/{cid}", headers=_headers())).json()
-    assert body["status"] == "paid" and body["exit_pass"] and body["cash_payment"] is None
+    assert body["status"] == "paid" and body["cash_payment"] is None
+    assert body["exit_pass"] is None and body["exit_verified_at"]
     again = await client.post(
         "/bookstore/cash/lookup", headers=admin, json={"code": cash["code"], "store_id": store_id}
     )
@@ -545,6 +547,32 @@ async def test_member_discount_survives_cash_pct_and_exposes_sku(app, client, bo
 
 
 @pytest.mark.asyncio
+async def test_member_discount_cannot_exceed_cash_price(app, client, bookstore_settings):
+    bookstore_settings.BOOKSTORE_MEMBER_SYNC_ENABLED = True
+    _, _, store_id, books = await _setup(client, online=False, cash_price_pct=79)
+    presence = await _presence(client, store_id)
+    r = await client.post(
+        "/partner/bookstore/checkouts",
+        headers=_headers(),
+        json={
+            "store_id": store_id,
+            "presence_token": presence,
+            "client_request_id": "req-member-cap",
+            "lines": [{"product_id": books[0], "qty": 1}],
+            "member_discount_cents": 9999,
+        },
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    cash_price = body["subtotal_cents"] * 79 // 100
+    assert body["discount_cents"] == cash_price
+    assert body["total_cents"] == body["subtotal_cents"] - cash_price
+    cash = await client.post(f"/partner/bookstore/checkouts/{body['id']}/cash", headers=_headers())
+    assert cash.status_code == 200, cash.text
+    assert cash.json()["total_cents"] == 0
+
+
+@pytest.mark.asyncio
 async def test_member_sync_off_ignores_discount_and_skips_invoice(app, client, bookstore_settings, monkeypatch):
     monkeypatch.setattr(bookstore_settings, "BOOKSTORE_MEMBER_SYNC_ENABLED", False)
     monkeypatch.setattr(bookstore_settings, "BOOKSTORE_SKIP_POS_INVOICE", False)
@@ -619,3 +647,48 @@ async def test_skip_pos_invoice_and_notify_taaze(app, client, bookstore_settings
     assert headers["X-Taaze-Signature"].startswith("sha256=")
     payload = json.loads(content)
     assert payload["checkout_id"] == cid and payload["status"] == "paid"
+
+
+async def test_cashier_can_login_console_and_take_cash(client, bookstore_settings):
+    bundle, admin, store_id, books = await _setup(client, online=False, cash_price_pct=95)
+    factory = db_mod.get_session_factory()
+    async with factory() as db:
+        cashier = await db.get(User, bundle.cashier.id)
+        cashier.store_id = store_id
+        await db.commit()
+
+    denied = await client.post(
+        "/auth/admin-login",
+        json={"tenant_code": bundle.tenant.code, "username": "cashier", "password": "wrong"},
+    )
+    assert denied.status_code == 401
+
+    login = await client.post(
+        "/auth/admin-login",
+        json={"tenant_code": bundle.tenant.code, "username": "cashier", "password": "cashier123"},
+    )
+    assert login.status_code == 200, login.text
+    staff = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    mods = await client.get("/tenant/modules", headers=staff)
+    assert mods.status_code == 200, mods.text
+    assert mods.json()["physical_bookstore"] is True
+
+    presence = await _presence(client, store_id)
+    cid = (await _checkout(client, store_id, presence, [{"product_id": books[0], "qty": 1}], request_id="cashier-cash-1")).json()["id"]
+    cash = (await client.post(f"/partner/bookstore/checkouts/{cid}/cash", headers=_headers())).json()
+    found = await client.post(
+        "/bookstore/cash/lookup", headers=staff, json={"code": cash["cash_payment"]["code"], "store_id": store_id}
+    )
+    assert found.status_code == 200 and found.json()["result"] == "found"
+    ok = await client.post(
+        f"/bookstore/checkouts/{cid}/cash-confirm",
+        headers=staff,
+        json={"expected_total_cents": cash["total_cents"]},
+    )
+    assert ok.status_code == 200 and ok.json()["status"] == "paid"
+    assert ok.json()["exit_verified_at"]
+    refund = await client.post(
+        f"/bookstore/checkouts/{cid}/refund", headers=staff, json={"reason": "test"}
+    )
+    assert refund.status_code == 403

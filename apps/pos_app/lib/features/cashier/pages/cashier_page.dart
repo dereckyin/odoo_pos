@@ -91,6 +91,11 @@ class _CashierPageState extends ConsumerState<CashierPage> {
                       '店 ${_shortIdChip(session.storeId)} / 機 ${_shortIdChip(session.terminalId)}')),
           ]),
           actions: [
+            TextButton.icon(
+              onPressed: () => context.push('/bookstore-cash'),
+              icon: const Icon(Icons.qr_code_2),
+              label: const Text('App 收款'),
+            ),
             const MasterDataSyncButton(),
             if (pendingCount > 0)
               Padding(

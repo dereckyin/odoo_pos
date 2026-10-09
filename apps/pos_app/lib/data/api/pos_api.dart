@@ -431,6 +431,42 @@ class PosApi {
     return LoyaltySettingsDto.fromJson(_asMap(r.data));
   }
 
+  Future<Map<String, dynamic>> lookupBookstoreCash({
+    String? token,
+    String? code,
+    String? storeId,
+  }) async {
+    final r = await _dio.post('/bookstore/cash/lookup', data: {
+      if (token != null) 'token': token,
+      if (code != null) 'code': code,
+      if (storeId != null) 'store_id': storeId,
+    });
+    return _asMap(r.data);
+  }
+
+  Future<Map<String, dynamic>> confirmBookstoreCash({
+    required String checkoutId,
+    required int expectedTotalCents,
+  }) async {
+    final r = await _dio.post('/bookstore/checkouts/$checkoutId/cash-confirm', data: {
+      'expected_total_cents': expectedTotalCents,
+    });
+    return _asMap(r.data);
+  }
+
+  Future<Map<String, dynamic>> verifyBookstoreExit({
+    String? token,
+    String? code,
+    String? storeId,
+  }) async {
+    final r = await _dio.post('/bookstore/exit-pass/verify', data: {
+      if (token != null) 'token': token,
+      if (code != null) 'code': code,
+      if (storeId != null) 'store_id': storeId,
+    });
+    return _asMap(r.data);
+  }
+
   Future<CouponPreviewDto> previewCoupon({
     required String code,
     required int orderTotalCents,

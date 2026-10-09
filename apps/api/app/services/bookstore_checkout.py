@@ -94,6 +94,13 @@ def _available(level: InventoryLevel) -> int:
     return int(float(level.on_hand or 0) - float(level.reserved or 0))
 
 
+def _redeem_cap(subtotal: int, cfg: dict) -> int:
+    """Member redeem cannot exceed what cash checkout would actually collect."""
+    if cfg.get("cash_enabled") and not cfg.get("online_payment_enabled"):
+        return max(0, subtotal * int(cfg.get("cash_price_pct") or 100) // 100)
+    return subtotal
+
+
 def store_read(store: Store) -> BookstoreStoreRead:
     cfg = read_bookstore_settings(store)
     return BookstoreStoreRead(
@@ -554,7 +561,8 @@ async def create_checkout(
     requested_discount = int(payload.member_discount_cents or 0)
     if not get_settings().BOOKSTORE_MEMBER_SYNC_ENABLED:
         requested_discount = 0
-    member_discount = min(max(requested_discount, 0), subtotal)
+    cfg = read_bookstore_settings(store)
+    member_discount = min(max(requested_discount, 0), _redeem_cap(subtotal, cfg))
     checkout.subtotal_cents = subtotal
     checkout.tax_cents = tax
     checkout.discount_cents = member_discount
@@ -605,9 +613,9 @@ async def select_cash(db: AsyncSession, checkout: BookstoreCheckout) -> Bookstor
     if not cfg["cash_enabled"]:
         raise _error(status.HTTP_409_CONFLICT, "cash_unavailable", "這家店目前不接受現金結帳")
 
-    member_discount = checkout.discount_cents or 0
-    total = checkout.subtotal_cents * cfg["cash_price_pct"] // 100
-    total = max(0, total - member_discount)
+    cash_price = checkout.subtotal_cents * cfg["cash_price_pct"] // 100
+    member_discount = min(checkout.discount_cents or 0, cash_price)
+    total = max(0, cash_price - member_discount)
     discount = checkout.subtotal_cents - total
     expires = max(
         _aware(checkout.expires_at),
@@ -701,6 +709,10 @@ async def mark_paid(
     }
     if confirmed_by:
         values["cash_confirmed_by"] = confirmed_by
+    if gateway == "cash":
+        values["exit_verified_at"] = now
+        if confirmed_by:
+            values["exit_verified_by"] = confirmed_by
     res = await db.execute(
         update(BookstoreCheckout)
         .where(
@@ -825,7 +837,8 @@ async def mark_paid(
         )
     )
     checkout.order_id = order.id
-    _new_exit_pass(checkout, now)
+    if gateway != "cash":
+        _new_exit_pass(checkout, now)
     await bump_usage_counter(db, tenant_id=checkout.tenant_id, metric="orders", delta=1)
     await db.commit()
     return True

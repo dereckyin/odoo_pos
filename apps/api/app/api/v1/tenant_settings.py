@@ -15,6 +15,7 @@ from ...core.crypto import encrypt
 from ...core.deps import (
     DbSession,
     TenantAdminDep,
+    TenantScope,
 )
 from ...core.usage import get_active_plan, get_usage
 from ...services.line_oa import apply_line_patch, read_line_settings
@@ -78,7 +79,7 @@ async def update_general_settings(
 
 
 @router.get("/modules", response_model=TenantModulesRead)
-async def get_my_modules(db: DbSession, scope: TenantAdminDep):
+async def get_my_modules(db: DbSession, scope: TenantScope):
     mods = await get_tenant_modules(db, scope.tenant_id)
     return TenantModulesRead(**mods)
 

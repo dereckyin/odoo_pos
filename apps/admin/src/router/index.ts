@@ -152,6 +152,10 @@ router.beforeEach(async (to) => {
   }
 
   const routeName = to.name as string | undefined
+  const cashierAllowed = new Set(['bookstore-checkouts', 'security-settings'])
+  if (auth.isFloorCashier && isMerchantRoute(to) && routeName && !cashierAllowed.has(routeName)) {
+    return { name: 'bookstore-checkouts' }
+  }
   if (
     routeName &&
     isMerchantRoute(to) &&
@@ -185,7 +189,7 @@ router.beforeEach(async (to) => {
     if (CONSIGNMENT_BOOKS_ROUTES.has(routeName) && !modules.consignmentBooks) {
       return { name: 'dashboard' }
     }
-    if (PHYSICAL_BOOKSTORE_ROUTES.has(routeName) && !modules.physicalBookstore) {
+    if (PHYSICAL_BOOKSTORE_ROUTES.has(routeName) && !modules.physicalBookstore && !auth.isFloorCashier) {
       return { name: 'dashboard' }
     }
   }
@@ -199,5 +203,6 @@ export function postLoginRoute(auth: ReturnType<typeof useAuthStore>, redirect?:
     }
   }
   if (auth.isPlatformSuper && !auth.actingTenantId) return '/platform'
+  if (auth.isFloorCashier) return '/bookstore/checkouts'
   return '/'
 }

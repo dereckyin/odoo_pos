@@ -2,10 +2,20 @@
   <a-layout style="min-height: 100vh">
     <a-layout-sider v-model:collapsed="collapsed" collapsible :trigger="null" breakpoint="lg" class="app-sider" @collapse="collapsed = $event">
       <div class="logo">
-        <span v-if="!collapsed">點餐趣｜後台</span>
+        <span v-if="!collapsed">{{ auth.isFloorCashier ? '點餐趣｜櫃台' : '點餐趣｜後台' }}</span>
         <span v-else>點</span>
       </div>
-      <a-menu v-model:selectedKeys="selectedKeys" v-model:openKeys="openKeys" theme="dark" mode="inline">
+      <a-menu v-if="auth.isFloorCashier" v-model:selectedKeys="selectedKeys" theme="dark" mode="inline">
+        <a-menu-item key="bookstore-checkouts" @click="$router.push({ name: 'bookstore-checkouts' })">
+          <template #icon><ScanOutlined /></template>
+          <span>櫃台收款</span>
+        </a-menu-item>
+        <a-menu-item key="security-settings" @click="$router.push({ name: 'security-settings' })">
+          <template #icon><SafetyOutlined /></template>
+          <span>安全設定</span>
+        </a-menu-item>
+      </a-menu>
+      <a-menu v-else v-model:selectedKeys="selectedKeys" v-model:openKeys="openKeys" theme="dark" mode="inline">
         <a-menu-item key="dashboard" @click="$router.push({ name: 'dashboard' })">
           <template #icon><DashboardOutlined /></template>
           <span>總覽</span>
@@ -151,6 +161,7 @@
           </template>
         </a-dropdown>
         <a-tag v-if="auth.isPlatformSuper && auth.actingTenantId" color="blue" style="margin-left: 12px">代管模式</a-tag>
+        <a-tag v-else-if="auth.isFloorCashier" color="magenta" style="margin-left: 12px">櫃台</a-tag>
         <a-tag v-else-if="!auth.isPlatformSuper" color="green" style="margin-left: 12px">商家後台</a-tag>
         <span class="header-version">{{ APP_VERSION }}</span>
       </a-layout-header>
