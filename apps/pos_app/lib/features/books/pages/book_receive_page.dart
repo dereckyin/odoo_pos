@@ -113,7 +113,7 @@ class _BookReceivePageState extends ConsumerState<BookReceivePage> {
               autofocus: true,
               decoration: InputDecoration(
                 labelText: '條碼',
-                hintText: '掃碼或輸入 11 碼 TAAZE 商品編號',
+                hintText: '掃描 LOGCODE／ISBN 或輸入 TAAZE 商品編號',
                 suffixIcon: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

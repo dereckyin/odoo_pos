@@ -1,4 +1,4 @@
-"""Book catalog lookup by barcode (TAAZE for 11-digit prodId)."""
+"""Book catalog lookup by barcode: TAAZE prodId (11), ISBN (13) or LOGCODE (18)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,7 +8,11 @@ from .taaze_client import (
     TaazeProductError,
     TaazeProductNotFoundError,
     fetch_taaze_product,
+    fetch_taaze_product_by_isbn,
+    fetch_taaze_product_by_logcode,
 )
+
+TAAZE_BARCODE_KINDS = ("internal_11", "isbn_13", "logcode_18")
 
 
 class UnsupportedBarcodeError(ValueError):
@@ -37,15 +41,23 @@ class BookLookupResult:
     is_second_hand: bool = False
     sale_disc: int | None = None
     source: str = "taaze"
+    prod_id: str | None = None
 
 
 def classify_barcode(code: str) -> str:
     digits = code.strip()
-    if len(digits) == 11 and digits.isdigit():
-        return "internal_11"
-    if len(digits) == 8 and digits.isdigit():
-        return "external_8"
-    raise UnsupportedBarcodeError("條碼須為 11 碼（TAAZE 商品編號）或 8 碼（他社）數字")
+    if digits.isdigit():
+        if len(digits) == 11:
+            return "internal_11"
+        if len(digits) == 13:
+            return "isbn_13"
+        if len(digits) == 18:
+            return "logcode_18"
+        if len(digits) == 8:
+            return "external_8"
+    raise UnsupportedBarcodeError(
+        "條碼須為 11 碼 TAAZE 商品編號、13 碼 ISBN、18 碼 LOGCODE 或 8 碼他社條碼"
+    )
 
 
 def _taaze_to_result(taaze: TaazeProduct, barcode_kind: str) -> BookLookupResult:
@@ -67,6 +79,7 @@ def _taaze_to_result(taaze: TaazeProduct, barcode_kind: str) -> BookLookupResult
         is_second_hand=taaze.is_second_hand,
         sale_disc=taaze.sale_disc,
         source="taaze",
+        prod_id=taaze.prod_id,
     )
 
 
@@ -95,16 +108,18 @@ def lookup_barcode(code: str) -> BookLookupResult:
     barcode = code.strip()
     kind = classify_barcode(barcode)
 
-    if kind == "internal_11":
-        try:
-            taaze = fetch_taaze_product(barcode)
-        except TaazeProductNotFoundError as e:
-            raise BookLookupNotFoundError(str(e)) from e
-        except TaazeProductError as e:
-            raise BookLookupNotFoundError(str(e)) from e
-        return _taaze_to_result(taaze, kind)
-
-    return _mock_external_lookup(barcode)
+    fetch = {
+        "internal_11": fetch_taaze_product,
+        "isbn_13": fetch_taaze_product_by_isbn,
+        "logcode_18": fetch_taaze_product_by_logcode,
+    }.get(kind)
+    if fetch is None:
+        return _mock_external_lookup(barcode)
+    try:
+        taaze = fetch(barcode)
+    except (TaazeProductNotFoundError, TaazeProductError) as e:
+        raise BookLookupNotFoundError(str(e)) from e
+    return _taaze_to_result(taaze, kind)
 
 
 def default_sell_price_cents(lookup: BookLookupResult) -> int:

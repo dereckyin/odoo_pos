@@ -81,6 +81,7 @@ async def receive_book_by_barcode(
             select(Product)
             .where(Product.id == product.id)
             .options(selectinload(Product.barcodes), selectinload(Product.book_detail))
+            .execution_options(populate_existing=True)
         )
     ).scalar_one()
     return product, on_hand

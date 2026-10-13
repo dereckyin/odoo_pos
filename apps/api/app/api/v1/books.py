@@ -1,6 +1,4 @@
-import csv
 from datetime import datetime, timezone
-from io import StringIO
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import Response
@@ -26,7 +24,12 @@ from ...services.book_catalog import (
     product_to_book_read,
     search_books,
 )
-from ...services.book_import import import_books_from_csv, render_book_import_template_csv
+from ...services.book_import import (
+    BookImportFormatError,
+    import_books_from_csv,
+    parse_book_import_csv,
+    render_book_import_template_csv,
+)
 from ...services.book_lookup import (
     BookLookupNotFoundError,
     UnsupportedBarcodeError,
@@ -204,9 +207,11 @@ async def import_books_csv(
     file: UploadFile = File(...),
 ) -> BookImportResultRead:
     await assert_consignment_module(db, scope.tenant_id)
-    raw = (await file.read()).decode("utf-8-sig")
-    reader = csv.DictReader(StringIO(raw))
-    result = await import_books_from_csv(db, scope.tenant_id, list(reader), scope.user_id)
+    try:
+        rows = parse_book_import_csv(await file.read())
+    except BookImportFormatError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e)) from e
+    result = await import_books_from_csv(db, scope.tenant_id, rows, scope.user_id)
     await audit(
         db,
         scope,

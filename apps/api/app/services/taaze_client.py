@@ -8,6 +8,7 @@ import httpx
 
 TAAZE_PRODUCT_URL = "https://service.taaze.tw/product/{prod_id}"
 TAAZE_ISBN_URL = "https://service.taaze.tw/isbn/{prod_id}"
+TAAZE_LOGCODE_URL = "https://service.taaze.tw/logcode/{code}"
 TAAZE_COVER_URL = (
     "https://media.taaze.tw/showLargeImage.html?sc={prod_id}&height=200&width=150&fill=f"
 )
@@ -169,15 +170,55 @@ def fetch_taaze_product(prod_id: str, *, timeout: float = 12.0) -> TaazeProduct:
     raise last_not_found or TaazeProductNotFoundError(f"TAAZE 找不到商品 {code}")
 
 
+def _resolve_prod_id(client: httpx.Client, urls: list[str]) -> str | None:
+    for url in urls:
+        for _ in range(2):
+            try:
+                return _fetch_taaze_url(client, url).prod_id
+            except (TaazeProductNotFoundError, TaazeProductError):
+                continue
+    return None
+
+
+def fetch_taaze_product_by_isbn(isbn: str, *, timeout: float = 12.0) -> TaazeProduct:
+    """13-digit ISBN/EAN → TAAZE's canonical prodId → full product (with prices)."""
+    code = isbn.strip()
+    with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+        prod_id = _resolve_prod_id(client, [TAAZE_ISBN_URL.format(prod_id=code)])
+    if not prod_id:
+        raise TaazeProductNotFoundError(f"TAAZE 查無 ISBN {code}")
+    return fetch_taaze_product(prod_id, timeout=timeout)
+
+
+def fetch_taaze_product_by_logcode(logcode: str, *, timeout: float = 12.0) -> TaazeProduct:
+    """18-digit LOGCODE (ISBN + 5-digit serial). TAAZE only indexes one LOGCODE per
+    title, so other copies' serials fall back to the ISBN prefix."""
+    code = logcode.strip()
+    with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+        prod_id = _resolve_prod_id(
+            client,
+            [TAAZE_LOGCODE_URL.format(code=code), TAAZE_ISBN_URL.format(prod_id=code[:13])],
+        )
+    if not prod_id:
+        raise TaazeProductNotFoundError(f"TAAZE 查無 LOGCODE {code}")
+    return fetch_taaze_product(prod_id, timeout=timeout)
+
+
 def _enrich_from_isbn(client: httpx.Client, product: TaazeProduct) -> TaazeProduct:
     """Some prodIds (e.g. 813…) have no cover or category; the ISBN's
     canonical TAAZE record does. Best effort — never fails the lookup."""
     isbn = re.sub(r"[^0-9Xx]", "", product.isbn or "")
     if len(isbn) not in (10, 13):
         return product
-    try:
-        canon = _fetch_taaze_url(client, TAAZE_ISBN_URL.format(prod_id=isbn))
-    except (TaazeProductError, TaazeProductNotFoundError):
+    canon = None
+    # TAAZE intermittently answers with an empty body; one retry recovers most cases.
+    for _ in range(2):
+        try:
+            canon = _fetch_taaze_url(client, TAAZE_ISBN_URL.format(prod_id=isbn))
+            break
+        except (TaazeProductError, TaazeProductNotFoundError):
+            continue
+    if canon is None:
         return product
     if canon.prod_id == product.prod_id:
         return product

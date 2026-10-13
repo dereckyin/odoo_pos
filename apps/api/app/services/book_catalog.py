@@ -3,17 +3,19 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..models import BookDetail, Category, InventoryLevel, Product, ProductBarcode
 from .book_lookup import (
+    TAAZE_BARCODE_KINDS,
     BookLookupResult,
     UnsupportedBarcodeError,
     default_sell_price_cents,
     lookup_barcode,
 )
+from .taaze_client import TAAZE_COVER_URL
 from .consignment_books import (
     CONSIGNMENT_CATEGORY_NAME,
     PRODUCT_KIND_CONSIGNMENT,
@@ -127,17 +129,77 @@ async def find_book_by_barcode(db: AsyncSession, tenant_id: str, barcode: str) -
     return row
 
 
+def _isbn_digits(isbn: str | None) -> str:
+    return "".join(ch for ch in (isbn or "") if ch.isdigit() or ch in "Xx").upper()
+
+
+async def find_book_by_isbn(db: AsyncSession, tenant_id: str, isbn: str | None) -> Product | None:
+    norm = _isbn_digits(isbn)
+    if len(norm) not in (10, 13):
+        return None
+    return (
+        await db.execute(
+            select(Product)
+            .join(BookDetail, BookDetail.product_id == Product.id)
+            .where(
+                Product.tenant_id == tenant_id,
+                Product.deleted_at.is_(None),
+                Product.product_kind == PRODUCT_KIND_CONSIGNMENT,
+                func.upper(func.replace(BookDetail.isbn, "-", "")) == norm,
+            )
+            .order_by(Product.created_at)
+            .limit(1)
+            .options(selectinload(Product.barcodes), selectinload(Product.book_detail))
+        )
+    ).scalar_one_or_none()
+
+
+async def _attach_barcode(db: AsyncSession, tenant_id: str, product: Product, code: str) -> None:
+    """Remember a scanned LOGCODE / ISBN so the cashier and app can find this book by it."""
+    taken = (
+        await db.execute(
+            select(ProductBarcode.id).where(
+                ProductBarcode.tenant_id == tenant_id, ProductBarcode.barcode == code
+            )
+        )
+    ).first()
+    if taken is None:
+        db.add(ProductBarcode(tenant_id=tenant_id, product_id=product.id, barcode=code))
+
+
 async def upsert_book_from_barcode(
     db: AsyncSession, tenant_id: str, barcode: str, lookup: BookLookupResult | None = None
 ) -> Product:
-    existing = await find_book_by_barcode(db, tenant_id, barcode)
+    """Match order: the scanned code itself → TAAZE prodId → same ISBN (same title,
+    different copy: only add stock, keep that book's own price)."""
+    code = barcode.strip()
+    existing = await find_book_by_barcode(db, tenant_id, code)
+    if lookup is None:
+        lookup = lookup_barcode(code)
+    if existing is None and lookup.prod_id and lookup.prod_id != code:
+        existing = await find_book_by_barcode(db, tenant_id, lookup.prod_id)
+    if existing is None:
+        same_title = await find_book_by_isbn(db, tenant_id, lookup.isbn)
+        if same_title is not None:
+            await _attach_barcode(db, tenant_id, same_title, code)
+            await db.flush()
+            return same_title
     if existing:
-        if lookup is None:
-            lookup = lookup_barcode(barcode)
+        if code not in {b.barcode for b in existing.barcodes}:
+            await _attach_barcode(db, tenant_id, existing, code)
         # Refresh sell/list price from lookup (TWD stores whole dollars in *_cents).
         existing.price_cents = default_sell_price_cents(lookup)
+        # A cover keyed by the book's own prodId is only a fallback (813… prodIds have none);
+        # don't let a flaky ISBN lookup replace a better cover already on file.
+        is_fallback_cover = lookup.image_url == TAAZE_COVER_URL.format(
+            prod_id=lookup.prod_id or code
+        )
         if lookup.image_url and (
-            not existing.image_url or existing.image_url.startswith("https://media.taaze.tw/")
+            not existing.image_url
+            or (
+                existing.image_url.startswith("https://media.taaze.tw/")
+                and not is_fallback_cover
+            )
         ):
             existing.image_url = lookup.image_url
         existing.updated_at = _now()
@@ -155,16 +217,14 @@ async def upsert_book_from_barcode(
         await db.flush()
         return existing
 
-    if lookup is None:
-        lookup = lookup_barcode(barcode)
-
     category = await ensure_book_category_for_lookup(db, tenant_id, lookup)
     suppliers = await ensure_consignment_suppliers(db, tenant_id)
     supplier = (
         suppliers["consignment_internal"]
-        if lookup.barcode_kind == "internal_11"
+        if lookup.barcode_kind in TAAZE_BARCODE_KINDS
         else suppliers["consignment_external"]
     )
+    sku = lookup.prod_id or code
 
     desc_parts: list[str] = []
     if lookup.translator:
@@ -178,7 +238,7 @@ async def upsert_book_from_barcode(
 
     product = Product(
         tenant_id=tenant_id,
-        sku=barcode.strip(),
+        sku=sku,
         name=lookup.title,
         price_cents=default_sell_price_cents(lookup),
         category_id=category.id,
@@ -194,12 +254,13 @@ async def upsert_book_from_barcode(
     )
     db.add(product)
     await db.flush()
-    db.add(ProductBarcode(tenant_id=tenant_id, product_id=product.id, barcode=barcode.strip()))
+    for c in dict.fromkeys((sku, code)):
+        await _attach_barcode(db, tenant_id, product, c)
     db.add(
         BookDetail(
             tenant_id=tenant_id,
             product_id=product.id,
-            barcode=barcode.strip(),
+            barcode=sku,
             barcode_kind=lookup.barcode_kind,
             supplier_id=supplier.id,
             author=lookup.author,

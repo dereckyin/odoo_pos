@@ -52,6 +52,31 @@ def render_book_import_template_csv() -> str:
     return "\ufeff" + buf.getvalue()
 
 
+class BookImportFormatError(ValueError):
+    pass
+
+
+def parse_book_import_csv(raw: bytes) -> list[dict[str, str]]:
+    """Accept comma / tab / semicolon files from Excel, UTF-8 (with or without BOM) or Big5."""
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = raw.decode("cp950", errors="replace")
+    first_line = text.lstrip().split("\n", 1)[0]
+    delimiter = max((",", "\t", ";"), key=first_line.count)
+    reader = csv.DictReader(StringIO(text), delimiter=delimiter)
+    if not reader.fieldnames or "barcode" not in {
+        (f or "").strip().lower() for f in reader.fieldnames
+    }:
+        raise BookImportFormatError(
+            "找不到 barcode 欄位，請確認第一列為 barcode,qty,store_id,store_code（逗號或 Tab 分隔皆可）"
+        )
+    return [
+        {(k or "").strip().lower(): (v or "") for k, v in row.items() if k is not None}
+        for row in reader
+    ]
+
+
 async def _resolve_store_id(
     db: AsyncSession,
     tenant_id: str,

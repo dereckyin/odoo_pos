@@ -5,7 +5,7 @@
       <a-form-item label="門店" required>
         <a-select v-model:value="storeId" :options="storeOptions" placeholder="選擇門店" />
       </a-form-item>
-      <a-form-item label="條碼（11 碼 TAAZE 商品編號或 8 碼他社）" required>
+      <a-form-item label="條碼（18 碼 LOGCODE、13 碼 ISBN、11 碼 TAAZE 商品編號，或 8 碼他社）" required>
         <a-input-search
           v-model:value="barcode"
           placeholder="掃碼或輸入後按查詢"

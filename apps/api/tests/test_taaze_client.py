@@ -86,6 +86,41 @@ def test_813_prod_id_uses_isbn_canonical_cover_and_category():
     assert product.publisher == "測試出版"
 
 
+def test_unindexed_logcode_serial_falls_back_to_isbn_prefix():
+    import httpx
+
+    from app.services import taaze_client
+    from app.services.book_lookup import classify_barcode
+
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        calls.append(path)
+        if path == "/isbn/9789861365145":
+            return httpx.Response(200, json={"prodId": "11100858846", "titleMain": "測試書"})
+        if path == "/product/11100858846":
+            return httpx.Response(200, json={"book_data": {
+                "prodId": "11100858846", "titleMain": "測試書", "isbn": "9789861365145",
+                "listPrice": "350", "salePrice": "277",
+            }})
+        return httpx.Response(200, json={})
+
+    real_client = httpx.Client
+    transport = httpx.MockTransport(handler)
+    taaze_client.httpx.Client = lambda **kw: real_client(transport=transport, **kw)
+    try:
+        product = taaze_client.fetch_taaze_product_by_logcode("978986136514599999")
+    finally:
+        taaze_client.httpx.Client = real_client
+
+    assert classify_barcode("978986136514599999") == "logcode_18"
+    assert classify_barcode("9789861365145") == "isbn_13"
+    assert "/logcode/978986136514599999" in calls
+    assert product.prod_id == "11100858846"
+    assert product.sale_price_cents == 277
+
+
 def test_lookup_barcode_invalid_length():
     import pytest
 

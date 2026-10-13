@@ -4,7 +4,7 @@ from io import StringIO
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import Response
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
 from ...core.audit import audit
@@ -63,6 +63,9 @@ async def list_products(
     stmt = apply_tenant(stmt, Product, scope)
     if q:
         like = f"%{q}%"
+        code = q.strip()
+        # Books: 13-digit ISBN, or 18-digit LOGCODE (ISBN + copy serial).
+        isbn = code[:13] if len(code) == 18 and code.isdigit() else code
         stmt = (
             stmt.outerjoin(ProductBarcode)
             .outerjoin(BookDetail, BookDetail.product_id == Product.id)
@@ -72,6 +75,7 @@ async def list_products(
                     Product.sku.ilike(like),
                     ProductBarcode.barcode == q,
                     BookDetail.author.ilike(like),
+                    func.replace(BookDetail.isbn, "-", "") == isbn,
                 )
             )
             .distinct()

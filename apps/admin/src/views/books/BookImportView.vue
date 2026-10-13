@@ -14,7 +14,7 @@
         type="info"
         show-icon
         style="margin-top: 16px"
-        message="每列會呼叫 TAAZE 查書、建立主檔並入庫。11 碼為 TAAZE 商品編號；ISBN/EAN 13 碼請改用商品編號貼紙。"
+        message="每列會呼叫 TAAZE 查書、建立主檔並入庫。支援 18 碼 LOGCODE、13 碼 ISBN、11 碼 TAAZE 商品編號；同一個 ISBN 視為同一本書，會加到既有庫存。"
       />
       <div style="margin-top: 16px">
         <a-button type="link" :loading="downloadingTemplate" @click="downloadTemplate">
@@ -27,7 +27,7 @@
       <a-upload-dragger
         :before-upload="handleUpload"
         :show-upload-list="false"
-        accept=".csv"
+        accept=".csv,.tsv,.txt"
       >
         <p class="ant-upload-drag-icon"><InboxOutlined /></p>
         <p class="ant-upload-text">點擊或拖曳 CSV 檔案至此處</p>
@@ -88,7 +88,7 @@ const fieldColumns = [
 ]
 
 const fieldRows = [
-  { field: 'barcode', required: '是', desc: '11 碼 TAAZE 商品編號或 8 碼他社條碼' },
+  { field: 'barcode', required: '是', desc: '18 碼 LOGCODE、13 碼 ISBN、11 碼 TAAZE 商品編號，或 8 碼他社條碼' },
   { field: 'qty', required: '是', desc: '入庫數量（正數）' },
   { field: 'store_id', required: '擇一', desc: '門店 UUID' },
   { field: 'store_code', required: '擇一', desc: '門店代號（與門店管理一致）' },
@@ -127,6 +127,15 @@ async function handleUpload(file: File) {
   try {
     const { data } = await importBooksCsv(file)
     const hasErrors = data.errors.length > 0
+    if (!hasErrors && data.received === 0) {
+      result.value = {
+        status: 'warning',
+        title: '檔案中沒有可入庫的資料',
+        subTitle: '請確認每列都有填 barcode 與 qty',
+        errors: [],
+      }
+      return false
+    }
     result.value = {
       status: hasErrors ? (data.received > 0 ? 'warning' : 'error') : 'success',
       title: hasErrors ? '部分入庫完成' : '入庫完成',

@@ -272,9 +272,11 @@ async def lookup_code(db: AsyncSession, tenant_id: str, store_id: str, code: str
     by_barcode = select(ProductBarcode.product_id).where(
         ProductBarcode.tenant_id == tenant_id, ProductBarcode.barcode == norm
     )
+    # An 18-digit LOGCODE is ISBN + copy serial; unseen serials still match by ISBN.
+    isbn = norm[:13] if len(norm) == 18 and norm.isdigit() else norm
     by_book = select(BookDetail.product_id).where(
         BookDetail.tenant_id == tenant_id,
-        or_(BookDetail.barcode == norm, func.replace(BookDetail.isbn, "-", "") == norm),
+        or_(BookDetail.barcode == norm, func.replace(BookDetail.isbn, "-", "") == isbn),
     )
     row = (
         await db.execute(
