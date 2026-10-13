@@ -25,6 +25,8 @@ class BookstoreCheckout(Base, UUIDPrimaryKey, Timestamped):
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), index=True, nullable=False)
     store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"), index=True, nullable=False)
     customer_ref: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    # Masked display label supplied by my_api; no member PII is stored here.
+    member_label: Mapped[str | None] = mapped_column(String(40), nullable=True)
     client_request_id: Mapped[str] = mapped_column(String(64), nullable=False)
 
     # pending | paid | expired | cancelled | refunded

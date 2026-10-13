@@ -547,6 +547,53 @@ async def test_member_discount_survives_cash_pct_and_exposes_sku(app, client, bo
 
 
 @pytest.mark.asyncio
+async def test_masked_member_label_shows_on_orders(app, client, bookstore_settings):
+    _, admin, store_id, books = await _setup(client, online=False)
+    presence = await _presence(client, store_id)
+    r = await client.post(
+        "/partner/bookstore/checkouts",
+        headers=_headers(),
+        json={
+            "store_id": store_id,
+            "presence_token": presence,
+            "client_request_id": "req-member-label",
+            "lines": [{"product_id": books[0], "qty": 1}],
+            "member_label": "王○明 #2754\x07",
+        },
+    )
+    assert r.status_code == 201, r.text
+    checkout_id = r.json()["id"]
+    cash = await client.post(f"/partner/bookstore/checkouts/{checkout_id}/cash", headers=_headers())
+    ok = await client.post(
+        f"/bookstore/checkouts/{checkout_id}/cash-confirm",
+        headers=admin,
+        json={"expected_total_cents": cash.json()["total_cents"]},
+    )
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["member_label"] == "王○明 #2754"
+
+    orders = await client.get("/orders", headers=admin)
+    assert orders.status_code == 200, orders.text
+    item = next(o for o in orders.json()["items"] if o["order_no"] == ok.json()["order_no"])
+    assert item["member_name"] == "王○明 #2754"
+    detail = await client.get(f"/orders/{item['id']}", headers=admin)
+    assert detail.json()["member_name"] == "王○明 #2754"
+
+    too_long = await client.post(
+        "/partner/bookstore/checkouts",
+        headers=_headers(),
+        json={
+            "store_id": store_id,
+            "presence_token": presence,
+            "client_request_id": "req-member-long",
+            "lines": [{"product_id": books[1], "qty": 1}],
+            "member_label": "x" * 41,
+        },
+    )
+    assert too_long.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_member_discount_cannot_exceed_cash_price(app, client, bookstore_settings):
     bookstore_settings.BOOKSTORE_MEMBER_SYNC_ENABLED = True
     _, _, store_id, books = await _setup(client, online=False, cash_price_pct=79)

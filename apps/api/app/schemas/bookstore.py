@@ -104,6 +104,16 @@ class CheckoutCreate(BaseModel):
     invoice: InvoiceIn | None = None
     # Server-computed by my_api from 紅利/回饋金. The app cannot call this API.
     member_discount_cents: int = Field(default=0, ge=0, le=10_000_000)
+    # Already masked by my_api (e.g. 王○明 #2754); never a full name or member id.
+    member_label: str | None = Field(default=None, max_length=40)
+
+    @field_validator("member_label")
+    @classmethod
+    def _clean_label(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        cleaned = "".join(ch for ch in v if ch.isprintable()).strip()
+        return cleaned or None
 
     @field_validator("lines")
     @classmethod
@@ -202,6 +212,7 @@ class StaffCheckoutRead(BaseModel):
     payment_method: str | None = None
     expires_at: datetime | None = None
     order_no: str | None = None
+    member_label: str | None = None
     invoice_status: str
     invoice_number: str | None = None
     paid_at: datetime | None = None

@@ -25,6 +25,7 @@ export interface StaffCheckoutRead {
   payment_method: 'cash' | 'online' | null
   expires_at: string | null
   order_no: string | null
+  member_label: string | null
   invoice_status: string
   invoice_number: string | null
   paid_at: string | null

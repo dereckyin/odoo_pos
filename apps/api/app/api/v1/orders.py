@@ -40,6 +40,7 @@ from ...services.order_query import (
     enrich_order_item,
     enrich_single_order,
     load_order_display_maps,
+    order_member_name,
 )
 from ...services.loyalty_engine import apply_order_loyalty
 from ...services.loyalty_eligibility import resolve_product_eligibility
@@ -377,7 +378,7 @@ async def list_orders(
             o,
             store_name=store_map.get(o.store_id),
             cashier_name=cashier_map.get(o.cashier_id),
-            member_name=member_map.get(o.member_id) if o.member_id else None,
+            member_name=order_member_name(o, member_map),
         )
         for o in rows
     ]
@@ -447,7 +448,7 @@ async def export_orders_csv(
             o,
             store_name=store_map.get(o.store_id),
             cashier_name=cashier_map.get(o.cashier_id),
-            member_name=member_map.get(o.member_id) if o.member_id else None,
+            member_name=order_member_name(o, member_map),
         )
         ts = item.client_created_at or item.created_at
         writer.writerow(

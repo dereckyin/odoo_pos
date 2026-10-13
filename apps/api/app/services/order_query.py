@@ -9,7 +9,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..models import Member, Order, Payment, Store, User
+from ..models import BookstoreCheckout, Member, Order, Payment, Store, User
 from ..schemas.order import OrderListItem, OrderRead
 from .business_time import order_business_datetime, tenant_timezone
 
@@ -115,7 +115,24 @@ async def load_order_display_maps(
         ).all()
         member_map = {r.id: r.name for r in rows}
 
+    # Bookstore app orders have no 點餐趣 member; key their masked label by order id.
+    guest_order_ids = {o.id for o in orders if not o.member_id}
+    if guest_order_ids:
+        rows = (
+            await db.execute(
+                select(BookstoreCheckout.order_id, BookstoreCheckout.member_label).where(
+                    BookstoreCheckout.order_id.in_(guest_order_ids),
+                    BookstoreCheckout.member_label.is_not(None),
+                )
+            )
+        ).all()
+        member_map.update({r.order_id: r.member_label for r in rows})
+
     return store_map, cashier_map, member_map
+
+
+def order_member_name(order: Order, member_map: dict[str, str]) -> str | None:
+    return member_map.get(order.member_id or order.id)
 
 
 async def enrich_single_order(db: AsyncSession, order: Order) -> OrderListItem:
@@ -124,5 +141,5 @@ async def enrich_single_order(db: AsyncSession, order: Order) -> OrderListItem:
         order,
         store_name=store_map.get(order.store_id),
         cashier_name=cashier_map.get(order.cashier_id),
-        member_name=member_map.get(order.member_id) if order.member_id else None,
+        member_name=order_member_name(order, member_map),
     )

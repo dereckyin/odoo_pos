@@ -85,7 +85,8 @@
           :pagination="{ pageSize: 20 }"
         >
           <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'status'">
+            <template v-if="column.key === 'member'">{{ record.member_label || '—' }}</template>
+            <template v-else-if="column.key === 'status'">
               <a-tag :color="statusColor(record.status)">{{ statusLabel(record.status) }}</a-tag>
               <a-tooltip v-if="record.paid_after_expiry" title="保留逾時後才付款，庫存可能需人工確認">
                 <a-tag color="orange">逾時付款</a-tag>
@@ -181,6 +182,7 @@ const refunding = ref(false)
 const columns = computed(() => {
   const base = [
     { title: '訂單', dataIndex: 'order_no', width: 170 },
+    { title: '會員', key: 'member', width: 130 },
     { title: '狀態', key: 'status', width: 140 },
     { title: '品項', key: 'items' },
     { title: '金額', key: 'total', width: 100 },
