@@ -150,6 +150,21 @@ async def test_list_books_returns_on_hand_without_store_filter(app, client):
 
 
 @pytest.mark.asyncio
+async def test_import_template_uses_tenant_store_code(app, client):
+    factory = db_mod.get_session_factory()
+    bundle = await build_tenant(factory)
+    token = await login_admin(client, bundle)
+    r = await client.get("/books/import-csv/template", headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 200, r.text
+    lines = r.content.decode("utf-8-sig").strip().splitlines()
+    assert lines[0] == "barcode,qty,store_id,store_code"
+    assert [line.split(",")[0] for line in lines[1:]] == [
+        "978986136514524119", "9789571347653", "11101042331",
+    ]
+    assert all(line.endswith("," + bundle.store.code) for line in lines[1:])
+
+
+@pytest.mark.asyncio
 async def test_books_scan_endpoint_removed(app, client):
     factory = db_mod.get_session_factory()
     bundle = await build_tenant(factory)

@@ -14,9 +14,8 @@ from .book_receive import receive_book_by_barcode
 
 IMPORT_CSV_COLUMNS = ["barcode", "qty", "store_id", "store_code"]
 
-IMPORT_CSV_SAMPLE_ROWS = [
-    {"barcode": "11101042331", "qty": "1", "store_id": "", "store_code": "S001"},
-]
+# LOGCODE (18), ISBN (13) and TAAZE prodId (11), one row each.
+IMPORT_CSV_SAMPLE_BARCODES = ["978986136514524119", "9789571347653", "11101042331"]
 
 
 @dataclass
@@ -43,12 +42,32 @@ class BookImportResult:
         }
 
 
-def render_book_import_template_csv() -> str:
+async def sample_store_code(
+    db: AsyncSession, tenant_id: str, scope_store_id: str | None, allowed_store_ids: list[str]
+) -> str:
+    """Pick a real store code for the template: the session's store, else a store open
+    for consignment, preferring physical bookstores."""
+    stores = (
+        await db.execute(
+            select(Store)
+            .where(Store.tenant_id == tenant_id, Store.deleted_at.is_(None))
+            .order_by(Store.name)
+        )
+    ).scalars().all()
+    if scope_store_id:
+        stores = [s for s in stores if s.id == scope_store_id] or stores
+    elif allowed_store_ids:
+        stores = [s for s in stores if s.id in allowed_store_ids] or stores
+    stores = sorted(stores, key=lambda s: s.store_kind != "bookstore")
+    return stores[0].code if stores else "S001"
+
+
+def render_book_import_template_csv(store_code: str = "S001") -> str:
     buf = StringIO()
     writer = csv.DictWriter(buf, fieldnames=IMPORT_CSV_COLUMNS, lineterminator="\n")
     writer.writeheader()
-    for row in IMPORT_CSV_SAMPLE_ROWS:
-        writer.writerow(row)
+    for barcode in IMPORT_CSV_SAMPLE_BARCODES:
+        writer.writerow({"barcode": barcode, "qty": "1", "store_id": "", "store_code": store_code})
     return "\ufeff" + buf.getvalue()
 
 

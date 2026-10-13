@@ -29,6 +29,7 @@ from ...services.book_import import (
     import_books_from_csv,
     parse_book_import_csv,
     render_book_import_template_csv,
+    sample_store_code,
 )
 from ...services.book_lookup import (
     BookLookupNotFoundError,
@@ -191,8 +192,10 @@ async def receive_book(payload: BookReceiveRequest, db: DbSession, scope: StoreA
 
 
 @router.get("/import-csv/template")
-async def download_book_import_template(scope: StoreAdminDep) -> Response:
-    content = render_book_import_template_csv()
+async def download_book_import_template(db: DbSession, scope: StoreAdminDep) -> Response:
+    cfg = await get_consignment_settings(db, scope.tenant_id)
+    store_code = await sample_store_code(db, scope.tenant_id, scope.store_id, cfg["store_ids"])
+    content = render_book_import_template_csv(store_code)
     return Response(
         content=content.encode("utf-8"),
         media_type="text/csv; charset=utf-8",
