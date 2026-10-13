@@ -68,7 +68,10 @@ export function issueDoorQr(storeId: string) {
 
 export function updateBookstoreSettings(
   storeId: string,
-  payload: Pick<BookstoreSettings, 'is_open' | 'cash_enabled' | 'cash_price_pct' | 'online_payment_enabled'>,
+  payload: Pick<
+    BookstoreSettings,
+    'is_open' | 'cash_enabled' | 'cash_price_pct' | 'book_price_pct' | 'online_payment_enabled'
+  >,
 ) {
   return client.patch<StoreRead>(`/bookstore/stores/${storeId}/settings`, payload)
 }

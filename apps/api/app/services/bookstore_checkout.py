@@ -52,7 +52,9 @@ from ..schemas.bookstore import (
 )
 from .bookstore import (
     STORE_KIND_BOOKSTORE,
+    app_unit_price,
     assert_presence,
+    effective_cash_price_pct,
     ensure_app_identity,
     read_bookstore_settings,
     sign_token_until,
@@ -97,7 +99,7 @@ def _available(level: InventoryLevel) -> int:
 def _redeem_cap(subtotal: int, cfg: dict) -> int:
     """Member redeem cannot exceed what cash checkout would actually collect."""
     if cfg.get("cash_enabled") and not cfg.get("online_payment_enabled"):
-        return max(0, subtotal * int(cfg.get("cash_price_pct") or 100) // 100)
+        return max(0, subtotal * effective_cash_price_pct(cfg) // 100)
     return subtotal
 
 
@@ -113,7 +115,8 @@ def store_read(store: Store) -> BookstoreStoreRead:
         longitude=store.longitude,
         is_open=cfg["is_open"],
         cash_enabled=cfg["cash_enabled"],
-        cash_price_pct=cfg["cash_price_pct"],
+        cash_price_pct=effective_cash_price_pct(cfg),
+        book_price_pct=cfg["book_price_pct"],
         online_payment_enabled=cfg["online_payment_enabled"],
         member_sync_enabled=bool(get_settings().BOOKSTORE_MEMBER_SYNC_ENABLED),
     )
@@ -170,7 +173,12 @@ def _catalog_query(tenant_id: str, store_id: str):
     )
 
 
-def _product_read(row, *, detailed: bool = False) -> BookstoreProductRead:
+async def _book_price_pct(db: AsyncSession, store_id: str) -> int:
+    store = await db.get(Store, store_id)
+    return read_bookstore_settings(store)["book_price_pct"] if store else 100
+
+
+def _product_read(row, book_price_pct: int, *, detailed: bool = False) -> BookstoreProductRead:
     product, book, level, category_name = row
     available = _available(level)
     return BookstoreProductRead(
@@ -183,7 +191,7 @@ def _product_read(row, *, detailed: bool = False) -> BookstoreProductRead:
         description=product.description if detailed else None,
         category_id=product.category_id,
         category_name=category_name,
-        price_cents=product.price_cents,
+        price_cents=app_unit_price(product.price_cents, book.list_price_cents, book_price_pct),
         list_price_cents=book.list_price_cents,
         stock_status=stock_status(available),
         max_qty=max(0, min(available, get_settings().BOOKSTORE_MAX_QTY_PER_LINE)),
@@ -227,7 +235,8 @@ async def list_products(
     else:
         stmt = stmt.order_by(Product.name)
     rows = (await db.execute(stmt.limit(page_size).offset((page - 1) * page_size))).all()
-    return [_product_read(r) for r in rows], total
+    pct = await _book_price_pct(db, store_id)
+    return [_product_read(r, pct) for r in rows], total
 
 
 async def list_categories(db: AsyncSession, tenant_id: str, store_id: str) -> list[tuple[str, str]]:
@@ -258,7 +267,7 @@ async def get_product(db: AsyncSession, tenant_id: str, store_id: str, product_i
     ).first()
     if row is None:
         raise _error(status.HTTP_404_NOT_FOUND, "not_in_store", "這家店沒有這本書")
-    return _product_read(row, detailed=True)
+    return _product_read(row, await _book_price_pct(db, store_id), detailed=True)
 
 
 def normalize_code(code: str) -> str:
@@ -288,7 +297,7 @@ async def lookup_code(db: AsyncSession, tenant_id: str, store_id: str, code: str
     ).first()
     if row is None:
         raise _error(status.HTTP_404_NOT_FOUND, "not_in_store", "這家店沒有這本書")
-    return _product_read(row, detailed=True)
+    return _product_read(row, await _book_price_pct(db, store_id), detailed=True)
 
 
 # --- reservations ---------------------------------------------------------
@@ -527,9 +536,10 @@ async def create_checkout(
 
     subtotal = 0
     tax = 0
+    book_price_pct = read_bookstore_settings(store)["book_price_pct"]
     for ln in payload.lines:
         product, book, _level, _cat = by_id[ln.product_id]
-        unit = int(product.price_cents)
+        unit = app_unit_price(product.price_cents, book.list_price_cents, book_price_pct)
         line_total = unit * ln.qty
         subtotal += line_total
         tax += _line_tax(line_total, float(product.tax_rate or 0))
@@ -616,7 +626,7 @@ async def select_cash(db: AsyncSession, checkout: BookstoreCheckout) -> Bookstor
     if not cfg["cash_enabled"]:
         raise _error(status.HTTP_409_CONFLICT, "cash_unavailable", "這家店目前不接受現金結帳")
 
-    cash_price = checkout.subtotal_cents * cfg["cash_price_pct"] // 100
+    cash_price = checkout.subtotal_cents * effective_cash_price_pct(cfg) // 100
     member_discount = min(checkout.discount_cents or 0, cash_price)
     total = max(0, cash_price - member_discount)
     discount = checkout.subtotal_cents - total

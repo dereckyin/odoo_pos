@@ -376,6 +376,47 @@ async def test_expired_reservation_is_released(app, client, bookstore_settings):
 
 
 @pytest.mark.asyncio
+async def test_book_price_pct_prices_from_list_price_and_replaces_cash_discount(app, client, bookstore_settings):
+    _, admin, store_id, books = await _setup(client, online=False, cash_price_pct=95)
+    bad = await client.patch(f"/bookstore/stores/{store_id}/settings", headers=admin, json={"book_price_pct": 5})
+    assert bad.status_code == 422
+    r = await client.patch(f"/bookstore/stores/{store_id}/settings", headers=admin, json={"book_price_pct": 45})
+    assert r.status_code == 200, r.text
+    assert r.json()["bookstore_json"]["cash_price_pct"] == 95
+
+    store = (await client.get("/partner/bookstore/stores", headers=_headers(None))).json()[0]
+    assert (store["book_price_pct"], store["cash_price_pct"]) == (45, 100)
+
+    # 定價 300 / 350 -> 45 折 = 135 / 157 (floored)
+    items = (await client.get(f"/partner/bookstore/stores/{store_id}/products", headers=_headers())).json()["items"]
+    assert {i["name"]: (i["price_cents"], i["list_price_cents"]) for i in items} == {
+        "小王子": (135, 300),
+        "被討厭的勇氣": (157, 350),
+    }
+    scanned = await client.get(
+        f"/partner/bookstore/stores/{store_id}/lookup", params={"code": "9789861371955"}, headers=_headers()
+    )
+    assert scanned.json()["price_cents"] == 157
+
+    presence = await _presence(client, store_id)
+    lines = [{"product_id": books[0], "qty": 1}, {"product_id": books[1], "qty": 2}]
+    created = (await _checkout(client, store_id, presence, lines)).json()
+    assert created["subtotal_cents"] == 135 + 157 * 2
+    cash = (await client.post(f"/partner/bookstore/checkouts/{created['id']}/cash", headers=_headers())).json()
+    assert (cash["discount_cents"], cash["total_cents"]) == (0, 449)
+
+    factory = db_mod.get_session_factory()
+    async with factory() as db:
+        product = await db.get(Product, books[0])
+        assert product.price_cents == 250
+
+    off = await client.patch(f"/bookstore/stores/{store_id}/settings", headers=admin, json={"book_price_pct": 100})
+    assert off.status_code == 200
+    items = (await client.get(f"/partner/bookstore/stores/{store_id}/products", headers=_headers())).json()["items"]
+    assert {i["name"]: i["price_cents"] for i in items} == {"小王子": 250, "被討厭的勇氣": 300}
+
+
+@pytest.mark.asyncio
 async def test_cash_at_counter_with_discount(app, client, bookstore_settings):
     _, admin, store_id, books = await _setup(client, online=False, cash_price_pct=95)
     stores = (await client.get("/partner/bookstore/stores", headers=_headers(None))).json()

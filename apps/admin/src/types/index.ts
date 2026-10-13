@@ -550,6 +550,8 @@ export interface BookstoreSettings {
   cash_enabled?: boolean
   /** 現金價佔原價百分比：95 = 95 折 */
   cash_price_pct?: number
+  /** App 售價佔定價百分比：45 = 45 折；100 = 不啟用 */
+  book_price_pct?: number
   online_payment_enabled?: boolean
 }
 

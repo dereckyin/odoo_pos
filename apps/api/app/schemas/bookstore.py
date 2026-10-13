@@ -25,6 +25,7 @@ class BookstoreStoreRead(BaseModel):
     is_open: bool = True
     cash_enabled: bool = True
     cash_price_pct: int = 100
+    book_price_pct: int = 100
     online_payment_enabled: bool = False
     member_sync_enabled: bool = False
 
@@ -243,6 +244,7 @@ class BookstoreSettingsUpdate(BaseModel):
     is_open: bool | None = None
     cash_enabled: bool | None = None
     cash_price_pct: int | None = Field(default=None, ge=50, le=100)
+    book_price_pct: int | None = Field(default=None, ge=10, le=100)
     online_payment_enabled: bool | None = None
 
 

@@ -24,14 +24,31 @@ DOOR_QR_PREFIX = "TAAZEBK1:"
 
 
 CASH_PRICE_PCT_MIN = 50
+BOOK_PRICE_PCT_MIN = 10
 
 
-def _cash_price_pct(value) -> int:
+def _pct(value, minimum: int) -> int:
     try:
         pct = int(value)
     except (TypeError, ValueError):
         return 100
-    return min(100, max(CASH_PRICE_PCT_MIN, pct))
+    return min(100, max(minimum, pct))
+
+
+def _cash_price_pct(value) -> int:
+    return _pct(value, CASH_PRICE_PCT_MIN)
+
+
+def effective_cash_price_pct(cfg: dict) -> int:
+    """A store-wide book price already discounts everything, so the cash discount does not stack."""
+    return 100 if cfg["book_price_pct"] < 100 else cfg["cash_price_pct"]
+
+
+def app_unit_price(price_cents: int, list_price_cents: int | None, book_price_pct: int) -> int:
+    """App price of one copy: 定價 x book_price_pct (floored), or the product price when off / no 定價."""
+    if book_price_pct < 100 and list_price_cents and list_price_cents > 0:
+        return list_price_cents * book_price_pct // 100
+    return int(price_cents)
 
 
 def read_bookstore_settings(store: Store) -> dict:
@@ -41,6 +58,8 @@ def read_bookstore_settings(store: Store) -> dict:
         "cash_enabled": bool(raw.get("cash_enabled", True)),
         # Percentage of the list total paid in cash: 95 means 95 折 (5% off).
         "cash_price_pct": _cash_price_pct(raw.get("cash_price_pct", 100)),
+        # App-only selling price as a percentage of 定價: 45 means 45 折; 100 = off.
+        "book_price_pct": _pct(raw.get("book_price_pct", 100), BOOK_PRICE_PCT_MIN),
         "online_payment_enabled": bool(raw.get("online_payment_enabled", False)),
         "qr_version": int(raw.get("qr_version", 0)),
         "app_terminal_id": raw.get("app_terminal_id"),
@@ -56,6 +75,7 @@ def write_bookstore_settings(store: Store, patch: dict) -> None:
     current = read_bookstore_settings(store)
     current.update({k: v for k, v in patch.items() if v is not None})
     current["cash_price_pct"] = _cash_price_pct(current.get("cash_price_pct"))
+    current["book_price_pct"] = _pct(current.get("book_price_pct"), BOOK_PRICE_PCT_MIN)
     store.bookstore_json = current
 
 

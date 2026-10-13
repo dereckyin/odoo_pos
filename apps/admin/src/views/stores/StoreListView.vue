@@ -139,19 +139,37 @@
           />
         </a-space>
 
-        <a-divider orientation="left" style="margin-top: 20px">App 付款方式</a-divider>
+        <a-divider orientation="left" style="margin-top: 20px">App 售價與付款方式</a-divider>
         <a-form layout="horizontal" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }" style="text-align: left">
+          <a-form-item
+            label="書籍售價折數"
+            extra="以書本定價計算，例：45 = 定價 45 折（零頭捨去）；100 = 不啟用，沿用各書售價。只影響讀冊 App，店內 POS 不變。"
+          >
+            <a-input-number
+              v-model:value="pay.book_price_pct"
+              :min="10"
+              :max="100"
+              :precision="0"
+              addon-after="折"
+              style="width: 140px"
+            />
+          </a-form-item>
           <a-form-item label="現金結帳">
             <a-switch v-model:checked="pay.cash_enabled" checked-children="開放" un-checked-children="關閉" />
           </a-form-item>
-          <a-form-item label="現金價折數" extra="100 = 不打折；95 = 95 折（零頭無條件捨去）">
+          <a-form-item
+            label="現金價折數"
+            :extra="pay.book_price_pct < 100
+              ? '已啟用書籍售價折數，現金不再另外打折'
+              : '100 = 不打折；95 = 95 折（零頭無條件捨去）'"
+          >
             <a-input-number
               v-model:value="pay.cash_price_pct"
               :min="50"
               :max="100"
               :precision="0"
               addon-after="折"
-              :disabled="!pay.cash_enabled"
+              :disabled="!pay.cash_enabled || pay.book_price_pct < 100"
               style="width: 140px"
             />
           </a-form-item>
@@ -159,7 +177,7 @@
             <a-switch v-model:checked="pay.online_payment_enabled" checked-children="開放" un-checked-children="準備中" />
           </a-form-item>
           <a-form-item :wrapper-col="{ offset: 8, span: 16 }">
-            <a-button type="primary" :loading="paySaving" @click="savePaymentSettings">儲存付款設定</a-button>
+            <a-button type="primary" :loading="paySaving" @click="savePaymentSettings">儲存售價與付款設定</a-button>
           </a-form-item>
         </a-form>
       </div>
@@ -194,7 +212,7 @@ const doorQrTarget = ref<StoreRead | null>(null)
 const doorQr = ref<DoorQrRead | null>(null)
 const doorQrLoading = ref(false)
 const paySaving = ref(false)
-const pay = reactive({ cash_enabled: true, cash_price_pct: 100, online_payment_enabled: false })
+const pay = reactive({ cash_enabled: true, cash_price_pct: 100, book_price_pct: 100, online_payment_enabled: false })
 
 const stores = ref<StoreRead[]>([])
 const loading = ref(false)
@@ -306,6 +324,7 @@ async function openDoorQr(record: StoreRead) {
   const cfg = record.bookstore_json || {}
   pay.cash_enabled = cfg.cash_enabled !== false
   pay.cash_price_pct = cfg.cash_price_pct ?? 100
+  pay.book_price_pct = cfg.book_price_pct ?? 100
   pay.online_payment_enabled = Boolean(cfg.online_payment_enabled)
   doorQrOpen.value = true
   doorQrLoading.value = true
@@ -326,10 +345,11 @@ async function savePaymentSettings() {
     const { data } = await updateBookstoreSettings(doorQrTarget.value.id, {
       cash_enabled: pay.cash_enabled,
       cash_price_pct: Math.min(100, Math.max(50, Math.round(pay.cash_price_pct || 100))),
+      book_price_pct: Math.min(100, Math.max(10, Math.round(pay.book_price_pct || 100))),
       online_payment_enabled: pay.online_payment_enabled,
     })
     doorQrTarget.value = data
-    message.success('已儲存付款設定')
+    message.success('已儲存售價與付款設定')
     fetchData()
   } catch (e: any) {
     message.error(e.response?.data?.detail || '儲存失敗')
