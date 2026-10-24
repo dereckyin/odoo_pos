@@ -214,7 +214,9 @@ async def list_products(
     page: int,
     page_size: int,
 ) -> tuple[list[BookstoreProductRead], int]:
-    stmt = _catalog_query(tenant_id, store_id)
+    stmt = _catalog_query(tenant_id, store_id).where(
+        (InventoryLevel.on_hand - InventoryLevel.reserved) > 0,
+    )
     if category_id:
         stmt = stmt.where(Product.category_id == category_id)
     if q:

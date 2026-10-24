@@ -80,6 +80,7 @@ class BookProductRead(BaseModel):
     list_price_cents: int | None = None
     sale_disc: int | None = None
     on_hand: float | None = None
+    last_received_at: datetime | None = None
 
 
 class BookReceiveRequest(BaseModel):

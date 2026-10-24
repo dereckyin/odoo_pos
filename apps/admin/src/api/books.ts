@@ -43,6 +43,7 @@ export interface BookProduct {
   list_price_cents: number | null
   sale_disc: number | null
   on_hand: number | null
+  last_received_at: string | null
 }
 
 export interface BookImportError {
@@ -103,6 +104,15 @@ export function updateConsignmentSettings(payload: Partial<ConsignmentBooksSetti
 
 export function listBooks(params?: { q?: string; store_id?: string }) {
   return client.get<BookProduct[]>('/books', { params })
+}
+
+export function exportBooksCsv(params: {
+  date_from: string
+  date_to: string
+  q?: string
+  store_id?: string
+}) {
+  return client.get('/books/export-csv', { params, responseType: 'blob' })
 }
 
 export function lookupBook(barcode: string) {

@@ -7,7 +7,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..models import BookDetail, Category, InventoryLevel, Product, ProductBarcode
+from ..models import BookDetail, Category, InventoryLevel, InventoryMovement, Product, ProductBarcode
 from .book_lookup import (
     TAAZE_BARCODE_KINDS,
     BookLookupResult,
@@ -303,13 +303,36 @@ async def book_on_hand_by_product(
     return totals
 
 
+async def book_last_received_by_product(
+    db: AsyncSession,
+    tenant_id: str,
+    product_ids: list[str],
+    store_id: str | None = None,
+) -> dict[str, datetime]:
+    """Latest consignment_receive created_at per product."""
+    if not product_ids:
+        return {}
+    stmt = (
+        select(InventoryMovement.product_id, func.max(InventoryMovement.created_at))
+        .where(
+            InventoryMovement.tenant_id == tenant_id,
+            InventoryMovement.product_id.in_(product_ids),
+            InventoryMovement.reason == "consignment_receive",
+        )
+        .group_by(InventoryMovement.product_id)
+    )
+    if store_id:
+        stmt = stmt.where(InventoryMovement.store_id == store_id)
+    return {pid: ts for pid, ts in (await db.execute(stmt)).all() if ts is not None}
+
+
 async def search_books(
     db: AsyncSession,
     tenant_id: str,
     q: str,
     store_id: str | None,
     limit: int = 50,
-) -> list[tuple[Product, float | None]]:
+) -> list[tuple[Product, float | None, datetime | None]]:
     like = f"%{q.strip()}%"
     stmt = (
         select(Product)
@@ -331,13 +354,17 @@ async def search_books(
         .limit(limit)
     )
     products = (await db.execute(stmt)).scalars().unique().all()
-    on_hand_map = await book_on_hand_by_product(
-        db, tenant_id, [p.id for p in products], store_id
-    )
-    return [(p, on_hand_map.get(p.id, 0.0)) for p in products]
+    ids = [p.id for p in products]
+    on_hand_map = await book_on_hand_by_product(db, tenant_id, ids, store_id)
+    recv_map = await book_last_received_by_product(db, tenant_id, ids, store_id)
+    return [(p, on_hand_map.get(p.id, 0.0), recv_map.get(p.id)) for p in products]
 
 
-def product_to_book_read(product: Product, on_hand: float | None = None) -> dict:
+def product_to_book_read(
+    product: Product,
+    on_hand: float | None = None,
+    last_received_at: datetime | None = None,
+) -> dict:
     bd = product.book_detail
     return {
         "id": product.id,
@@ -355,7 +382,53 @@ def product_to_book_read(product: Product, on_hand: float | None = None) -> dict
         "list_price_cents": bd.list_price_cents if bd else None,
         "sale_disc": bd.sale_disc if bd else None,
         "on_hand": on_hand,
+        "last_received_at": last_received_at,
     }
+
+
+def render_books_export_csv(rows: list[dict]) -> str:
+    """UTF-8 BOM CSV for consignment book list export."""
+    import csv
+    from io import StringIO
+
+    buf = StringIO()
+    buf.write("\ufeff")
+    w = csv.writer(buf)
+    w.writerow(
+        [
+            "name",
+            "author",
+            "barcode",
+            "isbn",
+            "list_price",
+            "sale_price",
+            "sale_disc",
+            "on_hand",
+            "last_received_at",
+        ]
+    )
+    for r in rows:
+        list_cents = r.get("list_price_cents")
+        price_cents = r.get("price_cents")
+        recv = r.get("last_received_at")
+        if isinstance(recv, datetime):
+            recv_s = recv.astimezone(timezone.utc).strftime("%Y-%m-%d")
+        else:
+            recv_s = ""
+        w.writerow(
+            [
+                r.get("name") or "",
+                r.get("author") or "",
+                r.get("sku") or "",
+                r.get("isbn") or "",
+                "" if list_cents is None else f"{list_cents / 100:.0f}",
+                "" if price_cents is None else f"{price_cents / 100:.0f}",
+                "" if r.get("sale_disc") is None else r["sale_disc"],
+                r.get("on_hand") if r.get("on_hand") is not None else "",
+                recv_s,
+            ]
+        )
+    return buf.getvalue()
 
 
 __all__ = [
@@ -365,6 +438,9 @@ __all__ = [
     "upsert_book_from_barcode",
     "search_books",
     "product_to_book_read",
+    "book_on_hand_by_product",
+    "book_last_received_by_product",
+    "render_books_export_csv",
     "ensure_consignment_category",
     "ensure_book_category_for_lookup",
 ]

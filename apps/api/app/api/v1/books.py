@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timezone
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import Response
@@ -19,9 +19,11 @@ from ...schemas.book import (
     DiscountPreset,
 )
 from ...services.book_catalog import (
+    book_last_received_by_product,
     book_on_hand_by_product,
     ensure_consignment_category,
     product_to_book_read,
+    render_books_export_csv,
     search_books,
 )
 from ...services.book_import import (
@@ -156,7 +158,10 @@ async def search_book_products(
     if sid:
         await assert_store_allowed(db, scope.tenant_id, sid)
     rows = await search_books(db, scope.tenant_id, q, sid, limit=limit)
-    return [BookProductRead(**product_to_book_read(p, on_hand)) for p, on_hand in rows]
+    return [
+        BookProductRead(**product_to_book_read(p, on_hand, last_recv))
+        for p, on_hand, last_recv in rows
+    ]
 
 
 @router.post("/receive", response_model=BookProductRead)
@@ -227,6 +232,74 @@ async def import_books_csv(
     return BookImportResultRead(**result.to_dict())
 
 
+def _day_start_utc(d: date) -> datetime:
+    return datetime.combine(d, time.min, tzinfo=timezone.utc)
+
+
+def _day_end_utc(d: date) -> datetime:
+    return datetime.combine(d, time.max, tzinfo=timezone.utc)
+
+
+@router.get("/export-csv")
+async def export_books_csv(
+    db: DbSession,
+    scope: TenantAdminDep,
+    date_from: date = Query(..., description="進貨日期起（含）"),
+    date_to: date = Query(..., description="進貨日期迄（含）"),
+    q: str | None = None,
+    store_id: str | None = None,
+) -> Response:
+    """Export consignment books whose last receive falls in [date_from, date_to]."""
+    await assert_consignment_module(db, scope.tenant_id)
+    if date_to < date_from:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "結束日期不可早於開始日期")
+    query = (q or "").strip()
+    if query:
+        triples = await search_books(db, scope.tenant_id, query, store_id, limit=2000)
+        rows = [
+            product_to_book_read(p, on_hand, last_recv)
+            for p, on_hand, last_recv in triples
+        ]
+    else:
+        stmt = (
+            select(Product)
+            .where(
+                Product.tenant_id == scope.tenant_id,
+                Product.deleted_at.is_(None),
+                Product.product_kind == "consignment_book",
+            )
+            .options(selectinload(Product.barcodes), selectinload(Product.book_detail))
+            .order_by(Product.name)
+            .limit(5000)
+        )
+        products = (await db.execute(stmt)).scalars().unique().all()
+        ids = [p.id for p in products]
+        on_hand_map = await book_on_hand_by_product(db, scope.tenant_id, ids, store_id)
+        recv_map = await book_last_received_by_product(db, scope.tenant_id, ids, store_id)
+        rows = [
+            product_to_book_read(p, on_hand_map.get(p.id, 0.0), recv_map.get(p.id))
+            for p in products
+        ]
+    start = _day_start_utc(date_from)
+    end = _day_end_utc(date_to)
+    filtered: list[dict] = []
+    for r in rows:
+        ts = r.get("last_received_at")
+        if ts is None:
+            continue
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        if start <= ts <= end:
+            filtered.append(r)
+    content = render_books_export_csv(filtered)
+    fname = f"books-export-{date_from.isoformat()}_{date_to.isoformat()}.csv"
+    return Response(
+        content=content.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
+    )
+
+
 @router.get("", response_model=list[BookProductRead])
 async def list_books(
     db: DbSession,
@@ -250,12 +323,17 @@ async def list_books(
             .limit(limit)
         )
         products = (await db.execute(stmt)).scalars().unique().all()
-        on_hand_map = await book_on_hand_by_product(
-            db, scope.tenant_id, [p.id for p in products], store_id
-        )
+        ids = [p.id for p in products]
+        on_hand_map = await book_on_hand_by_product(db, scope.tenant_id, ids, store_id)
+        recv_map = await book_last_received_by_product(db, scope.tenant_id, ids, store_id)
         return [
-            BookProductRead(**product_to_book_read(p, on_hand_map.get(p.id, 0.0)))
+            BookProductRead(
+                **product_to_book_read(p, on_hand_map.get(p.id, 0.0), recv_map.get(p.id))
+            )
             for p in products
         ]
     rows = await search_books(db, scope.tenant_id, query, store_id, limit=limit)
-    return [BookProductRead(**product_to_book_read(p, on_hand)) for p, on_hand in rows]
+    return [
+        BookProductRead(**product_to_book_read(p, on_hand, last_recv))
+        for p, on_hand, last_recv in rows
+    ]
