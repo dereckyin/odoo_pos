@@ -102,7 +102,12 @@ export function updateConsignmentSettings(payload: Partial<ConsignmentBooksSetti
   return client.patch<ConsignmentBooksSettings>('/books/settings', payload)
 }
 
-export function listBooks(params?: { q?: string; store_id?: string }) {
+export function listBooks(params?: {
+  q?: string
+  store_id?: string
+  in_stock_only?: boolean
+  limit?: number
+}) {
   return client.get<BookProduct[]>('/books', { params })
 }
 
@@ -111,6 +116,7 @@ export function exportBooksCsv(params: {
   date_to: string
   q?: string
   store_id?: string
+  in_stock_only?: boolean
 }) {
   return client.get('/books/export-csv', { params, responseType: 'blob' })
 }

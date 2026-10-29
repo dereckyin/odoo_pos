@@ -240,6 +240,12 @@ def _day_end_utc(d: date) -> datetime:
     return datetime.combine(d, time.max, tzinfo=timezone.utc)
 
 
+def _filter_in_stock(rows: list[dict], in_stock_only: bool) -> list[dict]:
+    if not in_stock_only:
+        return rows
+    return [r for r in rows if float(r.get("on_hand") or 0) > 0]
+
+
 @router.get("/export-csv")
 async def export_books_csv(
     db: DbSession,
@@ -248,6 +254,7 @@ async def export_books_csv(
     date_to: date = Query(..., description="進貨日期迄（含）"),
     q: str | None = None,
     store_id: str | None = None,
+    in_stock_only: bool = Query(False, description="僅匯出目前有庫存者"),
 ) -> Response:
     """Export consignment books whose last receive falls in [date_from, date_to]."""
     await assert_consignment_module(db, scope.tenant_id)
@@ -291,6 +298,7 @@ async def export_books_csv(
             ts = ts.replace(tzinfo=timezone.utc)
         if start <= ts <= end:
             filtered.append(r)
+    filtered = _filter_in_stock(filtered, in_stock_only)
     content = render_books_export_csv(filtered)
     fname = f"books-export-{date_from.isoformat()}_{date_to.isoformat()}.csv"
     return Response(
@@ -306,10 +314,13 @@ async def list_books(
     scope: TenantAdminDep,
     q: str | None = None,
     store_id: str | None = None,
+    in_stock_only: bool = Query(True, description="僅列出目前有庫存者"),
     limit: int = Query(100, le=200),
 ):
     await assert_consignment_module(db, scope.tenant_id)
     query = q or ""
+    # Fetch extra when filtering stock so page still fills after dropping zeros.
+    fetch_limit = min(500, limit * 5) if in_stock_only else limit
     if not query:
         stmt = (
             select(Product)
@@ -320,20 +331,21 @@ async def list_books(
             )
             .options(selectinload(Product.barcodes), selectinload(Product.book_detail))
             .order_by(Product.name)
-            .limit(limit)
+            .limit(fetch_limit)
         )
         products = (await db.execute(stmt)).scalars().unique().all()
         ids = [p.id for p in products]
         on_hand_map = await book_on_hand_by_product(db, scope.tenant_id, ids, store_id)
         recv_map = await book_last_received_by_product(db, scope.tenant_id, ids, store_id)
-        return [
-            BookProductRead(
-                **product_to_book_read(p, on_hand_map.get(p.id, 0.0), recv_map.get(p.id))
-            )
+        rows = [
+            product_to_book_read(p, on_hand_map.get(p.id, 0.0), recv_map.get(p.id))
             for p in products
         ]
-    rows = await search_books(db, scope.tenant_id, query, store_id, limit=limit)
-    return [
-        BookProductRead(**product_to_book_read(p, on_hand, last_recv))
-        for p, on_hand, last_recv in rows
-    ]
+    else:
+        triples = await search_books(db, scope.tenant_id, query, store_id, limit=fetch_limit)
+        rows = [
+            product_to_book_read(p, on_hand, last_recv)
+            for p, on_hand, last_recv in triples
+        ]
+    filtered = _filter_in_stock(rows, in_stock_only)[:limit]
+    return [BookProductRead(**r) for r in filtered]

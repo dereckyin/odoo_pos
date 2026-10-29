@@ -1,6 +1,6 @@
 <template>
   <div>
-    <a-page-header title="寄賣書籍" sub-title="書籍主檔與庫存" />
+    <a-page-header title="寄賣書籍" sub-title="書籍主檔與庫存（僅顯示有庫存）" />
     <a-space style="margin-bottom: 16px" wrap>
       <a-input-search v-model:value="query" placeholder="書名 / 作者 / 條碼" style="width: 280px" @search="load" />
       <a-select
@@ -11,8 +11,9 @@
         :options="storeOptions"
         @change="load"
       />
+      <a-checkbox v-model:checked="inStockOnly" @change="load">僅有庫存</a-checkbox>
       <a-range-picker v-model:value="exportRange" :allow-clear="true" />
-      <a-button :loading="exporting" @click="handleExport">匯出區間列表</a-button>
+      <a-button type="primary" :loading="exporting" @click="handleExport">下載</a-button>
       <a-button @click="$router.push({ name: 'book-receive' })">寄賣入庫</a-button>
     </a-space>
     <a-table :columns="columns" :data-source="rows" :loading="loading" row-key="id" :pagination="{ pageSize: 30 }">
@@ -40,7 +41,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import type { Dayjs } from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 import { exportBooksCsv, listBooks } from '@/api/books'
 import type { BookProduct } from '@/api/books'
 import { listStores } from '@/api/stores'
@@ -52,7 +53,11 @@ const exporting = ref(false)
 const query = ref('')
 const storeId = ref<string | undefined>()
 const storeOptions = ref<{ label: string; value: string }[]>([])
-const exportRange = ref<[Dayjs, Dayjs] | undefined>()
+const inStockOnly = ref(true)
+const exportRange = ref<[Dayjs, Dayjs] | undefined>([
+  dayjs().subtract(90, 'day'),
+  dayjs(),
+])
 
 const columns = [
   { title: '書名', dataIndex: 'name' },
@@ -92,6 +97,8 @@ async function load() {
     const { data } = await listBooks({
       q: query.value || undefined,
       store_id: storeId.value,
+      in_stock_only: inStockOnly.value,
+      limit: 200,
     })
     rows.value = data
   } catch (e: any) {
@@ -102,18 +109,21 @@ async function load() {
 }
 
 async function handleExport() {
-  if (!exportRange.value || exportRange.value.length !== 2) {
-    message.warning('請先選擇進貨日期區間')
-    return
+  let range = exportRange.value
+  if (!range || range.length !== 2) {
+    range = [dayjs().subtract(90, 'day'), dayjs()]
+    exportRange.value = range
+    message.info('未選區間，已使用近 90 天')
   }
   exporting.value = true
   try {
-    const [from, to] = exportRange.value
+    const [from, to] = range
     const res = await exportBooksCsv({
       date_from: from.format('YYYY-MM-DD'),
       date_to: to.format('YYYY-MM-DD'),
       q: query.value || undefined,
       store_id: storeId.value,
+      in_stock_only: inStockOnly.value,
     })
     const url = URL.createObjectURL(res.data)
     const a = document.createElement('a')
@@ -121,8 +131,9 @@ async function handleExport() {
     a.download = `books-export-${from.format('YYYY-MM-DD')}_${to.format('YYYY-MM-DD')}.csv`
     a.click()
     URL.revokeObjectURL(url)
+    message.success('已開始下載')
   } catch (e: any) {
-    message.error(e?.response?.data?.detail || '匯出失敗')
+    message.error(e?.response?.data?.detail || '下載失敗')
   } finally {
     exporting.value = false
   }

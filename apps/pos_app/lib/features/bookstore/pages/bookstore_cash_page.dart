@@ -55,13 +55,16 @@ class _BookstoreCashPageState extends ConsumerState<BookstoreCashPage> {
           );
       if (!mounted) return;
       final result = data['result']?.toString() ?? 'invalid';
+      final looksLikeBook = RegExp(r'^\d{10,18}$').hasMatch(value) && !RegExp(r'^\d{6}$').hasMatch(value);
       setState(() {
         _cash = data;
         _hint = switch (result) {
           'found' => null,
           'already_paid' => '這筆已經收過款了',
           'closed' => '這筆已取消或退貨，請顧客重新結帳',
-          _ => '找不到這筆現金付款，請確認付款碼',
+          _ => looksLikeBook
+              ? '這像是書本／物流條碼。請改掃顧客 App 的付款 QR，或手打 6 碼付款碼'
+              : '找不到這筆現金付款，請確認付款碼',
         };
       });
     } catch (e) {
