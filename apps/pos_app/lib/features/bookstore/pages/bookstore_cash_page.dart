@@ -114,6 +114,11 @@ class _BookstoreCashPageState extends ConsumerState<BookstoreCashPage> {
           title: const Text('App 收款'),
           actions: [
             IconButton(
+              tooltip: 'App 退貨',
+              icon: const Icon(Icons.assignment_return_outlined),
+              onPressed: () => context.push('/bookstore-refund'),
+            ),
+            IconButton(
               tooltip: '相機掃碼',
               icon: const Icon(Icons.qr_code_scanner),
               onPressed: _openCamera,
@@ -161,6 +166,14 @@ class _BookstoreCashPageState extends ConsumerState<BookstoreCashPage> {
                 child: _confirming
                     ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : Text('確認已收現金 NT\$${checkout['total_cents']}'),
+              ),
+            ],
+            if (_cash?['result'] == 'already_paid' && checkout is Map && checkout['status'] == 'paid') ...[
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: () => context.push('/bookstore-refund'),
+                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                child: Text('這筆已收款 NT\$${checkout['total_cents']} — 前往退貨'),
               ),
             ],
           ],

@@ -148,7 +148,7 @@ async def refund_checkout(
     payload: RefundRequest,
     request: Request,
     db: DbSession,
-    scope: StoreAdminDep,
+    scope: NonKitchenScope,
 ):
     checkout = await svc.load_checkout(db, checkout_id)
     if checkout is None:

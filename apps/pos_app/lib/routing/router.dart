@@ -12,6 +12,7 @@ import '../features/cashier/pages/cashier_page.dart';
 import '../features/cashier/pages/checkout_page.dart';
 import '../data/scanner/barcode_scan_page.dart';
 import '../features/bookstore/pages/bookstore_cash_page.dart';
+import '../features/bookstore/pages/bookstore_refund_page.dart';
 import '../features/cashier/pages/scan_page.dart';
 import '../features/cashier/pages/held_orders_page.dart';
 import '../features/cashier/pages/table_orders_page.dart';
@@ -61,6 +62,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/checkout', builder: (_, __) => const CheckoutPage()),
       GoRoute(path: '/scan', builder: (_, __) => const ScanPage()),
       GoRoute(path: '/bookstore-cash', builder: (_, __) => const BookstoreCashPage()),
+      GoRoute(path: '/bookstore-refund', builder: (_, __) => const BookstoreRefundPage()),
       GoRoute(path: '/barcode-scan', builder: (_, __) => const BarcodeScanPage()),
       GoRoute(path: '/books/search', builder: (_, __) => const BookSearchPage()),
       GoRoute(

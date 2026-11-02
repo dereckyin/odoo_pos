@@ -793,4 +793,6 @@ async def test_cashier_can_login_console_and_take_cash(client, bookstore_setting
     refund = await client.post(
         f"/bookstore/checkouts/{cid}/refund", headers=staff, json={"reason": "test"}
     )
-    assert refund.status_code == 403
+    assert refund.status_code == 200, refund.text
+    assert refund.json()["checkout"]["status"] == "refunded"
+    assert "現金" in refund.json()["message"]

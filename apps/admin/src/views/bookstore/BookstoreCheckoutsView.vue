@@ -73,7 +73,7 @@
             <a-radio-button value="">全部</a-radio-button>
             <a-radio-button value="pending">待付款</a-radio-button>
             <a-radio-button value="paid">已付款</a-radio-button>
-            <a-radio-button v-if="!isCashier" value="refunded">已退貨</a-radio-button>
+            <a-radio-button value="refunded">已退貨</a-radio-button>
           </a-radio-group>
         </template>
         <a-table
@@ -109,7 +109,7 @@
               <span v-else>-</span>
             </template>
             <template v-else-if="column.key === 'actions'">
-              <a-button v-if="!isCashier && record.status === 'paid'" size="small" danger @click="openRefund(record)">退貨</a-button>
+              <a-button v-if="record.status === 'paid'" size="small" danger @click="openRefund(record)">退貨</a-button>
             </template>
           </template>
         </a-table>
@@ -189,7 +189,9 @@ const columns = computed(() => {
     { title: '付款方式', key: 'method', width: 90 },
     { title: '付款時間', key: 'paid_at', width: 160 },
   ]
-  if (isCashier.value) return base
+  if (isCashier.value) {
+    return [...base, { title: '', key: 'actions', width: 80 }]
+  }
   return [
     ...base,
     { title: '發票', key: 'invoice', width: 120 },

@@ -96,6 +96,11 @@ class _CashierPageState extends ConsumerState<CashierPage> {
               icon: const Icon(Icons.qr_code_2),
               onPressed: () => context.push('/bookstore-cash'),
             ),
+            IconButton(
+              tooltip: 'App 退貨',
+              icon: const Icon(Icons.assignment_return_outlined),
+              onPressed: () => context.push('/bookstore-refund'),
+            ),
             const MasterDataSyncButton(),
             if (pendingCount > 0)
               Padding(

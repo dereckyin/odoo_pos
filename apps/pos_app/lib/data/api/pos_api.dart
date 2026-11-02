@@ -454,6 +454,29 @@ class PosApi {
     return _asMap(r.data);
   }
 
+  Future<List<Map<String, dynamic>>> listBookstoreCheckouts({
+    String? storeId,
+    String? status,
+    int limit = 50,
+  }) async {
+    final r = await _dio.get('/bookstore/checkouts', queryParameters: {
+      if (storeId != null) 'store_id': storeId,
+      if (status != null) 'status': status,
+      'limit': limit,
+    });
+    return (r.data as List).map((e) => (e as Map).cast<String, dynamic>()).toList();
+  }
+
+  Future<Map<String, dynamic>> refundBookstoreCheckout({
+    required String checkoutId,
+    required String reason,
+  }) async {
+    final r = await _dio.post('/bookstore/checkouts/$checkoutId/refund', data: {
+      'reason': reason,
+    });
+    return _asMap(r.data);
+  }
+
   Future<Map<String, dynamic>> verifyBookstoreExit({
     String? token,
     String? code,
