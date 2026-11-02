@@ -129,7 +129,7 @@
         type="warning"
         show-icon
         style="margin-bottom: 12px"
-        message="系統會回補庫存並作廢發票；刷卡款項需另至金流後台辦理退刷。"
+        message="系統會回補庫存、回沖本站紅利／回饋金，並將發票作廢送財政部上傳佇列。現金請於櫃檯退還；若已跨期無法自動作廢，需另走折讓。"
       />
       <a-textarea v-model:value="refundReason" placeholder="退貨原因" :rows="3" :maxlength="500" />
     </a-modal>

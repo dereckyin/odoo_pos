@@ -488,7 +488,9 @@ async def test_cash_at_counter_with_discount(app, client, bookstore_settings):
     assert again.json()["result"] == "already_paid"
 
     refund = await client.post(f"/bookstore/checkouts/{cid}/refund", headers=admin, json={"reason": "退貨"})
-    assert "現金 NT$ 522" in refund.json()["message"]
+    body = refund.json()
+    assert "現金 NT$ 522" in body["message"]
+    assert "本站" in body["message"]
 
 
 @pytest.mark.asyncio
@@ -735,6 +737,18 @@ async def test_skip_pos_invoice_and_notify_taaze(app, client, bookstore_settings
     assert headers["X-Taaze-Signature"].startswith("sha256=")
     payload = json.loads(content)
     assert payload["checkout_id"] == cid and payload["status"] == "paid"
+
+    refund = await client.post(
+        f"/bookstore/checkouts/{cid}/refund", headers=admin, json={"reason": "顧客退貨"}
+    )
+    assert refund.status_code == 200, refund.text
+    assert len(captured) == 2
+    rurl, rcontent, _ = captured[1]
+    assert rurl.endswith("/internal/bookstore/refunded")
+    rpayload = json.loads(rcontent)
+    assert rpayload["checkout_id"] == cid and rpayload["status"] == "refunded"
+    assert rpayload["reason"] == "顧客退貨"
+    assert "本站訂單／發票作廢已送上傳佇列" in refund.json()["message"]
 
 
 async def test_cashier_can_login_console_and_take_cash(client, bookstore_settings):

@@ -155,7 +155,9 @@ async def refund_checkout(
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     ensure_same_tenant(scope, checkout)
     _resolve_store_id(scope, checkout.store_id)
-    voided = await svc.refund_checkout(db, checkout, user_id=scope.user_id, reason=payload.reason)
+    voided, taaze_ok = await svc.refund_checkout(
+        db, checkout, user_id=scope.user_id, reason=payload.reason
+    )
     await audit(
         db,
         scope,
@@ -163,7 +165,7 @@ async def refund_checkout(
         resource_type="bookstore_checkout",
         resource_id=checkout_id,
         request=request,
-        extra={"invoice_voided": voided},
+        extra={"invoice_voided": voided, "taaze_notified": taaze_ok},
         flush=False,
     )
     await db.commit()
@@ -172,6 +174,10 @@ async def refund_checkout(
         message = f"已退貨並回補庫存。請退還顧客現金 NT$ {fresh.total_cents}。"
     else:
         message = "已退貨並回補庫存。刷卡款項請至金流後台辦理退刷。"
+    if taaze_ok:
+        message += " 本站訂單／發票作廢已送上傳佇列。"
+    else:
+        message += " 本站訂單回寫未成功，請稍後確認或重試。"
     return RefundResponse(
         checkout=await svc.staff_checkout_read(db, fresh),
         invoice_voided=voided,

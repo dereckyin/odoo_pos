@@ -1193,9 +1193,14 @@ async def verify_exit(
 
 async def refund_checkout(
     db: AsyncSession, checkout: BookstoreCheckout, *, user_id: str, reason: str
-) -> bool:
-    """Restock and mark the sale refunded. Returns whether an issued invoice
-    was voided. The card refund itself is done in the gateway back office."""
+) -> tuple[bool, bool]:
+    """Restock and mark the sale refunded.
+
+    Returns (gateway_invoice_voided, taaze_notified). Cash refund is manual;
+    Oracle order cancel + F0501 run on my_api after notify_refunded.
+    """
+    from .taaze_settle import notify_refunded
+
     now = utcnow()
     res = await db.execute(
         update(BookstoreCheckout)
@@ -1278,4 +1283,6 @@ async def refund_checkout(
         except Exception:  # noqa: BLE001
             logger.exception("bookstore invoice void failed checkout=%s", checkout.id)
         await db.commit()
-    return voided
+
+    notified = await notify_refunded(checkout.id, checkout.total_cents or 0, reason)
+    return voided, notified
