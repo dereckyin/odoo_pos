@@ -537,14 +537,12 @@ async def create_checkout(
     await db.flush()
 
     subtotal = 0
-    tax = 0
     book_price_pct = read_bookstore_settings(store)["book_price_pct"]
     for ln in payload.lines:
         product, book, _level, _cat = by_id[ln.product_id]
         unit = app_unit_price(product.price_cents, book.list_price_cents, book_price_pct)
         line_total = unit * ln.qty
         subtotal += line_total
-        tax += _line_tax(line_total, float(product.tax_rate or 0))
         db.add(
             BookstoreCheckoutLine(
                 checkout_id=checkout.id,
@@ -574,13 +572,29 @@ async def create_checkout(
         raise _error(status.HTTP_400_BAD_REQUEST, "invalid_amount", "結帳金額不正確")
 
     requested_discount = int(payload.member_discount_cents or 0)
+    redeem_bonus = int(payload.redeem_bonus_cents or 0)
+    redeem_acc = int(payload.redeem_acc_cents or 0)
     if not get_settings().BOOKSTORE_MEMBER_SYNC_ENABLED:
         requested_discount = 0
+        redeem_bonus = 0
+        redeem_acc = 0
+    if redeem_bonus or redeem_acc:
+        requested_discount = redeem_bonus + redeem_acc
     cfg = read_bookstore_settings(store)
     member_discount = min(max(requested_discount, 0), _redeem_cap(subtotal, cfg))
+    if redeem_bonus or redeem_acc:
+        use_bonus = min(max(redeem_bonus, 0), member_discount)
+        use_acc = min(max(redeem_acc, 0), max(member_discount - use_bonus, 0))
+    else:
+        # Legacy callers only send the combined member_discount_cents.
+        use_bonus = member_discount
+        use_acc = 0
     checkout.subtotal_cents = subtotal
-    checkout.tax_cents = tax
+    # 實體書店對齊免稅電子發票：不開 5% 內含稅額
+    checkout.tax_cents = 0
     checkout.discount_cents = member_discount
+    checkout.redeem_bonus_cents = use_bonus
+    checkout.redeem_acc_cents = use_acc
     checkout.total_cents = subtotal - member_discount
     await db.commit()
     return await get_customer_checkout(db, tenant_id, customer_ref, checkout.id)
@@ -649,7 +663,7 @@ async def select_cash(db: AsyncSession, checkout: BookstoreCheckout) -> Bookstor
             payment_method="cash",
             discount_cents=discount,
             total_cents=total,
-            tax_cents=discounted_tax(checkout.lines, discount),
+            tax_cents=0,
             cash_code=await _unique_cash_code(db, checkout.store_id),
             expires_at=expires,
         )

@@ -671,6 +671,14 @@ export interface OrderListItem extends OrderRead {
   member_name?: string | null
   payment_methods?: string[]
   source?: string
+  redeem_bonus_cents?: number
+  redeem_acc_cents?: number
+}
+
+export interface OrderListSummary {
+  subtotal_cents: number
+  discount_cents: number
+  net_cents: number
 }
 
 export interface OrderListResponse {
@@ -678,6 +686,7 @@ export interface OrderListResponse {
   total: number
   offset: number
   limit: number
+  summary?: OrderListSummary
 }
 
 export interface UserRead {

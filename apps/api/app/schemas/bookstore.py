@@ -105,6 +105,9 @@ class CheckoutCreate(BaseModel):
     invoice: InvoiceIn | None = None
     # Server-computed by my_api from 紅利/回饋金. The app cannot call this API.
     member_discount_cents: int = Field(default=0, ge=0, le=10_000_000)
+    # Optional wallet split (回饋金 / 帳戶金額). When both 0, member_discount_cents is treated as bonus.
+    redeem_bonus_cents: int = Field(default=0, ge=0, le=10_000_000)
+    redeem_acc_cents: int = Field(default=0, ge=0, le=10_000_000)
     # Already masked by my_api (e.g. 王○明 #2754); never a full name or member id.
     member_label: str | None = Field(default=None, max_length=40)
 

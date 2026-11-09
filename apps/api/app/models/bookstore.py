@@ -49,6 +49,9 @@ class BookstoreCheckout(Base, UUIDPrimaryKey, Timestamped):
     payment_method: Mapped[str | None] = mapped_column(String(16), nullable=True)
     # total_cents = subtotal_cents - discount_cents
     discount_cents: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # Wallet split inside discount (讀冊 回饋金 / 帳戶金額). Survives cash-price rewrite of discount_cents.
+    redeem_bonus_cents: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    redeem_acc_cents: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     cash_code: Mapped[str | None] = mapped_column(String(8), nullable=True, index=True)
     cash_confirmed_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 

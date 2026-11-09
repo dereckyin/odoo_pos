@@ -590,6 +590,58 @@ async def test_member_discount_survives_cash_pct_and_exposes_sku(app, client, bo
 
 
 @pytest.mark.asyncio
+async def test_redeem_split_tax_zero_and_orders_csv(app, client, bookstore_settings):
+    bookstore_settings.BOOKSTORE_MEMBER_SYNC_ENABLED = True
+    _, admin, store_id, books = await _setup(client, online=False)
+    presence = await _presence(client, store_id)
+    r = await client.post(
+        "/partner/bookstore/checkouts",
+        headers=_headers(),
+        json={
+            "store_id": store_id,
+            "presence_token": presence,
+            "client_request_id": "req-redeem-split",
+            "lines": [{"product_id": books[0], "qty": 1}, {"product_id": books[1], "qty": 1}],
+            "member_discount_cents": 7,
+            "redeem_bonus_cents": 4,
+            "redeem_acc_cents": 3,
+            "member_label": "陳○君 #2943",
+        },
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["tax_cents"] == 0
+    assert body["discount_cents"] == 7
+    assert body["total_cents"] == body["subtotal_cents"] - 7
+    cash = await client.post(f"/partner/bookstore/checkouts/{body['id']}/cash", headers=_headers())
+    assert cash.status_code == 200, cash.text
+    assert cash.json()["tax_cents"] == 0
+    ok = await client.post(
+        f"/bookstore/checkouts/{body['id']}/cash-confirm",
+        headers=admin,
+        json={"expected_total_cents": cash.json()["total_cents"]},
+    )
+    assert ok.status_code == 200, ok.text
+
+    orders = await client.get("/orders", headers=admin)
+    assert orders.status_code == 200, orders.text
+    payload = orders.json()
+    item = next(o for o in payload["items"] if o["order_no"] == ok.json()["order_no"])
+    assert item["tax_cents"] == 0
+    assert item["redeem_bonus_cents"] == 4
+    assert item["redeem_acc_cents"] == 3
+    assert payload["summary"]["discount_cents"] >= 7
+    assert payload["summary"]["net_cents"] >= item["total_cents"]
+
+    csv_res = await client.get("/orders/export-csv", headers=admin)
+    assert csv_res.status_code == 200, csv_res.text
+    text = csv_res.content.decode("utf-8-sig")
+    assert "回饋金" in text and "帳戶金額" in text
+    assert ",4,3,0," in text.replace(" ", "")
+    assert "總計" in text
+
+
+@pytest.mark.asyncio
 async def test_masked_member_label_shows_on_orders(app, client, bookstore_settings):
     _, admin, store_id, books = await _setup(client, online=False)
     presence = await _presence(client, store_id)

@@ -68,8 +68,11 @@
         <template v-if="column.key === 'store'">
           {{ record.store_name || '—' }}
         </template>
-        <template v-if="column.key === 'total'">
-          {{ formatMoney(record.total_cents) }}
+        <template v-if="column.key === 'amount'">
+          {{ formatMoney(record.subtotal_cents) }}
+        </template>
+        <template v-if="column.key === 'discount'">
+          {{ formatMoney(record.discount_cents) }}
         </template>
         <template v-if="column.key === 'net'">
           {{ formatMoney(record.total_cents - record.refunded_cents) }}
@@ -94,6 +97,17 @@
           <a-button size="small" @click="goDetail(record.id)">查看</a-button>
         </template>
       </template>
+      <template #summary>
+        <a-table-summary fixed>
+          <a-table-summary-row>
+            <a-table-summary-cell :index="0" :col-span="3">總計</a-table-summary-cell>
+            <a-table-summary-cell :index="3">{{ formatMoney(summary.subtotal_cents) }}</a-table-summary-cell>
+            <a-table-summary-cell :index="4">{{ formatMoney(summary.discount_cents) }}</a-table-summary-cell>
+            <a-table-summary-cell :index="5">{{ formatMoney(summary.net_cents) }}</a-table-summary-cell>
+            <a-table-summary-cell :index="6" :col-span="5" />
+          </a-table-summary-row>
+        </a-table-summary>
+      </template>
     </a-table>
   </div>
 </template>
@@ -117,6 +131,7 @@ const exporting = ref(false)
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
+const summary = ref({ subtotal_cents: 0, discount_cents: 0, net_cents: 0 })
 
 const dateRange = ref<[Dayjs, Dayjs] | null>(null)
 const storeFilter = ref<string | undefined>()
@@ -152,8 +167,9 @@ const columns = [
   { title: '訂單編號', key: 'order_no', width: 180 },
   { title: '交易時間', key: 'time', width: 160 },
   { title: '門店', key: 'store', width: 120 },
-  { title: '金額', key: 'total', width: 110 },
-  { title: '淨額', key: 'net', width: 110 },
+  { title: '金額', key: 'amount', width: 100 },
+  { title: '折抵', key: 'discount', width: 90 },
+  { title: '淨額', key: 'net', width: 100 },
   { title: '狀態', key: 'status', width: 100 },
   { title: '付款', key: 'payment', width: 120 },
   { title: '會員', key: 'member', width: 100 },
@@ -217,6 +233,7 @@ async function fetchData() {
     const { data } = await listOrders(queryParams())
     orders.value = data.items
     total.value = data.total
+    summary.value = data.summary || { subtotal_cents: 0, discount_cents: 0, net_cents: 0 }
   } finally {
     loading.value = false
   }

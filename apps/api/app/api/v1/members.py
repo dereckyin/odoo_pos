@@ -30,7 +30,7 @@ from ...schemas.member import (
 from ...schemas.order import OrderListItem, OrderListResponse
 from ...services.loyalty_engine import loyalty_settings
 from ...services.member_no import next_member_no
-from ...services.order_query import enrich_order_item, load_order_display_maps
+from ...services.order_query import enrich_from_maps, load_order_display_maps
 from ...services.webhooks import emit_webhook
 
 router = APIRouter(prefix="/members", tags=["members"])
@@ -380,13 +380,14 @@ async def list_member_orders(
             base.order_by(Order.client_created_at.desc().nullslast()).limit(limit).offset(offset)
         )
     ).scalars().all()
-    store_map, cashier_map, member_map = await load_order_display_maps(db, rows)
+    store_map, cashier_map, member_map, redeem_map = await load_order_display_maps(db, rows)
     items = [
-        enrich_order_item(
+        enrich_from_maps(
             o,
-            store_name=store_map.get(o.store_id),
-            cashier_name=cashier_map.get(o.cashier_id),
-            member_name=member_map.get(o.member_id) if o.member_id else None,
+            store_map=store_map,
+            cashier_map=cashier_map,
+            member_map=member_map,
+            redeem_map=redeem_map,
         )
         for o in rows
     ]

@@ -28,7 +28,13 @@ from ...models import (
     Tenant,
     TenantMemberLink,
 )
-from ...schemas.order import OrderCreate, OrderListItem, OrderListResponse, OrderRead
+from ...schemas.order import (
+    OrderCreate,
+    OrderListItem,
+    OrderListResponse,
+    OrderListSummary,
+    OrderRead,
+)
 from ...services.option_validation import (
     OptionValidationError,
     load_product_option_context,
@@ -37,10 +43,9 @@ from ...services.option_validation import (
 from ...services.order_number import allocate_order_no
 from ...services.order_query import (
     apply_order_filters,
-    enrich_order_item,
+    enrich_from_maps,
     enrich_single_order,
     load_order_display_maps,
-    order_member_name,
 )
 from ...services.loyalty_engine import apply_order_loyalty
 from ...services.loyalty_eligibility import resolve_product_eligibility
@@ -369,20 +374,51 @@ async def list_orders(
     )
     total = int((await db.execute(select(func.count()).select_from(count_filtered.subquery()))).scalar_one())
 
+    sum_base = apply_tenant(
+        select(
+            func.coalesce(func.sum(Order.subtotal_cents), 0),
+            func.coalesce(func.sum(Order.discount_cents), 0),
+            func.coalesce(func.sum(Order.total_cents), 0),
+            func.coalesce(func.sum(Order.refunded_cents), 0),
+        ),
+        Order,
+        scope,
+    )
+    sum_filtered = apply_order_filters(
+        sum_base,
+        scope=scope,
+        since=since,
+        until=until,
+        status=status,
+        store_id=store_id,
+        member_id=member_id,
+        terminal_id=terminal_id,
+        payment_method=payment_method,
+        q=q,
+        tz=tz,
+    )
+    subtotal_sum, discount_sum, total_sum, refunded_sum = (await db.execute(sum_filtered)).one()
+    summary = OrderListSummary(
+        subtotal_cents=int(subtotal_sum or 0),
+        discount_cents=int(discount_sum or 0),
+        net_cents=int(total_sum or 0) - int(refunded_sum or 0),
+    )
+
     stmt = filtered.order_by(func.coalesce(Order.client_created_at, Order.created_at).desc()).limit(limit).offset(offset)
     rows = (await db.execute(stmt)).scalars().unique().all()
 
-    store_map, cashier_map, member_map = await load_order_display_maps(db, rows)
+    store_map, cashier_map, member_map, redeem_map = await load_order_display_maps(db, rows)
     items = [
-        enrich_order_item(
+        enrich_from_maps(
             o,
-            store_name=store_map.get(o.store_id),
-            cashier_name=cashier_map.get(o.cashier_id),
-            member_name=order_member_name(o, member_map),
+            store_map=store_map,
+            cashier_map=cashier_map,
+            member_map=member_map,
+            redeem_map=redeem_map,
         )
         for o in rows
     ]
-    return OrderListResponse(items=items, total=total, offset=offset, limit=limit)
+    return OrderListResponse(items=items, total=total, offset=offset, limit=limit, summary=summary)
 
 
 @router.get("/export-csv")
@@ -421,7 +457,7 @@ async def export_orders_csv(
         func.coalesce(Order.client_created_at, Order.created_at).desc()
     ).limit(limit)
     rows = (await db.execute(stmt)).scalars().unique().all()
-    store_map, cashier_map, member_map = await load_order_display_maps(db, rows)
+    store_map, cashier_map, member_map, redeem_map = await load_order_display_maps(db, rows)
 
     buf = StringIO()
     fieldnames = [
@@ -431,6 +467,8 @@ async def export_orders_csv(
         "status",
         "subtotal_cents",
         "discount_cents",
+        "回饋金",
+        "帳戶金額",
         "tax_cents",
         "total_cents",
         "refunded_cents",
@@ -443,14 +481,23 @@ async def export_orders_csv(
     ]
     writer = csv.DictWriter(buf, fieldnames=fieldnames, lineterminator="\n")
     writer.writeheader()
+    sum_subtotal = sum_discount = sum_bonus = sum_acc = sum_tax = sum_total = sum_refunded = 0
     for o in rows:
-        item = enrich_order_item(
+        item = enrich_from_maps(
             o,
-            store_name=store_map.get(o.store_id),
-            cashier_name=cashier_map.get(o.cashier_id),
-            member_name=order_member_name(o, member_map),
+            store_map=store_map,
+            cashier_map=cashier_map,
+            member_map=member_map,
+            redeem_map=redeem_map,
         )
         ts = item.client_created_at or item.created_at
+        sum_subtotal += int(item.subtotal_cents or 0)
+        sum_discount += int(item.discount_cents or 0)
+        sum_bonus += int(item.redeem_bonus_cents or 0)
+        sum_acc += int(item.redeem_acc_cents or 0)
+        sum_tax += int(item.tax_cents or 0)
+        sum_total += int(item.total_cents or 0)
+        sum_refunded += int(item.refunded_cents or 0)
         writer.writerow(
             {
                 "order_no": item.order_no or item.id,
@@ -459,6 +506,8 @@ async def export_orders_csv(
                 "status": item.status,
                 "subtotal_cents": item.subtotal_cents,
                 "discount_cents": item.discount_cents,
+                "回饋金": item.redeem_bonus_cents,
+                "帳戶金額": item.redeem_acc_cents,
                 "tax_cents": item.tax_cents,
                 "total_cents": item.total_cents,
                 "refunded_cents": item.refunded_cents,
@@ -470,6 +519,27 @@ async def export_orders_csv(
                 "coupon_code": item.coupon_code or "",
             }
         )
+    writer.writerow(
+        {
+            "order_no": "總計",
+            "created_at": "",
+            "store_name": "",
+            "status": "",
+            "subtotal_cents": sum_subtotal,
+            "discount_cents": sum_discount,
+            "回饋金": sum_bonus,
+            "帳戶金額": sum_acc,
+            "tax_cents": sum_tax,
+            "total_cents": sum_total,
+            "refunded_cents": sum_refunded,
+            "payment_methods": "",
+            "member_name": "",
+            "cashier_name": "",
+            "source": "",
+            "invoice_number": "",
+            "coupon_code": "",
+        }
+    )
 
     return Response(
         content=("\ufeff" + buf.getvalue()).encode("utf-8"),

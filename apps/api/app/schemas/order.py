@@ -120,6 +120,15 @@ class OrderListItem(OrderRead):
     member_name: str | None = None
     payment_methods: list[str] = []
     source: str = "pos"
+    # Bookstore wallet redeem split (0 for non-bookstore orders).
+    redeem_bonus_cents: int = 0
+    redeem_acc_cents: int = 0
+
+
+class OrderListSummary(BaseModel):
+    subtotal_cents: int = 0
+    discount_cents: int = 0
+    net_cents: int = 0
 
 
 class OrderListResponse(BaseModel):
@@ -127,6 +136,7 @@ class OrderListResponse(BaseModel):
     total: int
     offset: int
     limit: int
+    summary: OrderListSummary = OrderListSummary()
 
 
 class RefundLineCreate(BaseModel):

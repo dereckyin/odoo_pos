@@ -27,17 +27,28 @@ def enrich_order_item(
     store_name: str | None = None,
     cashier_name: str | None = None,
     member_name: str | None = None,
+    redeem_bonus_cents: int = 0,
+    redeem_acc_cents: int = 0,
+    is_bookstore: bool = False,
 ) -> OrderListItem:
     base = _order_to_read(order)
     payment_methods = list({p.method for p in order.payments})
-    source = "qr" if order.source_guest_order_id else "pos"
+    if is_bookstore:
+        source = "pos"
+    else:
+        source = "qr" if order.source_guest_order_id else "pos"
     data = base.model_dump()
+    # Bookstore invoices are free-tax; never report the old 5% embedded tax.
+    if is_bookstore:
+        data["tax_cents"] = 0
     data.update(
         store_name=store_name,
         cashier_name=cashier_name,
         member_name=member_name,
         payment_methods=payment_methods,
         source=source,
+        redeem_bonus_cents=int(redeem_bonus_cents or 0),
+        redeem_acc_cents=int(redeem_acc_cents or 0),
     )
     return OrderListItem(**data)
 
@@ -89,10 +100,11 @@ def apply_order_filters(
 
 async def load_order_display_maps(
     db: AsyncSession, orders: list[Order]
-) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
+) -> tuple[dict[str, str], dict[str, str], dict[str, str], dict[str, tuple[int, int]]]:
     store_ids = {o.store_id for o in orders}
     cashier_ids = {o.cashier_id for o in orders}
     member_ids = {o.member_id for o in orders if o.member_id}
+    order_ids = {o.id for o in orders}
 
     store_map: dict[str, str] = {}
     if store_ids:
@@ -115,31 +127,62 @@ async def load_order_display_maps(
         ).all()
         member_map = {r.id: r.name for r in rows}
 
+    redeem_map: dict[str, tuple[int, int]] = {}
     # Bookstore app orders have no 點餐趣 member; key their masked label by order id.
-    guest_order_ids = {o.id for o in orders if not o.member_id}
-    if guest_order_ids:
+    if order_ids:
         rows = (
             await db.execute(
-                select(BookstoreCheckout.order_id, BookstoreCheckout.member_label).where(
-                    BookstoreCheckout.order_id.in_(guest_order_ids),
-                    BookstoreCheckout.member_label.is_not(None),
-                )
+                select(
+                    BookstoreCheckout.order_id,
+                    BookstoreCheckout.member_label,
+                    BookstoreCheckout.redeem_bonus_cents,
+                    BookstoreCheckout.redeem_acc_cents,
+                ).where(BookstoreCheckout.order_id.in_(order_ids))
             )
         ).all()
-        member_map.update({r.order_id: r.member_label for r in rows})
+        for r in rows:
+            if not r.order_id:
+                continue
+            redeem_map[r.order_id] = (
+                int(r.redeem_bonus_cents or 0),
+                int(r.redeem_acc_cents or 0),
+            )
+            if r.member_label and r.order_id not in member_map:
+                member_map[r.order_id] = r.member_label
 
-    return store_map, cashier_map, member_map
+    return store_map, cashier_map, member_map, redeem_map
 
 
 def order_member_name(order: Order, member_map: dict[str, str]) -> str | None:
     return member_map.get(order.member_id or order.id)
 
 
-async def enrich_single_order(db: AsyncSession, order: Order) -> OrderListItem:
-    store_map, cashier_map, member_map = await load_order_display_maps(db, [order])
+def enrich_from_maps(
+    order: Order,
+    *,
+    store_map: dict[str, str],
+    cashier_map: dict[str, str],
+    member_map: dict[str, str],
+    redeem_map: dict[str, tuple[int, int]],
+) -> OrderListItem:
+    bonus, acc = redeem_map.get(order.id, (0, 0))
     return enrich_order_item(
         order,
         store_name=store_map.get(order.store_id),
         cashier_name=cashier_map.get(order.cashier_id),
         member_name=order_member_name(order, member_map),
+        redeem_bonus_cents=bonus,
+        redeem_acc_cents=acc,
+        is_bookstore=order.id in redeem_map,
+    )
+
+
+async def enrich_single_order(db: AsyncSession, order: Order) -> OrderListItem:
+    store_map, cashier_map, member_map, redeem_map = await load_order_display_maps(db, [order])
+    return enrich_from_maps(
+        order,
+        store_map=store_map,
+        cashier_map=cashier_map,
+        member_map=member_map,
+        redeem_map=redeem_map,
     )

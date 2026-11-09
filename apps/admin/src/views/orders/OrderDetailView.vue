@@ -24,8 +24,14 @@
         </a-descriptions-item>
         <a-descriptions-item label="發票號">{{ order.invoice_number || '—' }}</a-descriptions-item>
         <a-descriptions-item label="小計">{{ formatMoney(order.subtotal_cents) }}</a-descriptions-item>
-        <a-descriptions-item label="折扣">{{ formatMoney(order.discount_cents) }}</a-descriptions-item>
-        <a-descriptions-item label="稅額">{{ formatMoney(order.tax_cents) }}</a-descriptions-item>
+        <a-descriptions-item v-if="showWalletSplit" label="回饋金">
+          {{ formatMoney(order.redeem_bonus_cents || 0) }}
+        </a-descriptions-item>
+        <a-descriptions-item v-if="showWalletSplit" label="帳戶餘額">
+          {{ formatMoney(order.redeem_acc_cents || 0) }}
+        </a-descriptions-item>
+        <a-descriptions-item v-else label="折扣">{{ formatMoney(order.discount_cents) }}</a-descriptions-item>
+        <a-descriptions-item label="稅額">{{ formatMoney(displayTax) }}</a-descriptions-item>
         <a-descriptions-item label="總計">{{ formatMoney(order.total_cents) }}</a-descriptions-item>
         <a-descriptions-item label="已退款">{{ formatMoney(order.refunded_cents) }}</a-descriptions-item>
         <a-descriptions-item label="淨額">
@@ -71,14 +77,15 @@
       <a-divider>付款資訊</a-divider>
       <a-table
         :columns="payColumns"
-        :data-source="order?.payments || []"
+        :data-source="paymentRows"
         row-key="id"
         size="small"
         :pagination="false"
       >
         <template #bodyCell="{ column, text }">
           <template v-if="column.key === 'amount'">{{ formatMoney(text) }}</template>
-          <template v-if="column.key === 'method'">{{ paymentLabel(text) }}</template>
+          <template v-if="column.key === 'discount'">{{ formatMoney(text) }}</template>
+          <template v-if="column.key === 'net'">{{ formatMoney(text) }}</template>
         </template>
       </a-table>
     </a-spin>
@@ -86,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 import { getOrder } from '@/api/orders'
@@ -106,10 +113,39 @@ const lineColumns = [
 ]
 
 const payColumns = [
-  { title: '方式', dataIndex: 'method', key: 'method' },
   { title: '金額', dataIndex: 'amount_cents', key: 'amount', width: 120 },
+  { title: '折抵', dataIndex: 'discount_cents', key: 'discount', width: 120 },
+  { title: '淨額', dataIndex: 'net_cents', key: 'net', width: 120 },
   { title: '狀態', dataIndex: 'status', width: 100 },
 ]
+
+const showWalletSplit = computed(() => {
+  const o = order.value
+  if (!o) return false
+  return Boolean((o.redeem_bonus_cents || 0) || (o.redeem_acc_cents || 0) || isBookstoreNote(o.note))
+})
+
+const displayTax = computed(() => {
+  if (!order.value) return 0
+  return showWalletSplit.value || isBookstoreNote(order.value.note) ? 0 : order.value.tax_cents
+})
+
+const paymentRows = computed(() => {
+  const o = order.value
+  if (!o) return []
+  const payments = o.payments?.length ? o.payments : [{ id: 'summary', status: o.status, amount_cents: o.total_cents }]
+  return payments.map((p) => ({
+    id: p.id,
+    amount_cents: o.subtotal_cents,
+    discount_cents: o.discount_cents,
+    net_cents: o.total_cents - o.refunded_cents,
+    status: p.status,
+  }))
+})
+
+function isBookstoreNote(note: string | null | undefined) {
+  return Boolean(note && note.includes('實體書店'))
+}
 
 function formatTime(iso: string | null) {
   if (!iso) return '—'
@@ -127,12 +163,6 @@ function statusLabel(s: string) {
   return (
     { paid: '已付款', partiallyRefunded: '部分退款', refunded: '已退款' } as Record<string, string>
   )[s] || s
-}
-
-function paymentLabel(m: string) {
-  return (
-    { cash: '現金', card: '信用卡', linepay: 'Line Pay', easycard: '悠遊卡' } as Record<string, string>
-  )[m] || m
 }
 
 onMounted(async () => {
