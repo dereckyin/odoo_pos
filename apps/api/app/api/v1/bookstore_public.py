@@ -139,7 +139,7 @@ async def dev_simulate(request: Request, checkout_id: str, db: DbSession, t: str
     trade_no = f"{checkout.payment_trade_no or 'DEV'}{checkout.payment_attempts:02d}"
     if await svc.mark_paid(db, checkout, merchant_trade_no=trade_no, gateway_trade_no="DEV", gateway="dev"):
         await svc.issue_invoice_for_checkout(db, checkout.id)
-        await notify_paid(checkout.id, checkout.total_cents)
+        await notify_paid(checkout.id, checkout.total_cents, db=db)
     return _page("付款完成", "<h1>模擬付款完成</h1><p>請回到讀冊 App。</p>")
 
 
@@ -182,5 +182,5 @@ async def ecpay_notify(request: Request, db: DbSession):
         )
         await db.commit()
         await svc.issue_invoice_for_checkout(db, checkout.id)
-        await notify_paid(checkout.id, checkout.total_cents)
+        await notify_paid(checkout.id, checkout.total_cents, db=db)
     return PlainTextResponse("1|OK")

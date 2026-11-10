@@ -28,6 +28,7 @@ export interface StaffCheckoutRead {
   member_label: string | null
   invoice_status: string
   invoice_number: string | null
+  external_mas_no: string | null
   paid_at: string | null
   paid_after_expiry: boolean
   exit_verified_at: string | null
@@ -90,7 +91,12 @@ export function confirmCashPayment(checkoutId: string, expectedTotalCents: numbe
   })
 }
 
-export function listBookstoreCheckouts(params: { store_id?: string; status?: string; limit?: number }) {
+export function listBookstoreCheckouts(params: {
+  store_id?: string
+  status?: string
+  q?: string
+  limit?: number
+}) {
   return client.get<StaffCheckoutRead[]>('/bookstore/checkouts', { params })
 }
 

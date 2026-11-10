@@ -43,7 +43,9 @@ class BookstoreCheckout(Base, UUIDPrimaryKey, Timestamped):
     invoice_donation_code: Mapped[str | None] = mapped_column(String(16), nullable=True)
     # none | issued | failed | skipped
     invoice_status: Mapped[str] = mapped_column(String(16), default="none")
-    invoice_number: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    invoice_number: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    # 讀冊 Oracle ORDER_MAS.MAS_NO written back after my_api settle (member-facing).
+    external_mas_no: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
 
     # cash | online; chosen by the customer, locked once cash is selected
     payment_method: Mapped[str | None] = mapped_column(String(16), nullable=True)

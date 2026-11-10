@@ -69,13 +69,53 @@
       <a-card size="small">
         <template #title>
           App 結帳紀錄
-          <a-radio-group v-model:value="statusFilter" size="small" style="margin-left: 12px" @change="reload">
+          <a-radio-group v-model:value="statusFilter" size="small" style="margin-left: 12px" @change="onStatusChange">
             <a-radio-button value="">全部</a-radio-button>
             <a-radio-button value="pending">待付款</a-radio-button>
             <a-radio-button value="paid">已付款</a-radio-button>
             <a-radio-button value="refunded">已退貨</a-radio-button>
           </a-radio-group>
         </template>
+        <a-input-search
+          v-model:value="purchaseQ"
+          placeholder="輸入本站訂單號（026…）或發票號（HH…）查購買紀錄"
+          enter-button="查詢"
+          allow-clear
+          style="margin-bottom: 12px; max-width: 520px"
+          :loading="loading"
+          @search="searchPurchase"
+        />
+        <a-alert
+          v-if="searchHint"
+          type="info"
+          show-icon
+          style="margin-bottom: 12px"
+          :message="searchHint"
+        />
+        <div v-if="searchHit" class="purchase-hit">
+          <div class="purchase-hit-title">確認購買紀錄</div>
+          <ul class="verify-lines">
+            <li v-for="ln in searchHit.lines" :key="ln.product_id">
+              {{ ln.product_name }} × {{ ln.qty }}　NT$ {{ ln.line_total_cents }}
+            </li>
+          </ul>
+          <div class="cash-row">訂單 {{ searchHit.order_no || '—' }}</div>
+          <div v-if="searchHit.external_mas_no" class="cash-row">本站訂單號 {{ searchHit.external_mas_no }}</div>
+          <div v-if="searchHit.invoice_number" class="cash-row">發票號 {{ searchHit.invoice_number }}</div>
+          <div class="cash-row">
+            {{ searchHit.payment_method === 'cash' ? '現金' : '線上' }}・
+            {{ searchHit.paid_at ? fmt(searchHit.paid_at) : '—' }}
+          </div>
+          <div class="cash-due">NT$ {{ searchHit.total_cents }}</div>
+          <a-space style="margin-top: 8px">
+            <a-tag :color="statusColor(searchHit.status)">{{ statusLabel(searchHit.status) }}</a-tag>
+            <a-button v-if="searchHit.status === 'paid'" type="primary" danger @click="openRefund(searchHit)">
+              退貨
+            </a-button>
+            <span v-else-if="searchHit.status === 'refunded'" class="cash-row">此筆已退貨</span>
+            <span v-else class="cash-row">此狀態不可退貨</span>
+          </a-space>
+        </div>
         <a-table
           :columns="columns"
           :data-source="rows"
@@ -103,10 +143,11 @@
               {{ record.payment_method === 'cash' ? '現金' : record.payment_method ? '線上' : '-' }}
             </template>
             <template v-else-if="column.key === 'paid_at'">{{ record.paid_at ? fmt(record.paid_at) : '-' }}</template>
-            <template v-else-if="column.key === 'invoice'">
-              <span v-if="record.invoice_number">{{ record.invoice_number }}</span>
+            <template v-else-if="column.key === 'docs'">
+              <div v-if="record.external_mas_no">{{ record.external_mas_no }}</div>
+              <div v-if="record.invoice_number">{{ record.invoice_number }}</div>
               <a-tag v-else-if="record.invoice_status === 'failed'" color="red">開立失敗</a-tag>
-              <span v-else>-</span>
+              <span v-if="!record.external_mas_no && !record.invoice_number && record.invoice_status !== 'failed'">-</span>
             </template>
             <template v-else-if="column.key === 'actions'">
               <a-button v-if="record.status === 'paid'" size="small" danger @click="openRefund(record)">退貨</a-button>
@@ -124,7 +165,11 @@
       :confirm-loading="refunding"
       @ok="doRefund"
     >
-      <p v-if="refundTarget">訂單 {{ refundTarget.order_no }}・NT$ {{ refundTarget.total_cents }}</p>
+      <p v-if="refundTarget">
+        訂單 {{ refundTarget.order_no || '—' }}・NT$ {{ refundTarget.total_cents }}
+        <template v-if="refundTarget.external_mas_no"><br />本站訂單號 {{ refundTarget.external_mas_no }}</template>
+        <template v-if="refundTarget.invoice_number"><br />發票號 {{ refundTarget.invoice_number }}</template>
+      </p>
       <a-alert
         type="warning"
         show-icon
@@ -161,6 +206,9 @@ const storeId = ref<string>()
 const rows = ref<StaffCheckoutRead[]>([])
 const loading = ref(false)
 const statusFilter = ref('')
+const purchaseQ = ref('')
+const searchHit = ref<StaffCheckoutRead | null>(null)
+const searchHint = ref('')
 
 const cashInput = ref()
 const cashValue = ref('')
@@ -179,25 +227,17 @@ const refundTarget = ref<StaffCheckoutRead | null>(null)
 const refundReason = ref('')
 const refunding = ref(false)
 
-const columns = computed(() => {
-  const base = [
-    { title: '訂單', dataIndex: 'order_no', width: 170 },
-    { title: '會員', key: 'member', width: 130 },
-    { title: '狀態', key: 'status', width: 140 },
-    { title: '品項', key: 'items' },
-    { title: '金額', key: 'total', width: 100 },
-    { title: '付款方式', key: 'method', width: 90 },
-    { title: '付款時間', key: 'paid_at', width: 160 },
-  ]
-  if (isCashier.value) {
-    return [...base, { title: '', key: 'actions', width: 80 }]
-  }
-  return [
-    ...base,
-    { title: '發票', key: 'invoice', width: 120 },
-    { title: '', key: 'actions', width: 80 },
-  ]
-})
+const columns = computed(() => [
+  { title: '訂單', dataIndex: 'order_no', width: 170 },
+  { title: '會員', key: 'member', width: 130 },
+  { title: '狀態', key: 'status', width: 140 },
+  { title: '品項', key: 'items' },
+  { title: '金額', key: 'total', width: 100 },
+  { title: '付款方式', key: 'method', width: 90 },
+  { title: '付款時間', key: 'paid_at', width: 160 },
+  { title: '本站訂單／發票', key: 'docs', width: 140 },
+  { title: '', key: 'actions', width: 80 },
+])
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleString()
@@ -275,6 +315,41 @@ async function reload() {
     rows.value = data
   } catch (e: any) {
     message.error(e.response?.data?.detail || '無法載入')
+  } finally {
+    loading.value = false
+  }
+}
+
+function onStatusChange() {
+  purchaseQ.value = ''
+  searchHit.value = null
+  searchHint.value = ''
+  reload()
+}
+
+async function searchPurchase() {
+  const q = purchaseQ.value.trim()
+  searchHit.value = null
+  searchHint.value = ''
+  if (!q || !storeId.value) return
+  loading.value = true
+  try {
+    const { data } = await listBookstoreCheckouts({
+      store_id: storeId.value,
+      q,
+      limit: 20,
+    })
+    rows.value = data
+    if (!data.length) {
+      searchHint.value = '找不到符合的購買紀錄，請確認本站訂單號或發票號'
+      return
+    }
+    searchHit.value = data[0]
+    if (data.length > 1) {
+      searchHint.value = `找到 ${data.length} 筆，請確認下方第一筆或從列表選取`
+    }
+  } catch (e: any) {
+    message.error(errText(e, '查詢失敗'))
   } finally {
     loading.value = false
   }
@@ -362,5 +437,17 @@ onMounted(async () => {
   color: #999;
   font-size: 12px;
   text-decoration: line-through;
+}
+.purchase-hit {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+}
+.purchase-hit-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 6px;
 }
 </style>

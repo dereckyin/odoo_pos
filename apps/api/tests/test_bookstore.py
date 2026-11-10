@@ -765,6 +765,11 @@ async def test_skip_pos_invoice_and_notify_taaze(app, client, bookstore_settings
 
         async def post(self, url, content=None, headers=None):
             captured.append((url, content, headers))
+            if str(url).endswith("/paid"):
+                return httpx.Response(
+                    200,
+                    json={"mas_no": "02611107844505", "inv_no": "HH29317651", "status": "settled"},
+                )
             return httpx.Response(200, json={"ok": True})
 
     monkeypatch.setattr(bookstore_settings, "BOOKSTORE_SKIP_POS_INVOICE", True)
@@ -782,13 +787,29 @@ async def test_skip_pos_invoice_and_notify_taaze(app, client, bookstore_settings
         json={"expected_total_cents": cash["total_cents"]},
     )
     assert ok.status_code == 200, ok.text
-    assert ok.json()["invoice_status"] == "skipped"
+    assert ok.json()["external_mas_no"] == "02611107844505"
+    assert ok.json()["invoice_number"] == "HH29317651"
     assert len(captured) == 1
     url, content, headers = captured[0]
     assert url.endswith("/internal/bookstore/paid")
     assert headers["X-Taaze-Signature"].startswith("sha256=")
     payload = json.loads(content)
     assert payload["checkout_id"] == cid and payload["status"] == "paid"
+
+    by_mas = await client.get(
+        "/bookstore/checkouts",
+        headers=admin,
+        params={"store_id": store_id, "q": "02611107844505"},
+    )
+    assert by_mas.status_code == 200, by_mas.text
+    assert len(by_mas.json()) == 1 and by_mas.json()[0]["id"] == cid
+
+    by_inv = await client.get(
+        "/bookstore/checkouts",
+        headers=admin,
+        params={"store_id": store_id, "q": "HH29317651"},
+    )
+    assert by_inv.status_code == 200 and by_inv.json()[0]["id"] == cid
 
     refund = await client.post(
         f"/bookstore/checkouts/{cid}/refund", headers=admin, json={"reason": "顧客退貨"}

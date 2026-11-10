@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers.dart';
 import '../../../core/user_facing_error.dart';
 
-/// Floor staff: list paid App checkouts and refund (restock + MOF cancel queue).
+/// Floor staff: search purchase by mas_no / invoice, then refund.
 class BookstoreRefundPage extends ConsumerStatefulWidget {
   const BookstoreRefundPage({super.key});
 
@@ -17,6 +17,8 @@ class _BookstoreRefundPageState extends ConsumerState<BookstoreRefundPage> {
   bool _refunding = false;
   String? _hint;
   List<Map<String, dynamic>> _rows = const [];
+  Map<String, dynamic>? _hit;
+  final _qCtl = TextEditingController();
 
   String? get _storeId => ref.read(authStateProvider).session?.storeId;
 
@@ -26,10 +28,18 @@ class _BookstoreRefundPageState extends ConsumerState<BookstoreRefundPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _reload());
   }
 
+  @override
+  void dispose() {
+    _qCtl.dispose();
+    super.dispose();
+  }
+
   Future<void> _reload() async {
     setState(() {
       _loading = true;
       _hint = null;
+      _hit = null;
+      _qCtl.clear();
     });
     try {
       final rows = await ref.read(posApiProvider).listBookstoreCheckouts(
@@ -47,10 +57,57 @@ class _BookstoreRefundPageState extends ConsumerState<BookstoreRefundPage> {
     }
   }
 
+  Future<void> _search() async {
+    final q = _qCtl.text.trim();
+    if (q.isEmpty) {
+      await _reload();
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _hint = null;
+      _hit = null;
+    });
+    try {
+      final rows = await ref.read(posApiProvider).listBookstoreCheckouts(
+            storeId: _storeId,
+            q: q,
+            limit: 20,
+          );
+      if (!mounted) return;
+      setState(() {
+        _rows = rows;
+        if (rows.isEmpty) {
+          _hint = '找不到符合的購買紀錄，請確認本站訂單號或發票號';
+        } else {
+          _hit = rows.first;
+          if (rows.length > 1) {
+            _hint = '找到 ${rows.length} 筆，請確認下方第一筆或從列表選取';
+          }
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _hint = formatUserFacingError(e));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  String _docsLine(Map<String, dynamic> c) {
+    final parts = <String>[];
+    final mas = c['external_mas_no']?.toString();
+    final inv = c['invoice_number']?.toString();
+    if (mas != null && mas.isNotEmpty) parts.add('本站 $mas');
+    if (inv != null && inv.isNotEmpty) parts.add('發票 $inv');
+    return parts.join(' · ');
+  }
+
   Future<void> _refund(Map<String, dynamic> checkout) async {
     final id = checkout['id']?.toString();
     final total = (checkout['total_cents'] as num?)?.toInt() ?? 0;
     final orderNo = checkout['order_no']?.toString() ?? id ?? '';
+    final docs = _docsLine(checkout);
     if (id == null) return;
 
     final reasonCtl = TextEditingController(text: '顧客退貨');
@@ -63,6 +120,7 @@ class _BookstoreRefundPageState extends ConsumerState<BookstoreRefundPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text('訂單 $orderNo'),
+            if (docs.isNotEmpty) Text(docs),
             Text('退還現金 NT\$$total', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             const Text('會回補庫存，並作廢本站發票（送上傳佇列）。'),
@@ -116,6 +174,42 @@ class _BookstoreRefundPageState extends ConsumerState<BookstoreRefundPage> {
     }
   }
 
+  Widget _hitCard(Map<String, dynamic> c) {
+    final status = c['status']?.toString() ?? '';
+    final total = (c['total_cents'] as num?)?.toInt() ?? 0;
+    final lines = (c['lines'] as List? ?? [])
+        .whereType<Map>()
+        .map((ln) => '${ln['product_name']} × ${ln['qty']}')
+        .join('、');
+    final canRefund = status == 'paid';
+    return Card(
+      color: const Color(0xFFF6FFED),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('確認購買紀錄', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 8),
+            Text(c['order_no']?.toString() ?? c['id']?.toString() ?? ''),
+            if (_docsLine(c).isNotEmpty) Text(_docsLine(c)),
+            if (lines.isNotEmpty) Text(lines),
+            Text('NT\$$total', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            if (canRefund)
+              FilledButton(
+                onPressed: _refunding ? null : () => _refund(c),
+                style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+                child: const Text('退貨'),
+              )
+            else
+              Text(status == 'refunded' ? '此筆已退貨' : '此狀態不可退貨'),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -135,14 +229,43 @@ class _BookstoreRefundPageState extends ConsumerState<BookstoreRefundPage> {
           const Padding(
             padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
             child: Text(
-              '選擇已付款的 App 訂單退貨。現金請於櫃檯退還顧客。',
+              '用本站訂單號或發票號查購買紀錄後再退貨。現金請於櫃檯退還顧客。',
               style: TextStyle(fontSize: 16),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _qCtl,
+                    decoration: const InputDecoration(
+                      hintText: '本站訂單號（026…）或發票號（HH…）',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (_) => _search(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: _loading || _refunding ? null : _search,
+                  child: const Text('查詢'),
+                ),
+              ],
             ),
           ),
           if (_hint != null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
               child: Text(_hint!, style: const TextStyle(fontWeight: FontWeight.w600)),
+            ),
+          if (_hit != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _hitCard(_hit!),
             ),
           Expanded(
             child: _loading
@@ -161,11 +284,14 @@ class _BookstoreRefundPageState extends ConsumerState<BookstoreRefundPage> {
                               .join('、');
                           final total = (c['total_cents'] as num?)?.toInt() ?? 0;
                           final method = c['payment_method']?.toString() == 'cash' ? '現金' : '線上';
+                          final docs = _docsLine(c);
+                          final canRefund = c['status']?.toString() == 'paid';
                           return ListTile(
                             title: Text(c['order_no']?.toString() ?? c['id']?.toString() ?? ''),
                             subtitle: Text(
                               [
                                 if ((c['member_label'] as String?)?.isNotEmpty == true) c['member_label'],
+                                if (docs.isNotEmpty) docs,
                                 if (lines.isNotEmpty) lines,
                                 method,
                               ].whereType<String>().join(' · '),
@@ -175,10 +301,11 @@ class _BookstoreRefundPageState extends ConsumerState<BookstoreRefundPage> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text('NT\$$total', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                TextButton(
-                                  onPressed: _refunding ? null : () => _refund(c),
-                                  child: const Text('退貨'),
-                                ),
+                                if (canRefund)
+                                  TextButton(
+                                    onPressed: _refunding ? null : () => _refund(c),
+                                    child: const Text('退貨'),
+                                  ),
                               ],
                             ),
                             isThreeLine: true,

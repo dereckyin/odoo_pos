@@ -167,6 +167,7 @@ class CheckoutRead(BaseModel):
     paid_at: datetime | None = None
     invoice_status: str
     invoice_number: str | None = None
+    external_mas_no: str | None = None
     order_no: str | None = None
     exit_verified_at: datetime | None = None
     exit_pass: ExitPassRead | None = None
@@ -219,6 +220,7 @@ class StaffCheckoutRead(BaseModel):
     member_label: str | None = None
     invoice_status: str
     invoice_number: str | None = None
+    external_mas_no: str | None = None
     paid_at: datetime | None = None
     paid_after_expiry: bool = False
     exit_verified_at: datetime | None = None

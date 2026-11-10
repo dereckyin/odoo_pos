@@ -457,11 +457,13 @@ class PosApi {
   Future<List<Map<String, dynamic>>> listBookstoreCheckouts({
     String? storeId,
     String? status,
+    String? q,
     int limit = 50,
   }) async {
     final r = await _dio.get('/bookstore/checkouts', queryParameters: {
       if (storeId != null) 'store_id': storeId,
       if (status != null) 'status': status,
+      if (q != null && q.trim().isNotEmpty) 'q': q.trim(),
       'limit': limit,
     });
     return (r.data as List).map((e) => (e as Map).cast<String, dynamic>()).toList();

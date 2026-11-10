@@ -117,7 +117,7 @@ async def confirm_cash(
     )
     await db.commit()
     await svc.issue_invoice_for_checkout(db, checkout.id)
-    await notify_paid(checkout.id, checkout.total_cents)
+    await notify_paid(checkout.id, checkout.total_cents, db=db)
     return await svc.staff_checkout_read(db, await svc.load_checkout(db, checkout.id))
 
 
@@ -127,19 +127,35 @@ async def list_checkouts(
     scope: NonKitchenScope,
     store_id: str | None = None,
     status_filter: str | None = Query(None, alias="status", pattern="^(pending|paid|expired|cancelled|refunded)$"),
+    q: str | None = Query(None, max_length=64, description="本站訂單號 / 發票號 / POS 訂單號"),
     limit: int = Query(50, ge=1, le=200),
 ):
+    from ...services.taaze_settle import find_checkout_ids_by_q
+
     sid = _resolve_store_id(scope, store_id)
     await svc.load_bookstore(db, scope.tenant_id, sid)
-    stmt = select(BookstoreCheckout.id).where(
-        BookstoreCheckout.tenant_id == scope.tenant_id, BookstoreCheckout.store_id == sid
-    )
-    if status_filter:
-        stmt = stmt.where(BookstoreCheckout.status == status_filter)
-    ids = (
-        await db.execute(stmt.order_by(BookstoreCheckout.created_at.desc()).limit(limit))
-    ).scalars().all()
-    return [await svc.staff_checkout_read(db, await svc.load_checkout(db, cid)) for cid in ids]
+    if q and q.strip():
+        ids = await find_checkout_ids_by_q(
+            db, tenant_id=scope.tenant_id, store_id=sid, q=q.strip(), limit=limit
+        )
+    else:
+        stmt = select(BookstoreCheckout.id).where(
+            BookstoreCheckout.tenant_id == scope.tenant_id, BookstoreCheckout.store_id == sid
+        )
+        if status_filter:
+            stmt = stmt.where(BookstoreCheckout.status == status_filter)
+        ids = (
+            await db.execute(stmt.order_by(BookstoreCheckout.created_at.desc()).limit(limit))
+        ).scalars().all()
+    out: list[StaffCheckoutRead] = []
+    for cid in ids:
+        checkout = await svc.load_checkout(db, cid)
+        if checkout is None:
+            continue
+        if status_filter and checkout.status != status_filter:
+            continue
+        out.append(await svc.staff_checkout_read(db, checkout))
+    return out
 
 
 @router.post("/checkouts/{checkout_id}/refund", response_model=RefundResponse)
